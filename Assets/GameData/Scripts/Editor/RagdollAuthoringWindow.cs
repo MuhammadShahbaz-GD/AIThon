@@ -18,6 +18,7 @@ namespace KickTheBuddy.Editor
         private float standUpDelay = 2f;
         private float standingStrength = 95f;
         private float getUpStrength = 220f;
+        private RagdollProfile physicsProfile;
         private Color skinColor = new Color(1f, 0.72f, 0.44f);
         private Color bodyColor = new Color(0.20f, 0.62f, 0.95f);
         private Color limbColor = new Color(0.28f, 0.72f, 0.98f);
@@ -35,9 +36,14 @@ namespace KickTheBuddy.Editor
             scale = EditorGUILayout.Slider("Overall Scale", scale, 0.4f, 3f);
             DrawAppearance();
             DrawPhysics();
+            physicsProfile = (RagdollProfile)EditorGUILayout.ObjectField("Physics Profile", physicsProfile, typeof(RagdollProfile), false);
 
             if (GUILayout.Button("Create New Ragdoll", GUILayout.Height(30f)))
-                Selection.activeGameObject = RagdollEditorFactory.Create(ragdollName, spawnPosition, scale, skinColor, bodyColor, limbColor);
+            {
+                GameObject created = RagdollEditorFactory.Create(ragdollName, spawnPosition, scale, skinColor, bodyColor, limbColor);
+                AssignProfile(created.GetComponent<RagdollController>());
+                Selection.activeGameObject = created;
+            }
 
             EditorGUILayout.Space(14f);
             EditorGUILayout.LabelField("Customize Existing Ragdoll", EditorStyles.boldLabel);
@@ -108,10 +114,20 @@ namespace KickTheBuddy.Editor
             SetFloat(serialized, "standUpDelay", standUpDelay);
             SetFloat(serialized, "standingMotorTorque", standingStrength);
             SetFloat(serialized, "getUpMotorTorque", getUpStrength);
+            serialized.FindProperty("activeProfile").objectReferenceValue = physicsProfile;
             serialized.ApplyModifiedProperties();
             EditorUtility.SetDirty(controller);
 
             EditorSceneManager.MarkSceneDirty(root.scene);
+        }
+
+        private void AssignProfile(RagdollController controller)
+        {
+            if (controller == null) return;
+            SerializedObject serialized = new SerializedObject(controller);
+            serialized.FindProperty("activeProfile").objectReferenceValue = physicsProfile;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(controller);
         }
 
         private static void SetFloat(SerializedObject target, string propertyName, float value)

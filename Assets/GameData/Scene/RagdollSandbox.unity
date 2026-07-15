@@ -425,8 +425,8 @@ Transform:
   m_GameObject: {fileID: 445156164}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -4.25, z: 0}
-  m_LocalScale: {x: 122.244, y: 0.5, z: 1}
+  m_LocalPosition: {x: 0, y: -4.9, z: 0}
+  m_LocalScale: {x: 132.94035, y: 0.5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 619335712}
@@ -958,8 +958,8 @@ Transform:
   m_GameObject: {fileID: 1074520996}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 5.75, y: 0.75, z: 0}
-  m_LocalScale: {x: 0.5, y: 69.625, z: 1}
+  m_LocalPosition: {x: 10.4, y: 0.75, z: 0}
+  m_LocalScale: {x: 0.5, y: 82.67969, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 619335712}
@@ -1798,7 +1798,7 @@ Transform:
   m_GameObject: {fileID: 1653507344}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -5.75, y: 0.75, z: 0}
+  m_LocalPosition: {x: -10.2, y: 0.75, z: 0}
   m_LocalScale: {x: 0.5, y: 79.75, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2114,9 +2114,72 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab455a9e3bece714983edee1b13c922c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  discoverPartsOnAwake: 1
-  parts: []
-  inputCamera: {fileID: 0}
+  discoverPartsOnAwake: 0
+  parts:
+  - displayName: Torso
+    body: {fileID: 1649876819}
+    colliders:
+    - {fileID: 1649876820}
+    hinges: []
+  - displayName: Head
+    body: {fileID: 1990132076}
+    colliders:
+    - {fileID: 1990132077}
+    hinges:
+    - {fileID: 1990132075}
+  - displayName: Left Upper Arm
+    body: {fileID: 1198307693}
+    colliders:
+    - {fileID: 1198307695}
+    hinges:
+    - {fileID: 1198307694}
+  - displayName: Left Lower Arm
+    body: {fileID: 1821446807}
+    colliders:
+    - {fileID: 1821446808}
+    hinges:
+    - {fileID: 1821446806}
+  - displayName: Right Upper Arm
+    body: {fileID: 1587646686}
+    colliders:
+    - {fileID: 1587646688}
+    hinges:
+    - {fileID: 1587646687}
+  - displayName: Right Lower Arm
+    body: {fileID: 81175197}
+    colliders:
+    - {fileID: 81175198}
+    hinges:
+    - {fileID: 81175196}
+  - displayName: Left Upper Leg
+    body: {fileID: 517382171}
+    colliders:
+    - {fileID: 517382173}
+    hinges:
+    - {fileID: 517382172}
+  - displayName: Left Lower Leg
+    body: {fileID: 1675246361}
+    colliders:
+    - {fileID: 1675246362}
+    hinges:
+    - {fileID: 1675246360}
+  - displayName: Right Upper Leg
+    body: {fileID: 503350098}
+    colliders:
+    - {fileID: 503350100}
+    hinges:
+    - {fileID: 503350099}
+  - displayName: Right Lower Leg
+    body: {fileID: 1384513156}
+    colliders:
+    - {fileID: 1384513157}
+    hinges:
+    - {fileID: 1384513155}
+  ragdollCategory: 0
+  applyCategoryOnAwake: 0
+  activeProfile: {fileID: 11400000, guid: fe94a23211a21114cb01f6017d7d2286, type: 2}
+  inputCamera: {fileID: 83975540}
+  useCentralizedMouseInput: 0
   grabbableLayers:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -2128,15 +2191,30 @@ MonoBehaviour:
   damagePerSpeed: 2.5
   maximumDamagePerImpact: 35
   comboTimeout: 1.25
+  enableLimbBreaking: 1
+  limbHealth: 45
+  jointBreakStress: 450
+  jointStressDamageRate: 0.02
   reviveDelay: 4
-  activeMuscles: 1
-  muscleTorque: 90
-  poseSpeedGain: 7
+  gravityScaleDefault: 0.6
+  gravityScaleKnockedOut: 1.2
+  dragDefault: 1
+  angularDragDefault: 1.5
+  standUpDelay: 2
+  standUpSpeed: 2
+  fallenAngle: 65.6
+  standingAngle: 2
+  standingMotorTorque: 95
+  getUpMotorTorque: 220
+  poseSpeedGain: 10
   maximumMotorSpeed: 180
-  idleMotionDegrees: 4
-  idleMotionFrequency: 1.15
-  uprightTorque: 18
-  uprightDamping: 2.5
+  standingBalanceTorque: 20
+  getUpBalanceTorque: 65
+  balanceDamping: 3
+  idleAngleDeadZone: 2
+  idleAngularVelocityDeadZone: 5
+  getUpLiftForce: 52
+  maximumGetUpVelocity: 2.5
   currentHealth: 0
   currentCombo: 0
   currentState: 0
@@ -2376,8 +2454,8 @@ Transform:
   m_GameObject: {fileID: 1821656161}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 5.75, z: 0}
-  m_LocalScale: {x: 66.600006, y: 0.5, z: 1}
+  m_LocalPosition: {x: 0, y: 6.2, z: 0}
+  m_LocalScale: {x: 141.52501, y: 0.5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 619335712}

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 246783239a3ff1642ba1617a9dfea851, type: 3}
+  m_Name: Jelly Character
+  m_EditorClassIdentifier: 
+  profileName: Jelly Character
+  profileType: 2
+  damageParticleColor: {r: 0.35, g: 1, b: 0.65, a: 1}
+  massMultiplier: 0.55
+  linearDrag: 0.04
+  angularDrag: 0.08
+  useGravity: 1
+  gravityScaleModifier: 0.9
+  jointSpringForce: 42
+  jointDamping: 0.8
+  customPhysicsMaterial: {fileID: 6200000, guid: a06e2043d71dbab42aa75d12c95df6ea, type: 2}

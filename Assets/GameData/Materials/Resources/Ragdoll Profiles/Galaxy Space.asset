@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 246783239a3ff1642ba1617a9dfea851, type: 3}
+  m_Name: Galaxy Space
+  m_EditorClassIdentifier: 
+  profileName: Galaxy Space
+  profileType: 4
+  damageParticleColor: {r: 0.25, g: 0.85, b: 1, a: 1}
+  massMultiplier: 0.8
+  linearDrag: 0.005
+  angularDrag: 0.03
+  useGravity: 0
+  gravityScaleModifier: 0
+  jointSpringForce: 0
+  jointDamping: 0.05
+  customPhysicsMaterial: {fileID: 6200000, guid: 8f9026a4a3a5bf0488852cc414a603b4, type: 2}
