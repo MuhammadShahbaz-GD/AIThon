@@ -13,6 +13,8 @@ namespace KickTheBuddy.Physics
         [SerializeField] private GameObject breakParticlesPrefab;
         [Min(0f)] [SerializeField] private float jointStressThreshold = 450f;
         [Min(0f)] [SerializeField] private float stressDamagePerForceSecond = 0.02f;
+        [Tooltip("Optional hazard mode. Leave disabled for normal characters so only collisions and attacks damage joints.")]
+        [SerializeField] private bool damageFromJointStress;
 
         private Rigidbody2D body;
         private HingeJoint2D parentJoint;
@@ -40,10 +42,19 @@ namespace KickTheBuddy.Physics
 
         private void FixedUpdate()
         {
-            if (severed || parentJoint == null || !parentJoint.enabled) return;
+            if (!damageFromJointStress || severed || parentJoint == null || !parentJoint.enabled) return;
+            // User dragging may create very large solver reaction forces. Those forces are not impacts
+            // and must never consume structural health; damage is supplied by collisions/tools/status effects.
+            if (owner != null && owner.IsUserDragging) return;
             float excessForce = parentJoint.reactionForce.magnitude - jointStressThreshold;
             if (excessForce > 0f)
                 TakeDamage(excessForce * stressDamagePerForceSecond * Time.fixedDeltaTime, Vector2.zero, body.worldCenterOfMass);
+        }
+
+        internal void SetStressDamageEnabled(bool enabled)
+        {
+            if (!enabled) return;
+            // Kept as an explicit extension point for hazards that deliberately stress joints.
         }
 
         public void TakeDamage(float damage, Vector2 damageForce, Vector2 damagePoint)

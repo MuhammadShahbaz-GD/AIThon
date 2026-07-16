@@ -6,6 +6,6 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/RagdollSandbox.unity
+    path: Assets/GameData/Scene/RagdollSandbox.unity
     guid: 19f92faaaa603c441bffc798208d611e
   m_configObjects: {}

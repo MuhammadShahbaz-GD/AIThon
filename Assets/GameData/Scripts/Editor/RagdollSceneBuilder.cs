@@ -71,6 +71,8 @@ namespace KickTheBuddy.Editor
         {
             GameObject go = Visual(name, parent, position, size, new Color(0.18f, 0.22f, 0.30f), 0);
             go.AddComponent<BoxCollider2D>();
+            RagdollAttackManager2D attack = go.AddComponent<RagdollAttackManager2D>();
+            attack.Configure(RagdollAttackType.Wall, 0f, 2.5f, 3.5f, 35f);
         }
 
         private static void CreateRagdoll()

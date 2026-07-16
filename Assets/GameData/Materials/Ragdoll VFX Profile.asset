@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed60f40f2acf5db4b9478affb3fdd60d, type: 3}
+  m_Name: Ragdoll VFX Profile
+  m_EditorClassIdentifier: 
+  hitPrefab: {fileID: 3454520011626756970, guid: b0849beb451b03944a79412e19e3e643, type: 3}
+  damagePrefab: {fileID: 6288183675038766984, guid: 4f3264aac6658d748bb48a6f78818304, type: 3}
+  breakPrefab: {fileID: 8036275858632670077, guid: e5d59133ab5a95a4c9ffc697d50d1065, type: 3}
+  deathExplosionPrefab: {fileID: 8331888208089472100, guid: 97dcfb53643de4942a1957199f820ba6, type: 3}
+  hitPool: 8
+  damagePool: 6
+  breakPool: 4
+  deathPool: 2
+  damageBurstThreshold: 8
+  minimumScale: 0.7
+  maximumScale: 1.6

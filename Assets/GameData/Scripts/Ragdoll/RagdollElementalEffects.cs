@@ -22,6 +22,7 @@ namespace KickTheBuddy.Physics
         [Min(0.1f)] [SerializeField] private float dissolveDuration = 2.5f;
 
         private RagdollController controller;
+        private RagdollDamageManager damageManager;
         private SpriteRenderer[] renderers = Array.Empty<SpriteRenderer>();
         private Color[] originalColors = Array.Empty<Color>();
         private DismemberableLimb[] limbs = Array.Empty<DismemberableLimb>();
@@ -40,6 +41,7 @@ namespace KickTheBuddy.Physics
         private void Awake()
         {
             controller = GetComponent<RagdollController>();
+            damageManager = GetComponent<RagdollDamageManager>();
             renderers = GetComponentsInChildren<SpriteRenderer>(true);
             originalColors = new Color[renderers.Length];
             for (int i = 0; i < renderers.Length; i++) originalColors[i] = renderers[i].color;
@@ -90,8 +92,9 @@ namespace KickTheBuddy.Physics
                 for (int i = 0; i < renderers.Length; i++)
                     if (renderers[i] != null) renderers[i].color = Color.Lerp(originalColors[i], charredColor, t);
                 float damage = burnDamagePerSecond * Time.fixedDeltaTime;
-                for (int i = 0; i < limbs.Length; i++)
-                    if (limbs[i] != null) limbs[i].TakeDamage(damage, Vector2.zero, limbs[i].transform.position);
+                for (int i = 0; i < bodies.Length; i++)
+                    if (bodies[i] != null) damageManager?.ApplyDirectDamage(
+                        bodies[i], damage, damage, Vector2.zero, bodies[i].worldCenterOfMass);
                 yield return wait;
             }
             effectRoutine = null;
