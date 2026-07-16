@@ -7,6 +7,14 @@ namespace KickTheBuddy.Physics
     [DisallowMultipleComponent]
     public sealed class RagdollRigController2D : MonoBehaviour
     {
+        public enum JointRole
+        {
+            Other,
+            Head,
+            Arm,
+            Leg
+        }
+
         public sealed class JointRuntime
         {
             public HingeJoint2D Joint;
@@ -15,6 +23,8 @@ namespace KickTheBuddy.Physics
             public bool AuthoredUseMotor;
             public JointMotor2D AuthoredMotor;
             public float RestAngle;
+            public JointRole Role;
+            public bool IsUpperLimb;
         }
 
         public sealed class BodyRuntime
@@ -47,12 +57,14 @@ namespace KickTheBuddy.Physics
         private RagdollController owner;
         private RagdollDamageManager damageManager;
         private Rigidbody2D torso;
+        private Rigidbody2D head;
 
         public IReadOnlyList<RagdollController.RagdollPart> Parts => parts;
         public IReadOnlyList<JointRuntime> Joints => joints;
         public IReadOnlyList<BodyRuntime> Bodies => bodies;
         public IReadOnlyList<ColliderRuntime> Colliders => colliders;
         public Rigidbody2D Torso => torso;
+        public Rigidbody2D Head => head;
         public float BaseLimbHealth => fallbackLimbHealth;
 
         internal void Initialize(RagdollController controller, RagdollDamageManager damage)
@@ -70,6 +82,7 @@ namespace KickTheBuddy.Physics
             colliders.Clear();
             breakableLimbs.Clear();
             torso = null;
+            head = null;
 
             Rigidbody2D[] discoveredBodies = GetComponentsInChildren<Rigidbody2D>(true);
             for (int i = 0; i < discoveredBodies.Length; i++)
@@ -81,6 +94,8 @@ namespace KickTheBuddy.Physics
                 parts.Add(part);
                 if (torso == null && body.name.IndexOf("torso", StringComparison.OrdinalIgnoreCase) >= 0)
                     torso = body;
+                if (head == null && body.name.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0)
+                    head = body;
 
                 bodies.Add(new BodyRuntime
                 {
@@ -151,7 +166,9 @@ namespace KickTheBuddy.Physics
                     AuthoredLimits = hinge.limits,
                     AuthoredUseMotor = hinge.useMotor,
                     AuthoredMotor = hinge.motor,
-                    RestAngle = hinge.jointAngle
+                    RestAngle = hinge.jointAngle,
+                    Role = ResolveJointRole(body.name),
+                    IsUpperLimb = body.name.IndexOf("upper", StringComparison.OrdinalIgnoreCase) >= 0
                 });
             }
         }
@@ -233,6 +250,13 @@ namespace KickTheBuddy.Physics
                     breakableLimbs[i].SetDurabilityMultiplier(fallbackLimbHealth, multiplier);
         }
 
+        private static JointRole ResolveJointRole(string partName)
+        {
+            if (partName.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0) return JointRole.Head;
+            if (partName.IndexOf("arm", StringComparison.OrdinalIgnoreCase) >= 0) return JointRole.Arm;
+            if (partName.IndexOf("leg", StringComparison.OrdinalIgnoreCase) >= 0) return JointRole.Leg;
+            return JointRole.Other;
+        }
         private static void ConfigurePartDefaults(RagdollPartHealth part, string partName)
         {
             string value = partName.ToLowerInvariant();
