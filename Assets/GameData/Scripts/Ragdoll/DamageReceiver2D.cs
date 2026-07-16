@@ -8,27 +8,19 @@ namespace KickTheBuddy.Physics
     [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D))]
     public sealed class DamageReceiver2D : MonoBehaviour
     {
-        [Header("Drag Flexibility")]
-        [Tooltip("Lower values feel softer and more flexible. 3.5 is smooth by default.")]
-        [Range(0.5f, 12f)] [SerializeField] private float dragFrequency = 3.5f;
-        [Tooltip("Higher damping removes wobble while retaining elastic movement.")]
-        [Range(0f, 1f)] [SerializeField] private float dragDampingRatio = 0.9f;
-        [Min(0f)] [SerializeField] private float dragMaxForce = 1200f;
-        [Tooltip("Seconds used to smooth the pointer target before physics receives it.")]
-        [Range(0.01f, 0.25f)] [SerializeField] private float targetSmoothTime = 0.055f;
-        [Tooltip("Maximum pointer target speed after smoothing.")]
-        [Min(1f)] [SerializeField] private float maximumTargetSpeed = 45f;
-        [Header("Elastic Limits")]
-        [Tooltip("Pointer-follow distance before the drag spring becomes softer. The pointer target itself is never clamped.")]
-        [Min(0.05f)] [SerializeField] private float headStretchLimit = 0.55f;
-        [Min(0.05f)] [SerializeField] private float armStretchLimit = 1.1f;
-        [Min(0.05f)] [SerializeField] private float legStretchLimit = 0.85f;
-        [Min(0.05f)] [SerializeField] private float defaultStretchLimit = 0.65f;
-        [Range(0.1f, 1f)] [SerializeField] private float stretchedFrequencyMultiplier = 0.8f;
-        [Header("Head Drag Assist")]
-        [Tooltip("Head dragging must pull the mass of the complete ragdoll through the neck joint.")]
-        [Range(1f, 3f)] [SerializeField] private float headForceMultiplier = 1.5f;
-        [Range(1f, 2f)] [SerializeField] private float headFrequencyMultiplier = 1.15f;
+        // Common drag feel is owned and authored by RagdollInputManager.
+        private float dragFrequency = 5f;
+        private float dragDampingRatio = .9f;
+        private float dragMaxForce = 1900f;
+        private float targetSmoothTime = .03f;
+        private float maximumTargetSpeed = 75f;
+        private float headStretchLimit = .55f;
+        private float armStretchLimit = 1.1f;
+        private float legStretchLimit = .85f;
+        private float defaultStretchLimit = .65f;
+        private float stretchedFrequencyMultiplier = .9f;
+        private float headForceMultiplier = 1.8f;
+        private float headFrequencyMultiplier = 1.3f;
         [Header("Reactions")]
         [Min(0f)] [SerializeField] private float knockoutForceThreshold = 18f;
         [Min(0f)] [SerializeField] private float knockoutDuration = 2f;
@@ -55,6 +47,35 @@ namespace KickTheBuddy.Physics
         public event Action<Vector2, float, float> ExplosionApplied;
         public event Action<float> KnockoutRequested;
 
+        internal void ApplyDragConfiguration(RagdollInputManager.DragConfiguration settings)
+        {
+            if (settings == null) return;
+
+            dragFrequency = settings.Frequency;
+            dragDampingRatio = settings.DampingRatio;
+            dragMaxForce = settings.MaximumForce;
+            targetSmoothTime = settings.TargetSmoothTime;
+            maximumTargetSpeed = settings.MaximumTargetSpeed;
+            headStretchLimit = settings.HeadStretchLimit;
+            armStretchLimit = settings.ArmStretchLimit;
+            legStretchLimit = settings.LegStretchLimit;
+            defaultStretchLimit = settings.DefaultStretchLimit;
+            stretchedFrequencyMultiplier = settings.StretchedFrequencyMultiplier;
+            headForceMultiplier = settings.HeadForceMultiplier;
+            headFrequencyMultiplier = settings.HeadFrequencyMultiplier;
+            RefreshPartDragMultipliers();
+        }
+
+        private void RefreshPartDragMultipliers()
+        {
+            stretchLimit = ResolveStretchLimit(name);
+            bool isHead = name.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0;
+            partForceMultiplier = isHead ? headForceMultiplier : 1f;
+            partFrequencyMultiplier = isHead ? headFrequencyMultiplier : 1f;
+            RagdollPartHealth partHealth = GetComponent<RagdollPartHealth>();
+            if (partHealth != null) partFrequencyMultiplier *= partHealth.Flexibility;
+        }
+
         public Rigidbody2D Body => body;
         public RagdollPartHealth PartHealth => body != null ? body.GetComponent<RagdollPartHealth>() : null;
 
@@ -63,12 +84,7 @@ namespace KickTheBuddy.Physics
             body = GetComponent<Rigidbody2D>();
             controller = GetComponentInParent<RagdollController>();
             dismemberable = GetComponent<DismemberableLimb>();
-            stretchLimit = ResolveStretchLimit(name);
-            bool isHead = name.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0;
-            partForceMultiplier = isHead ? headForceMultiplier : 1f;
-            partFrequencyMultiplier = isHead ? headFrequencyMultiplier : 1f;
-            RagdollPartHealth partHealth = GetComponent<RagdollPartHealth>();
-            if (partHealth != null) partFrequencyMultiplier *= partHealth.Flexibility;
+            RefreshPartDragMultipliers();
             elements = controller != null ? controller.GetComponent<RagdollElementalEffects>() : null;
             damageManager = controller != null ? controller.GetComponent<RagdollDamageManager>() : null;
         }
@@ -184,13 +200,6 @@ namespace KickTheBuddy.Physics
             if (dragJoint != null) dragJoint.enabled = false;
         }
 
-        private void OnValidate()
-        {
-            headStretchLimit = Mathf.Max(.05f, headStretchLimit); armStretchLimit = Mathf.Max(.05f, armStretchLimit);
-            legStretchLimit = Mathf.Max(.05f, legStretchLimit); defaultStretchLimit = Mathf.Max(.05f, defaultStretchLimit);
-            targetSmoothTime = Mathf.Clamp(targetSmoothTime, .01f, .25f); maximumTargetSpeed = Mathf.Max(1f, maximumTargetSpeed);
-            headForceMultiplier = Mathf.Clamp(headForceMultiplier, 1f, 3f);
-            headFrequencyMultiplier = Mathf.Clamp(headFrequencyMultiplier, 1f, 2f);
-        }
+
     }
 }

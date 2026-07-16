@@ -13,6 +13,16 @@ namespace KickTheBuddy.Physics
         Dead
     }
 
+    public enum IdleFaceExpression
+    {
+        Neutral,
+        Happy,
+        Curious,
+        Sleepy,
+        Surprised,
+        Grumpy
+    }
+
     /// <summary>
     /// Coordinates procedural face reactions and an optional Animator without applying physics forces.
     /// </summary>
@@ -30,6 +40,22 @@ namespace KickTheBuddy.Physics
         [Min(.03f)] [SerializeField] private float blinkDuration = .12f;
         [Range(0f, .1f)] [SerializeField] private float idleGazeDistance = .04f;
         [Range(0f, .05f)] [SerializeField] private float idleFaceBob = .012f;
+        [Min(.25f)] [SerializeField] private float minimumExpressionDuration = 1.5f;
+        [Min(.25f)] [SerializeField] private float maximumExpressionDuration = 3.5f;
+        [Min(0f)] [SerializeField] private float expressionBlendSpeed = 10f;
+
+        [Header("Face Layout")]
+        [Tooltip("Moves the complete procedural face in the head's local space.")]
+        [SerializeField] private Vector2 facePositionOffset = Vector2.zero;
+        [Tooltip("Scales the complete face without changing the head sprite.")]
+        [SerializeField] private Vector2 faceScale = Vector2.one;
+        [Range(.01f, .6f)] [SerializeField] private float eyeSpacing = .18f;
+        [Range(-.5f, .5f)] [SerializeField] private float eyeVerticalOffset = .1f;
+        [Range(.02f, .5f)] [SerializeField] private float eyeWidth = .18f;
+        [SerializeField] private Vector2 pupilPositionOffset = Vector2.zero;
+        [SerializeField] private Vector2 pupilScale = new Vector2(.38f, .45f);
+        [SerializeField] private Vector2 mouthPositionOffset = new Vector2(0f, -.2f);
+        [Range(.02f, .6f)] [SerializeField] private float mouthWidth = .22f;
 
         [Header("Reactions")]
         [Min(.05f)] [SerializeField] private float damageReactionDuration = .28f;
@@ -66,11 +92,15 @@ namespace KickTheBuddy.Physics
         private bool blinking;
         private bool dragging;
         private bool inputBound;
+        private IdleFaceExpression idleExpression;
+        private float nextIdleExpressionTime;
+        private float curiousDirection = 1f;
 
         public event Action<RagdollAnimationState> StateChanged;
         public event Action<RagdollPartHealth, float> DamageReactionPlayed;
         public event Action<DamageReceiver2D> DragReactionStarted;
         public event Action IdleAnimationStarted;
+        public event Action<IdleFaceExpression> IdleExpressionChanged;
 
         public RagdollAnimationState CurrentState => state;
 
@@ -93,6 +123,7 @@ namespace KickTheBuddy.Physics
 
             lastInteractionTime = Time.time;
             ScheduleBlink();
+            ScheduleIdleExpression();
         }
 
         private void Start()
@@ -184,7 +215,11 @@ namespace KickTheBuddy.Physics
                 animator.SetBool(KnockedOutParameter, state == RagdollAnimationState.KnockedOut);
             }
 
-            if (state == RagdollAnimationState.Idle) IdleAnimationStarted?.Invoke();
+            if (state == RagdollAnimationState.Idle)
+            {
+                SelectNextIdleExpression();
+                IdleAnimationStarted?.Invoke();
+            }
             StateChanged?.Invoke(state);
         }
 
@@ -244,63 +279,244 @@ namespace KickTheBuddy.Physics
             RestoreBodyColors();
         }
 
+        private struct FacePose
+        {
+            public float LeftEyeHeight;
+            public float RightEyeHeight;
+            public float LeftEyeAngle;
+            public float RightEyeAngle;
+            public float MouthHeight;
+            public float MouthWidthMultiplier;
+            public float MouthAngle;
+            public float FaceAngle;
+            public Vector2 Gaze;
+            public Vector2 FaceMotion;
+        }
+
         private void UpdateFace()
         {
-            if (face == null || leftEye == null || rightEye == null) return;
+            if (face == null || leftEye == null || rightEye == null ||
+                leftPupil == null || rightPupil == null || mouth == null) return;
 
-            float eyeHeight = .25f;
-            Vector2 gaze = Vector2.zero;
-            float mouthHeight = .05f;
-            Vector3 facePosition = Vector3.zero;
+            FacePose pose = EvaluateFacePose();
+            if ((state == RagdollAnimationState.Idle || state == RagdollAnimationState.Relaxed) && blinking)
+            {
+                pose.LeftEyeHeight = .05f;
+                pose.RightEyeHeight = .05f;
+            }
+
+            float blend = expressionBlendSpeed <= 0f
+                ? 1f
+                : 1f - Mathf.Exp(-expressionBlendSpeed * Time.deltaTime);
+
+            Vector3 targetFacePosition = new Vector3(
+                facePositionOffset.x + pose.FaceMotion.x,
+                facePositionOffset.y + pose.FaceMotion.y,
+                0f);
+            Vector3 targetFaceScale = new Vector3(
+                Mathf.Max(.01f, faceScale.x),
+                Mathf.Max(.01f, faceScale.y),
+                1f);
+            face.localPosition = Vector3.Lerp(face.localPosition, targetFacePosition, blend);
+            face.localScale = Vector3.Lerp(face.localScale, targetFaceScale, blend);
+            face.localRotation = Quaternion.Lerp(
+                face.localRotation,
+                Quaternion.Euler(0f, 0f, pose.FaceAngle),
+                blend);
+
+            leftEye.localPosition = Vector3.Lerp(
+                leftEye.localPosition,
+                new Vector3(-eyeSpacing, eyeVerticalOffset, -.01f),
+                blend);
+            rightEye.localPosition = Vector3.Lerp(
+                rightEye.localPosition,
+                new Vector3(eyeSpacing, eyeVerticalOffset, -.01f),
+                blend);
+            leftEye.localScale = Vector3.Lerp(
+                leftEye.localScale,
+                new Vector3(eyeWidth, pose.LeftEyeHeight, 1f),
+                blend);
+            rightEye.localScale = Vector3.Lerp(
+                rightEye.localScale,
+                new Vector3(eyeWidth, pose.RightEyeHeight, 1f),
+                blend);
+            leftEye.localRotation = Quaternion.Lerp(
+                leftEye.localRotation,
+                Quaternion.Euler(0f, 0f, pose.LeftEyeAngle),
+                blend);
+            rightEye.localRotation = Quaternion.Lerp(
+                rightEye.localRotation,
+                Quaternion.Euler(0f, 0f, pose.RightEyeAngle),
+                blend);
+
+            Vector3 targetGaze = new Vector3(
+                pose.Gaze.x + pupilPositionOffset.x,
+                pose.Gaze.y + pupilPositionOffset.y,
+                0f);
+            Vector3 targetPupilScale = new Vector3(
+                Mathf.Max(.01f, pupilScale.x),
+                Mathf.Max(.01f, pupilScale.y),
+                1f);
+            leftPupil.localPosition = Vector3.Lerp(leftPupil.localPosition, targetGaze, blend);
+            rightPupil.localPosition = Vector3.Lerp(rightPupil.localPosition, targetGaze, blend);
+            leftPupil.localScale = Vector3.Lerp(leftPupil.localScale, targetPupilScale, blend);
+            rightPupil.localScale = Vector3.Lerp(rightPupil.localScale, targetPupilScale, blend);
+
+            mouth.localPosition = Vector3.Lerp(
+                mouth.localPosition,
+                new Vector3(mouthPositionOffset.x, mouthPositionOffset.y, -.01f),
+                blend);
+            mouth.localScale = Vector3.Lerp(
+                mouth.localScale,
+                new Vector3(mouthWidth * pose.MouthWidthMultiplier, pose.MouthHeight, 1f),
+                blend);
+            mouth.localRotation = Quaternion.Lerp(
+                mouth.localRotation,
+                Quaternion.Euler(0f, 0f, pose.MouthAngle),
+                blend);
+        }
+
+        private FacePose EvaluateFacePose()
+        {
+            FacePose pose = new FacePose
+            {
+                LeftEyeHeight = .25f,
+                RightEyeHeight = .25f,
+                MouthHeight = .05f,
+                MouthWidthMultiplier = 1f
+            };
 
             switch (state)
             {
                 case RagdollAnimationState.Idle:
                     UpdateBlink();
-                    eyeHeight = blinking ? .05f : .24f;
-                    float time = Time.time;
-                    gaze = new Vector2(Mathf.Sin(time * .8f), Mathf.Sin(time * .43f)) * idleGazeDistance;
-                    facePosition.y = Mathf.Sin(time * 1.5f) * idleFaceBob;
-                    mouthHeight = .045f + Mathf.Sin(time * 1.5f) * .008f;
+                    UpdateIdleExpression();
+                    EvaluateIdleExpression(ref pose);
                     break;
 
                 case RagdollAnimationState.Dragged:
-                    eyeHeight = .32f;
-                    gaze = DirectionToLocalPoint(dragPoint) * .065f;
-                    mouthHeight = .1f;
+                    pose.LeftEyeHeight = .32f;
+                    pose.RightEyeHeight = .32f;
+                    pose.Gaze = DirectionToLocalPoint(dragPoint) * .065f;
+                    pose.MouthHeight = .1f;
+                    pose.MouthWidthMultiplier = .8f;
                     break;
 
                 case RagdollAnimationState.Hurt:
-                    eyeHeight = Mathf.Lerp(.16f, .06f, reactionStrength);
-                    gaze = new Vector2(0f, -.025f);
-                    mouthHeight = .035f;
+                    pose.LeftEyeHeight = Mathf.Lerp(.16f, .06f, reactionStrength);
+                    pose.RightEyeHeight = pose.LeftEyeHeight;
+                    pose.Gaze = new Vector2(0f, -.025f);
+                    pose.MouthHeight = .035f;
+                    pose.MouthAngle = 8f;
                     break;
 
                 case RagdollAnimationState.KnockedOut:
-                    eyeHeight = .045f;
-                    mouthHeight = .025f;
+                    pose.LeftEyeHeight = .045f;
+                    pose.RightEyeHeight = .045f;
+                    pose.MouthHeight = .025f;
+                    pose.FaceAngle = 5f;
                     break;
 
                 case RagdollAnimationState.Dead:
-                    eyeHeight = .025f;
-                    gaze = Vector2.zero;
-                    mouthHeight = .02f;
+                    pose.LeftEyeHeight = .025f;
+                    pose.RightEyeHeight = .025f;
+                    pose.MouthHeight = .02f;
+                    pose.MouthAngle = -6f;
                     break;
 
                 default:
                     UpdateBlink();
-                    eyeHeight = blinking ? .05f : .25f;
-                    gaze = DirectionToPointer() * idleGazeDistance;
+                    pose.Gaze = DirectionToPointer() * idleGazeDistance;
                     break;
             }
 
-            face.localPosition = facePosition;
-            SetEyeHeight(eyeHeight);
-            leftPupil.localPosition = gaze;
-            rightPupil.localPosition = gaze;
-            mouth.localScale = new Vector3(.22f, mouthHeight, 1f);
+            return pose;
         }
 
+        private void EvaluateIdleExpression(ref FacePose pose)
+        {
+            float time = Time.time;
+            float slowWave = Mathf.Sin(time * 1.5f);
+            pose.FaceMotion.y = slowWave * idleFaceBob;
+
+            switch (idleExpression)
+            {
+                case IdleFaceExpression.Happy:
+                    pose.LeftEyeHeight = .17f;
+                    pose.RightEyeHeight = .17f;
+                    pose.Gaze = new Vector2(Mathf.Sin(time * .7f), .015f) * idleGazeDistance;
+                    pose.MouthHeight = .085f + slowWave * .01f;
+                    pose.MouthWidthMultiplier = 1.2f;
+                    break;
+
+                case IdleFaceExpression.Curious:
+                    pose.LeftEyeHeight = curiousDirection < 0f ? .31f : .21f;
+                    pose.RightEyeHeight = curiousDirection > 0f ? .31f : .21f;
+                    pose.Gaze = new Vector2(curiousDirection * idleGazeDistance, .015f);
+                    pose.MouthHeight = .04f;
+                    pose.MouthWidthMultiplier = .75f;
+                    pose.FaceAngle = curiousDirection * -4f;
+                    break;
+
+                case IdleFaceExpression.Sleepy:
+                    pose.LeftEyeHeight = .085f;
+                    pose.RightEyeHeight = .085f;
+                    pose.Gaze = new Vector2(0f, -.02f);
+                    pose.MouthHeight = .032f + Mathf.Max(0f, slowWave) * .015f;
+                    pose.MouthWidthMultiplier = .85f;
+                    break;
+
+                case IdleFaceExpression.Surprised:
+                    pose.LeftEyeHeight = .34f;
+                    pose.RightEyeHeight = .34f;
+                    pose.Gaze = Vector2.zero;
+                    pose.MouthHeight = .14f;
+                    pose.MouthWidthMultiplier = .7f;
+                    pose.FaceMotion.y += .012f;
+                    break;
+
+                case IdleFaceExpression.Grumpy:
+                    pose.LeftEyeHeight = .14f;
+                    pose.RightEyeHeight = .14f;
+                    pose.LeftEyeAngle = -10f;
+                    pose.RightEyeAngle = 10f;
+                    pose.Gaze = new Vector2(0f, -.018f);
+                    pose.MouthHeight = .035f;
+                    pose.MouthAngle = -5f;
+                    pose.MouthWidthMultiplier = 1.15f;
+                    break;
+
+                default:
+                    pose.LeftEyeHeight = .24f;
+                    pose.RightEyeHeight = .24f;
+                    pose.Gaze = new Vector2(Mathf.Sin(time * .8f), Mathf.Sin(time * .43f)) * idleGazeDistance;
+                    pose.MouthHeight = .045f + slowWave * .008f;
+                    break;
+            }
+        }
+
+        private void UpdateIdleExpression()
+        {
+            if (Time.time >= nextIdleExpressionTime) SelectNextIdleExpression();
+        }
+
+        private void SelectNextIdleExpression()
+        {
+            const int expressionCount = 6;
+            int current = (int)idleExpression;
+            int next = (current + 1 + UnityEngine.Random.Range(0, expressionCount - 1)) % expressionCount;
+            idleExpression = (IdleFaceExpression)next;
+            curiousDirection = UnityEngine.Random.value < .5f ? -1f : 1f;
+            ScheduleIdleExpression();
+            IdleExpressionChanged?.Invoke(idleExpression);
+        }
+
+        private void ScheduleIdleExpression()
+        {
+            nextIdleExpressionTime = Time.time + UnityEngine.Random.Range(
+                minimumExpressionDuration,
+                maximumExpressionDuration);
+        }
         private void UpdateBlink()
         {
             if (!blinking && Time.time >= nextBlinkTime)
@@ -440,6 +656,13 @@ namespace KickTheBuddy.Physics
             maximumBlinkInterval = Mathf.Max(minimumBlinkInterval, maximumBlinkInterval);
             blinkDuration = Mathf.Max(.03f, blinkDuration);
             damageReactionDuration = Mathf.Max(.05f, damageReactionDuration);
+            minimumExpressionDuration = Mathf.Max(.25f, minimumExpressionDuration);
+            maximumExpressionDuration = Mathf.Max(minimumExpressionDuration, maximumExpressionDuration);
+            expressionBlendSpeed = Mathf.Max(0f, expressionBlendSpeed);
+            faceScale.x = Mathf.Max(.01f, faceScale.x);
+            faceScale.y = Mathf.Max(.01f, faceScale.y);
+            pupilScale.x = Mathf.Max(.01f, pupilScale.x);
+            pupilScale.y = Mathf.Max(.01f, pupilScale.y);
         }
     }
 }
