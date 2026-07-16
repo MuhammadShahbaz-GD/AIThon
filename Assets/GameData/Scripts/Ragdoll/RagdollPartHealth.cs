@@ -36,7 +36,7 @@ namespace KickTheBuddy.Physics
         [Range(0f, 2f)] [SerializeField] private float damageReactionStrength = 1f;
 
         private float currentHealth;
-        private DismemberableLimb structuralLimb;
+        [SerializeField] private DismemberableLimb structuralLimb;
 
         public event Action<RagdollPartHealth, float, Vector2> Damaged;
         public event Action<RagdollPartHealth> Depleted;
@@ -55,15 +55,11 @@ namespace KickTheBuddy.Physics
         public float WeightedCurrentHealth => currentHealth * healthContribution;
         public float WeightedMaximumHealth => maximumHealth * healthContribution;
 
-        private void Awake()
-        {
-            structuralLimb = GetComponent<DismemberableLimb>();
-            currentHealth = maximumHealth;
-        }
+        private void Awake() { currentHealth = maximumHealth; }
 
-        internal void Initialize(float fallbackHealth)
+        internal void Initialize(float fallbackHealth, DismemberableLimb authoredStructuralLimb)
         {
-            structuralLimb = GetComponent<DismemberableLimb>();
+            structuralLimb = authoredStructuralLimb;
             if (maximumHealth <= 0f) maximumHealth = Mathf.Max(1f, fallbackHealth);
             currentHealth = maximumHealth;
         }

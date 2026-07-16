@@ -1,4 +1,5 @@
-namespace KickTheBuddy.Physics
+﻿namespace KickTheBuddy.Physics
 {
-    public enum RagdollState { Active, KnockedOut, Frozen, Burning }
+    public enum RagdollState { Active, KnockedOut, Frozen, Burning, Dead }
 }
+

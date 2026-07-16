@@ -19,7 +19,7 @@ MonoBehaviour:
   linearDrag: 2.5
   angularDrag: 3.5
   useGravity: 1
-  gravityScaleModifier: 1.1
-  jointSpringForce: 180
-  jointDamping: 8
+  gravityScaleModifier: 1.25
+  jointSpringForce: 420
+  jointDamping: 14
   customPhysicsMaterial: {fileID: 6200000, guid: 415fa43b4eef6184d87fe23e668232e0, type: 2}

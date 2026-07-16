@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,17 +7,12 @@ namespace KickTheBuddy.Physics
     [DisallowMultipleComponent]
     public sealed class RagdollRigController2D : MonoBehaviour
     {
-        public enum JointRole
-        {
-            Other,
-            Head,
-            Arm,
-            Leg
-        }
+        public enum JointRole { Other, Head, Arm, Leg }
 
         public sealed class JointRuntime
         {
             public HingeJoint2D Joint;
+            public bool AuthoredEnabled;
             public bool AuthoredUseLimits;
             public JointAngleLimits2D AuthoredLimits;
             public bool AuthoredUseMotor;
@@ -30,6 +25,7 @@ namespace KickTheBuddy.Physics
         public sealed class BodyRuntime
         {
             public Rigidbody2D Body;
+            public bool AuthoredSimulated;
             public RigidbodyConstraints2D AuthoredConstraints;
             public float AuthoredMass;
             public float AuthoredDrag;
@@ -40,8 +36,13 @@ namespace KickTheBuddy.Physics
         public sealed class ColliderRuntime
         {
             public Collider2D Collider;
+            public bool AuthoredEnabled;
             public PhysicsMaterial2D AuthoredMaterial;
         }
+
+        [Header("Explicit Main Parts")]
+        [Tooltip("Authored Head, Belly/Torso, Left/Right Arm, and Left/Right Leg only. Runtime hierarchy discovery is not used.")]
+        [SerializeField] private RagdollController.RagdollPart[] authoredParts = Array.Empty<RagdollController.RagdollPart>();
 
         [Header("Limb Structure")]
         [SerializeField] private bool enableLimbBreaking = true;
@@ -49,11 +50,11 @@ namespace KickTheBuddy.Physics
         [Min(0f)] [SerializeField] private float jointBreakStress = 450f;
         [Min(0f)] [SerializeField] private float jointStressDamageRate = .02f;
 
-        private readonly List<RagdollController.RagdollPart> parts = new List<RagdollController.RagdollPart>();
-        private readonly List<JointRuntime> joints = new List<JointRuntime>();
-        private readonly List<BodyRuntime> bodies = new List<BodyRuntime>();
-        private readonly List<ColliderRuntime> colliders = new List<ColliderRuntime>();
-        private readonly List<DismemberableLimb> breakableLimbs = new List<DismemberableLimb>();
+        private readonly List<RagdollController.RagdollPart> parts = new List<RagdollController.RagdollPart>(6);
+        private readonly List<JointRuntime> joints = new List<JointRuntime>(8);
+        private readonly List<BodyRuntime> bodies = new List<BodyRuntime>(6);
+        private readonly List<ColliderRuntime> colliders = new List<ColliderRuntime>(8);
+        private readonly List<DismemberableLimb> breakableLimbs = new List<DismemberableLimb>(6);
         private RagdollController owner;
         private RagdollDamageManager damageManager;
         private Rigidbody2D torso;
@@ -84,91 +85,121 @@ namespace KickTheBuddy.Physics
             torso = null;
             head = null;
 
-            Rigidbody2D[] discoveredBodies = GetComponentsInChildren<Rigidbody2D>(true);
-            for (int i = 0; i < discoveredBodies.Length; i++)
+            if (authoredParts == null || authoredParts.Length == 0)
             {
-                Rigidbody2D body = discoveredBodies[i];
-                if (body == null) continue;
+                Debug.LogError("RagdollRigController2D has no authored main parts. Run the explicit ragdoll setup tool.", this);
+                return;
+            }
 
-                RagdollController.RagdollPart part = new RagdollController.RagdollPart(body);
+            for (int i = 0; i < authoredParts.Length; i++)
+            {
+                RagdollController.RagdollPart part = authoredParts[i];
+                if (part == null || !part.IsConfigured)
+                {
+                    Debug.LogError("Ragdoll main-part reference " + i + " is incomplete.", this);
+                    continue;
+                }
+                if (ContainsBody(part.Body))
+                {
+                    Debug.LogWarning("Duplicate ragdoll body reference ignored: " + part.Body.name, this);
+                    continue;
+                }
+
                 parts.Add(part);
-                if (torso == null && body.name.IndexOf("torso", StringComparison.OrdinalIgnoreCase) >= 0)
-                    torso = body;
-                if (head == null && body.name.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0)
-                    head = body;
+                if (part.PartType == RagdollPartType.Torso) torso = part.Body;
+                else if (part.PartType == RagdollPartType.Head) head = part.Body;
 
                 bodies.Add(new BodyRuntime
                 {
-                    Body = body,
-                    AuthoredConstraints = body.constraints,
-                    AuthoredMass = body.mass,
-                    AuthoredDrag = body.drag,
-                    AuthoredAngularDrag = body.angularDrag,
-                    AuthoredGravityScale = body.gravityScale
+                    Body = part.Body,
+                    AuthoredSimulated = part.Body.simulated,
+                    AuthoredConstraints = part.Body.constraints,
+                    AuthoredMass = part.Body.mass,
+                    AuthoredDrag = part.Body.drag,
+                    AuthoredAngularDrag = part.Body.angularDrag,
+                    AuthoredGravityScale = part.Body.gravityScale
                 });
 
-                for (int c = 0; c < part.Colliders.Length; c++)
+                Collider2D[] authoredColliders = part.Colliders;
+                for (int c = 0; c < authoredColliders.Length; c++)
                 {
-                    Collider2D collider = part.Colliders[c];
+                    Collider2D collider = authoredColliders[c];
                     if (collider != null)
-                        colliders.Add(new ColliderRuntime
-                        {
-                            Collider = collider,
-                            AuthoredMaterial = collider.sharedMaterial
-                        });
+                        colliders.Add(new ColliderRuntime { Collider = collider, AuthoredEnabled = collider.enabled, AuthoredMaterial = collider.sharedMaterial });
                 }
 
-                WirePart(part);
+                InitializePart(part);
+                CacheJoints(part);
+            }
+
+            if (torso == null) Debug.LogError("Explicit ragdoll parts do not contain a Belly/Torso reference.", this);
+            if (head == null) Debug.LogError("Explicit ragdoll parts do not contain a Head reference.", this);
+        }
+
+        private bool ContainsBody(Rigidbody2D candidate)
+        {
+            for (int i = 0; i < parts.Count; i++)
+                if (parts[i].Body == candidate) return true;
+            return false;
+        }
+
+        private void InitializePart(RagdollController.RagdollPart part)
+        {
+            part.CollisionRelay.Initialize(damageManager, part.Body);
+            part.Health.Initialize(fallbackLimbHealth, part.DismemberableLimb);
+
+            if (part.DragJoint != null)
+            {
+                part.DragJoint.autoConfigureTarget = false;
+                part.DragJoint.enabled = false;
+            }
+
+            part.DamageReceiver.Initialize(
+                part.Body,
+                owner,
+                part.DismemberableLimb,
+                damageManager,
+                owner != null ? owner.ElementalEffects : null,
+                part.Health,
+                part.DragJoint);
+
+            ActiveRagdollLimb activeLimb = part.ActiveLimb;
+            if (activeLimb != null)
+            {
+                HingeJoint2D firstHinge = part.Hinges.Length > 0 ? part.Hinges[0] : null;
+                activeLimb.Initialize(part.Body, firstHinge);
+                if (firstHinge != null) activeLimb.Configure(firstHinge.jointAngle, 8f, 3f, 95f);
+                activeLimb.SetExternallyDriven(true);
+            }
+
+            DismemberableLimb breakable = part.DismemberableLimb;
+            if (breakable != null)
+            {
+                HingeJoint2D parentJoint = part.Hinges.Length > 0 ? part.Hinges[0] : null;
+                breakable.CanBeSevered = enableLimbBreaking;
+                breakable.Initialize(owner, part.Body, parentJoint, fallbackLimbHealth, jointBreakStress, jointStressDamageRate);
+                breakableLimbs.Add(breakable);
             }
         }
 
-        private void WirePart(RagdollController.RagdollPart part)
+        private void CacheJoints(RagdollController.RagdollPart part)
         {
-            Rigidbody2D body = part.Body;
-            RagdollLimb relay = body.GetComponent<RagdollLimb>();
-            if (relay == null) relay = body.gameObject.AddComponent<RagdollLimb>();
-            relay.Initialize(damageManager, body);
-
-            if (part.Hinges.Length > 0)
+            HingeJoint2D[] authoredHinges = part.Hinges;
+            for (int i = 0; i < authoredHinges.Length; i++)
             {
-                ActiveRagdollLimb activeLimb = body.GetComponent<ActiveRagdollLimb>();
-                if (activeLimb == null) activeLimb = body.gameObject.AddComponent<ActiveRagdollLimb>();
-                HingeJoint2D firstHinge = part.Hinges[0];
-                if (firstHinge != null) activeLimb.Configure(firstHinge.jointAngle, 8f, 3f, 95f);
-                activeLimb.SetExternallyDriven(true);
-
-                if (enableLimbBreaking)
-                {
-                    DismemberableLimb breakable = body.GetComponent<DismemberableLimb>();
-                    if (breakable == null) breakable = body.gameObject.AddComponent<DismemberableLimb>();
-                    breakable.Initialize(owner, fallbackLimbHealth, jointBreakStress, jointStressDamageRate);
-                    breakableLimbs.Add(breakable);
-                }
-            }
-
-            if (part.Colliders.Length > 0 && body.GetComponent<DamageReceiver2D>() == null)
-                body.gameObject.AddComponent<DamageReceiver2D>();
-
-            RagdollPartHealth partHealth = body.GetComponent<RagdollPartHealth>();
-            bool createdHealth = partHealth == null;
-            if (createdHealth) partHealth = body.gameObject.AddComponent<RagdollPartHealth>();
-            if (createdHealth) ConfigurePartDefaults(partHealth, body.name);
-            partHealth.Initialize(fallbackLimbHealth);
-
-            for (int i = 0; i < part.Hinges.Length; i++)
-            {
-                HingeJoint2D hinge = part.Hinges[i];
+                HingeJoint2D hinge = authoredHinges[i];
                 if (hinge == null) continue;
                 joints.Add(new JointRuntime
                 {
                     Joint = hinge,
+                    AuthoredEnabled = hinge.enabled,
                     AuthoredUseLimits = hinge.useLimits,
                     AuthoredLimits = hinge.limits,
                     AuthoredUseMotor = hinge.useMotor,
                     AuthoredMotor = hinge.motor,
                     RestAngle = hinge.jointAngle,
-                    Role = ResolveJointRole(body.name),
-                    IsUpperLimb = body.name.IndexOf("upper", StringComparison.OrdinalIgnoreCase) >= 0
+                    Role = ResolveJointRole(part.PartType),
+                    IsUpperLimb = part.IsUpperLimb
                 });
             }
         }
@@ -179,6 +210,7 @@ namespace KickTheBuddy.Physics
             {
                 BodyRuntime item = bodies[i];
                 if (item.Body == null) continue;
+                item.Body.simulated = item.AuthoredSimulated;
                 item.Body.constraints = item.AuthoredConstraints;
                 item.Body.mass = item.AuthoredMass;
                 item.Body.drag = item.AuthoredDrag;
@@ -187,13 +219,13 @@ namespace KickTheBuddy.Physics
             }
 
             for (int i = 0; i < colliders.Count; i++)
-                if (colliders[i].Collider != null)
-                    colliders[i].Collider.sharedMaterial = colliders[i].AuthoredMaterial;
+                if (colliders[i].Collider != null) colliders[i].Collider.sharedMaterial = colliders[i].AuthoredMaterial;
 
             for (int i = 0; i < joints.Count; i++)
             {
                 JointRuntime item = joints[i];
                 if (item.Joint == null) continue;
+                item.Joint.enabled = item.AuthoredEnabled;
                 item.Joint.limits = item.AuthoredLimits;
                 item.Joint.motor = item.AuthoredMotor;
                 item.Joint.useLimits = item.AuthoredUseLimits;
@@ -204,9 +236,7 @@ namespace KickTheBuddy.Physics
         internal void ApplyLimpPhysics(bool limp, float activeGravity, float limpGravity, float drag, float angularDrag)
         {
             for (int i = 0; i < joints.Count; i++)
-                if (joints[i].Joint != null)
-                    joints[i].Joint.useMotor = limp ? false : joints[i].AuthoredUseMotor;
-
+                if (joints[i].Joint != null) joints[i].Joint.useMotor = limp ? false : joints[i].AuthoredUseMotor;
             for (int i = 0; i < bodies.Count; i++)
             {
                 Rigidbody2D body = bodies[i].Body;
@@ -218,6 +248,33 @@ namespace KickTheBuddy.Physics
             }
         }
 
+        internal void EnterDeathState()
+        {
+            for (int i = 0; i < joints.Count; i++)
+                if (joints[i].Joint != null)
+                {
+                    joints[i].Joint.useMotor = false;
+                    joints[i].Joint.enabled = false;
+                }
+            for (int i = 0; i < colliders.Count; i++)
+                if (colliders[i].Collider != null) colliders[i].Collider.enabled = false;
+            for (int i = 0; i < bodies.Count; i++)
+            {
+                Rigidbody2D body = bodies[i].Body;
+                if (body == null) continue;
+                body.velocity = Vector2.zero;
+                body.angularVelocity = 0f;
+                body.simulated = false;
+            }
+            for (int i = 0; i < parts.Count; i++)
+                if (parts[i].Visual != null) parts[i].Visual.enabled = false;
+        }
+
+        internal void RestoreDeathVisuals()
+        {
+            for (int i = 0; i < parts.Count; i++)
+                if (parts[i].Visual != null) parts[i].Visual.enabled = true;
+        }
         internal void FreezeAll()
         {
             for (int i = 0; i < bodies.Count; i++)
@@ -239,8 +296,7 @@ namespace KickTheBuddy.Physics
         internal void SetLimitsEnabled(bool enabled)
         {
             for (int i = 0; i < joints.Count; i++)
-                if (joints[i].Joint != null)
-                    joints[i].Joint.useLimits = enabled ? joints[i].AuthoredUseLimits : false;
+                if (joints[i].Joint != null) joints[i].Joint.useLimits = enabled && joints[i].AuthoredUseLimits;
         }
 
         internal void SetDurabilityMultiplier(float multiplier)
@@ -250,26 +306,15 @@ namespace KickTheBuddy.Physics
                     breakableLimbs[i].SetDurabilityMultiplier(fallbackLimbHealth, multiplier);
         }
 
-        private static JointRole ResolveJointRole(string partName)
+        private static JointRole ResolveJointRole(RagdollPartType type)
         {
-            if (partName.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0) return JointRole.Head;
-            if (partName.IndexOf("arm", StringComparison.OrdinalIgnoreCase) >= 0) return JointRole.Arm;
-            if (partName.IndexOf("leg", StringComparison.OrdinalIgnoreCase) >= 0) return JointRole.Leg;
-            return JointRole.Other;
-        }
-        private static void ConfigurePartDefaults(RagdollPartHealth part, string partName)
-        {
-            string value = partName.ToLowerInvariant();
-            if (value.Contains("head"))
-                part.Configure(RagdollPartType.Head, 40f, 2f, 1.25f, .9f, 1.4f, true);
-            else if (value.Contains("torso"))
-                part.Configure(RagdollPartType.Torso, 100f, 2f, 1f, 1f, 1f, false);
-            else if (value.Contains("arm"))
-                part.Configure(RagdollPartType.Arm, 45f, 1f, .9f, 1.2f, .85f, false);
-            else if (value.Contains("leg"))
-                part.Configure(RagdollPartType.Leg, 60f, 1f, .85f, .9f, .8f, false);
-            else
-                part.Configure(RagdollPartType.Other, 50f, 1f, 1f, 1f, 1f, false);
+            switch (type)
+            {
+                case RagdollPartType.Head: return JointRole.Head;
+                case RagdollPartType.Arm: return JointRole.Arm;
+                case RagdollPartType.Leg: return JointRole.Leg;
+                default: return JointRole.Other;
+            }
         }
 
         private void OnValidate()
@@ -280,3 +325,4 @@ namespace KickTheBuddy.Physics
         }
     }
 }
+

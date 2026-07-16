@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace KickTheBuddy.Physics
@@ -37,18 +38,28 @@ namespace KickTheBuddy.Physics
         public event Action DissolveCompleted;
 
         public ElementalState State { get; private set; } = ElementalState.Normal;
-
-        private void Awake()
+        internal void Initialize(RagdollController owner, RagdollDamageManager damage,
+            IReadOnlyList<RagdollController.RagdollPart> authoredParts)
         {
-            controller = GetComponent<RagdollController>();
-            damageManager = GetComponent<RagdollDamageManager>();
-            renderers = GetComponentsInChildren<SpriteRenderer>(true);
-            originalColors = new Color[renderers.Length];
-            for (int i = 0; i < renderers.Length; i++) originalColors[i] = renderers[i].color;
-            RefreshPhysicsCache();
+            controller = owner;
+            damageManager = damage;
+            int count = authoredParts != null ? authoredParts.Count : 0;
+            renderers = new SpriteRenderer[count];
+            originalColors = new Color[count];
+            limbs = new DismemberableLimb[count];
+            bodies = new Rigidbody2D[count];
+            originalConstraints = new RigidbodyConstraints2D[count];
+            for (int i = 0; i < count; i++)
+            {
+                RagdollController.RagdollPart part = authoredParts[i];
+                renderers[i] = part.Visual;
+                originalColors[i] = part.Visual != null ? part.Visual.color : Color.white;
+                limbs[i] = part.DismemberableLimb;
+                bodies[i] = part.Body;
+                originalConstraints[i] = part.Body != null ? part.Body.constraints : RigidbodyConstraints2D.None;
+                part.DamageReceiver?.SetElementalEffects(this);
+            }
         }
-
-        private void Start() { RefreshPhysicsCache(); }
 
         public void SetState(ElementalState newState)
         {
@@ -134,15 +145,6 @@ namespace KickTheBuddy.Physics
             DissolveCompleted?.Invoke();
             Destroy(gameObject);
         }
-
-        private void RefreshPhysicsCache()
-        {
-            limbs = GetComponentsInChildren<DismemberableLimb>(true);
-            bodies = GetComponentsInChildren<Rigidbody2D>(true);
-            originalConstraints = new RigidbodyConstraints2D[bodies.Length];
-            for (int i = 0; i < bodies.Length; i++) originalConstraints[i] = bodies[i].constraints;
-        }
-
         private void RestoreVisualsAndPhysics()
         {
             for (int i = 0; i < renderers.Length; i++) if (renderers[i] != null) renderers[i].color = originalColors[i];

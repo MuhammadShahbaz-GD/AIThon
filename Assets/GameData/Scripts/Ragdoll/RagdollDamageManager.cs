@@ -1,22 +1,22 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace KickTheBuddy.Physics
 {
-    /// <summary>
-    /// Sole authority for validating attacks, damaging the exact hit part, and aggregating character health.
-    /// </summary>
+    /// <summary>Sole authority for damage against the explicitly authored main-part table.</summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(RagdollController))]
     public sealed class RagdollDamageManager : MonoBehaviour, IRagdollCollisionReceiver
     {
         [Header("Safety")]
-        [Tooltip("Prevents solver contact jitter from repeatedly damaging the same limb.")]
         [Min(0f)] [SerializeField] private float repeatHitCooldown = .08f;
 
-        private RagdollController controller;
-        private RagdollElementalEffects elementalEffects;
-        private RagdollPartHealth[] parts = Array.Empty<RagdollPartHealth>();
+        [Header("Authored References")]
+        [SerializeField] private RagdollController controller;
+        [SerializeField] private RagdollElementalEffects elementalEffects;
+
+        private RagdollController.RagdollPart[] parts = Array.Empty<RagdollController.RagdollPart>();
         private Rigidbody2D lastHitBody;
         private int lastAttackId;
         private float lastHitTime = float.NegativeInfinity;
@@ -28,21 +28,17 @@ namespace KickTheBuddy.Physics
         public float CurrentHealth { get; private set; }
         public float MaximumHealth { get; private set; }
 
-        internal void Initialize(RagdollController owner)
+        internal void Initialize(RagdollController owner, RagdollElementalEffects elements)
         {
             controller = owner;
-            elementalEffects = owner != null ? owner.GetComponent<RagdollElementalEffects>() : null;
+            elementalEffects = elements;
         }
 
-        private void Awake()
+        internal void ConfigureParts(IReadOnlyList<RagdollController.RagdollPart> authoredParts)
         {
-            if (controller == null) controller = GetComponent<RagdollController>();
-            if (elementalEffects == null) elementalEffects = GetComponent<RagdollElementalEffects>();
-        }
-
-        internal void RefreshParts()
-        {
-            parts = GetComponentsInChildren<RagdollPartHealth>(true);
+            int count = authoredParts != null ? authoredParts.Count : 0;
+            if (parts.Length != count) parts = new RagdollController.RagdollPart[count];
+            for (int i = 0; i < count; i++) parts[i] = authoredParts[i];
             RecalculateAggregateHealth(0f, 0f, transform.position, false);
         }
 
@@ -51,38 +47,27 @@ namespace KickTheBuddy.Physics
             if (controller == null || hitBody == null || collision == null) return;
             RagdollAttackManager2D attack = collision.collider.GetComponentInParent<RagdollAttackManager2D>();
             if (attack == null || !attack.CanDamage(controller.gameObject)) return;
-
             float speed = collision.relativeVelocity.magnitude;
             Vector2 point = collision.contactCount > 0 ? collision.GetContact(0).point : hitBody.worldCenterOfMass;
             ApplyAttack(hitBody, attack, speed, collision.relativeVelocity, point);
         }
 
-        public bool ApplyAttack(
-            Rigidbody2D hitBody,
-            RagdollAttackManager2D attack,
-            float relativeSpeed,
-            Vector2 force,
-            Vector2 point)
+        public bool ApplyAttack(Rigidbody2D hitBody, RagdollAttackManager2D attack,
+            float relativeSpeed, Vector2 force, Vector2 point)
         {
             if (controller == null || hitBody == null || attack == null) return false;
             if (controller.CurrentHealth <= 0f || controller.CurrentState == RagdollState.Frozen) return false;
             if (!attack.CanDamage(controller.gameObject) || IsRepeatedHit(hitBody, attack)) return false;
-
             float rawDamage = attack.CalculateDamage(relativeSpeed);
             if (rawDamage <= 0f) return false;
-
             RememberHit(hitBody, attack);
             bool applied = ApplyResolvedDamage(hitBody, rawDamage, relativeSpeed, force, point, attack);
             if (applied) attack.NotifyDamageDealt(hitBody, rawDamage, relativeSpeed, point);
             return applied;
         }
 
-        public bool ApplyDirectDamage(
-            Rigidbody2D hitBody,
-            float rawDamage,
-            float strength,
-            Vector2 force,
-            Vector2 point)
+        public bool ApplyDirectDamage(Rigidbody2D hitBody, float rawDamage,
+            float strength, Vector2 force, Vector2 point)
         {
             if (controller == null || hitBody == null || rawDamage <= 0f || controller.CurrentHealth <= 0f) return false;
             return ApplyResolvedDamage(hitBody, rawDamage, Mathf.Max(0f, strength), force, point, null);
@@ -90,8 +75,9 @@ namespace KickTheBuddy.Physics
 
         internal void NotifyPartBroken(Rigidbody2D brokenBody, Vector2 point)
         {
-            if (brokenBody == null) return;
-            RagdollPartHealth part = brokenBody.GetComponent<RagdollPartHealth>();
+            int index = FindPartIndex(brokenBody);
+            if (index < 0) return;
+            RagdollPartHealth part = parts[index].Health;
             if (part == null || !part.IsCritical) return;
             part.ForceDeplete(point);
             RecalculateAggregateHealth(0f, 0f, point, true);
@@ -100,35 +86,34 @@ namespace KickTheBuddy.Physics
 
         internal void RestoreAllParts()
         {
-            if (parts == null || parts.Length == 0) parts = GetComponentsInChildren<RagdollPartHealth>(true);
             for (int i = 0; i < parts.Length; i++)
-                if (parts[i] != null) parts[i].Restore();
+                if (parts[i]?.Health != null) parts[i].Health.Restore();
             RecalculateAggregateHealth(0f, 0f, transform.position, false);
         }
 
-        private bool ApplyResolvedDamage(
-            Rigidbody2D hitBody,
-            float rawDamage,
-            float impactSpeed,
-            Vector2 force,
-            Vector2 point,
-            RagdollAttackManager2D attack)
+        private bool ApplyResolvedDamage(Rigidbody2D hitBody, float rawDamage, float impactSpeed,
+            Vector2 force, Vector2 point, RagdollAttackManager2D attack)
         {
-            RagdollPartHealth part = hitBody.GetComponent<RagdollPartHealth>();
-            if (part == null) return false;
-
-            float appliedDamage = part.TakeDamage(rawDamage, force, point);
+            int index = FindPartIndex(hitBody);
+            if (index < 0) return false;
+            RagdollController.RagdollPart configuredPart = parts[index];
+            RagdollPartHealth health = configuredPart.Health;
+            float appliedDamage = health.TakeDamage(rawDamage, force, point);
             if (appliedDamage <= 0f) return false;
 
-            DismemberableLimb structuralLimb = hitBody.GetComponent<DismemberableLimb>();
-            if (elementalEffects == null) elementalEffects = GetComponent<RagdollElementalEffects>();
-            elementalEffects?.NotifyImpact(structuralLimb, impactSpeed, point);
-
-            bool criticalDeath = part.IsCritical && part.IsDepleted;
+            elementalEffects?.NotifyImpact(configuredPart.DismemberableLimb, impactSpeed, point);
+            bool criticalDeath = health.IsCritical && health.IsDepleted;
             RecalculateAggregateHealth(appliedDamage, impactSpeed, point, criticalDeath);
-            DamageCalculated?.Invoke(hitBody, part, attack, appliedDamage, impactSpeed, point);
-            if (criticalDeath) CriticalPartDepleted?.Invoke(part);
+            DamageCalculated?.Invoke(hitBody, health, attack, appliedDamage, impactSpeed, point);
+            if (criticalDeath) CriticalPartDepleted?.Invoke(health);
             return true;
+        }
+
+        private int FindPartIndex(Rigidbody2D body)
+        {
+            for (int i = 0; i < parts.Length; i++)
+                if (parts[i] != null && parts[i].Body == body) return i;
+            return -1;
         }
 
         private void RecalculateAggregateHealth(float appliedDamage, float impactSpeed, Vector2 point, bool forceDeath)
@@ -137,13 +122,12 @@ namespace KickTheBuddy.Physics
             float maximum = 0f;
             for (int i = 0; i < parts.Length; i++)
             {
-                RagdollPartHealth part = parts[i];
+                RagdollPartHealth part = parts[i]?.Health;
                 if (part == null) continue;
                 current += part.WeightedCurrentHealth;
                 maximum += part.WeightedMaximumHealth;
                 if (part.IsCritical && part.IsDepleted) forceDeath = true;
             }
-
             MaximumHealth = Mathf.Max(1f, maximum);
             CurrentHealth = forceDeath ? 0f : Mathf.Clamp(current, 0f, MaximumHealth);
             controller?.SynchronizeAggregateHealth(CurrentHealth, MaximumHealth, appliedDamage, impactSpeed, point);
@@ -164,9 +148,6 @@ namespace KickTheBuddy.Physics
             lastHitTime = Time.time;
         }
 
-        private void OnValidate()
-        {
-            repeatHitCooldown = Mathf.Max(0f, repeatHitCooldown);
-        }
+        private void OnValidate() => repeatHitCooldown = Mathf.Max(0f, repeatHitCooldown);
     }
 }

@@ -1,39 +1,59 @@
-using System;
+﻿using System;
 using KickTheBuddy.Physics;
+using KickTheBuddy.Physics.VFX;
 using UnityEngine;
 
 namespace KickTheBuddy.VFX
 {
-    /// <summary>
-    /// Displays all ragdoll feedback through one reusable world-space ParticleSystem.
-    /// A normal collision emits exactly once at the authoritative contact point.
-    /// </summary>
+    /// <summary>Pooled presenter for impacts, combo/KO bursts, death blast, candy debris, and glass shards.</summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(RagdollController))]
     public sealed class RagdollVFXController : MonoBehaviour
     {
-        [Header("Single Particle")]
-        [SerializeField] private bool effectsEnabled = true;
-        [Tooltip("Only Hit Prefab is used. One instance is created and reused for every impact.")]
+        [Header("References")]
+        [SerializeField] private RagdollController controller;
         [SerializeField] private RagdollVFXProfile profile;
+        [SerializeField] private RagdollCandyFill2D[] candyFills = Array.Empty<RagdollCandyFill2D>();
+        [SerializeField] private SpriteRenderer[] characterRenderers = Array.Empty<SpriteRenderer>();
+
+        [Header("Physical Death Pools")]
+        [SerializeField] private Rigidbody2D[] candyDebrisBodies = Array.Empty<Rigidbody2D>();
+        [SerializeField] private SpriteRenderer[] candyDebrisRenderers = Array.Empty<SpriteRenderer>();
+        [SerializeField] private Rigidbody2D[] glassShardBodies = Array.Empty<Rigidbody2D>();
+        [SerializeField] private SpriteRenderer[] glassShardRenderers = Array.Empty<SpriteRenderer>();
+        [Min(.1f)] [SerializeField] private float debrisLifetime = 6f;
+
+        [Header("Impact")]
         [SerializeField] private Color lightHitColor = new Color(1f, .85f, .25f);
         [SerializeField] private Color heavyHitColor = new Color(1f, .18f, .12f);
-        [SerializeField] private Color deathColor = new Color(1f, .28f, .08f);
-        [Min(.001f)] [SerializeField] private float minimumParticleSize = .045f;
-        [Min(.001f)] [SerializeField] private float maximumParticleSize = .11f;
         [Min(.01f)] [SerializeField] private float speedForMaximumStrength = 18f;
+        [Range(1, 12)] [SerializeField] private int minimumHitParticles = 4;
+        [Range(1, 16)] [SerializeField] private int maximumHitParticles = 11;
 
-        private RagdollController controller;
-        private ParticleSystem sharedParticle;
+        private ParticleSystem hitParticle;
+        private ParticleSystem comboParticle;
+        private ParticleSystem knockoutParticle;
+        private ParticleSystem deathParticle;
         private Color profileColor = Color.white;
+        private bool deathPlayed;
+        private float debrisDisableAt = float.PositiveInfinity;
+        private bool[] authoredRendererEnabled = Array.Empty<bool>();
 
         public event Action<Vector2, float> ImpactEffectPlayed;
+        public event Action<int, Vector2> ComboEffectPlayed;
+        public event Action<Vector2> KnockoutEffectPlayed;
         public event Action<Vector2> DeathEffectPlayed;
 
         private void Awake()
         {
-            controller = GetComponent<RagdollController>();
-            CreateSharedParticle();
+            hitParticle = CreateShared(profile != null ? profile.HitPrefab : null, "Shared Hit");
+            comboParticle = CreateShared(profile != null ? profile.ComboPrefab : null, "Shared Combo");
+            knockoutParticle = CreateShared(profile != null ? profile.KnockoutPrefab : null, "Shared Knockout");
+            deathParticle = CreateShared(profile != null ? profile.DeathPrefab : null, "Shared Death");
+            authoredRendererEnabled = new bool[characterRenderers.Length];
+            for (int i = 0; i < characterRenderers.Length; i++)
+                authoredRendererEnabled[i] = characterRenderers[i] != null && characterRenderers[i].enabled;
+            ResetDebris();
         }
 
         private void OnEnable()
@@ -41,8 +61,10 @@ namespace KickTheBuddy.VFX
             if (controller == null) return;
             controller.OnImpactResolved += HandleImpact;
             controller.OnProfileDamageEffect += HandleProfileColor;
-            controller.OnCharacterKO += HandleDeath;
-            controller.OnCharacterRevived += StopEffect;
+            controller.OnComboAdvanced += HandleCombo;
+            controller.OnCharacterKO += HandleKnockout;
+            controller.OnCharacterDied += HandleDeath;
+            controller.OnCharacterRevived += HandleRevived;
         }
 
         private void OnDisable()
@@ -51,58 +73,187 @@ namespace KickTheBuddy.VFX
             {
                 controller.OnImpactResolved -= HandleImpact;
                 controller.OnProfileDamageEffect -= HandleProfileColor;
-                controller.OnCharacterKO -= HandleDeath;
-                controller.OnCharacterRevived -= StopEffect;
+                controller.OnComboAdvanced -= HandleCombo;
+                controller.OnCharacterKO -= HandleKnockout;
+                controller.OnCharacterDied -= HandleDeath;
+                controller.OnCharacterRevived -= HandleRevived;
             }
-
-            StopEffect();
+            StopParticles();
         }
 
-        private void CreateSharedParticle()
+        private void Update()
         {
-            if (profile == null || profile.HitPrefab == null) return;
+            if (Time.unscaledTime < debrisDisableAt) return;
+            debrisDisableAt = float.PositiveInfinity;
+            ResetDebris();
+        }
 
-            sharedParticle = Instantiate(profile.HitPrefab, transform);
-            sharedParticle.gameObject.name = "Shared Hit Particle";
-            ParticleSystem.MainModule main = sharedParticle.main;
+        private ParticleSystem CreateShared(ParticleSystem prefab, string objectName)
+        {
+            if (prefab == null) return null;
+            ParticleSystem instance = Instantiate(prefab, transform);
+            instance.gameObject.name = objectName;
+            ParticleSystem.MainModule main = instance.main;
             main.playOnAwake = false;
             main.loop = false;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
-            sharedParticle.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            instance.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            return instance;
         }
 
         private void HandleImpact(float damage, float impactSpeed, Vector2 point)
         {
-            if (!effectsEnabled || sharedParticle == null) return;
-
+            if (hitParticle == null || deathPlayed) return;
             float strength = Mathf.Clamp01(impactSpeed / speedForMaximumStrength);
-            Color speedColor = Color.Lerp(lightHitColor, heavyHitColor, strength);
-            Color finalColor = Color.Lerp(speedColor, profileColor, .25f);
-            float size = Mathf.Lerp(minimumParticleSize, maximumParticleSize, strength);
-
-            EmitOne(point, finalColor, size);
+            int count = Mathf.RoundToInt(Mathf.Lerp(minimumHitParticles, maximumHitParticles, strength));
+            Emit(hitParticle, point, Color.Lerp(Color.Lerp(lightHitColor, heavyHitColor, strength), profileColor, .25f),
+                Mathf.Lerp(.04f, .09f, strength), count);
             ImpactEffectPlayed?.Invoke(point, strength);
         }
 
-        private void HandleProfileColor(RagdollProfileType type, Color color, Vector2 point)
+        private void HandleProfileColor(RagdollProfileType type, Color color, Vector2 point) => profileColor = color;
+
+        private void HandleCombo(int combo, float damage, Vector2 point)
         {
-            profileColor = color;
+            if (deathPlayed || combo < 3 || combo % 3 != 0 || comboParticle == null) return;
+            PlayBurst(comboParticle, point);
+            ComboEffectPlayed?.Invoke(combo, point);
         }
 
-        private void HandleDeath()
+        private void HandleKnockout()
         {
-            // Temporary knockouts use the same KO event, but only zero health is true death.
-            if (!effectsEnabled || sharedParticle == null || controller.CurrentHealth > 0f) return;
+            if (deathPlayed || controller == null || controller.CurrentHealth <= 0f || knockoutParticle == null) return;
+            Vector2 point = ResolveCenter();
+            PlayBurst(knockoutParticle, point);
+            KnockoutEffectPlayed?.Invoke(point);
+        }
 
-            Vector2 point = transform.position;
-            if (controller.Parts.Count > 0 && controller.Parts[0].Body != null)
-                point = controller.Parts[0].Body.worldCenterOfMass;
-
-            EmitOne(point, Color.Lerp(deathColor, profileColor, .25f), maximumParticleSize);
+        private void HandleDeath(Vector2 point)
+        {
+            if (deathPlayed) return;
+            deathPlayed = true;
+            if (deathParticle != null) PlayBurst(deathParticle, point);
+            ReleaseCandyDebris(point);
+            ReleaseGlassShards(point);
+            SetCharacterRenderers(false);
+            debrisDisableAt = Time.unscaledTime + debrisLifetime;
             DeathEffectPlayed?.Invoke(point);
         }
 
-        private void EmitOne(Vector2 point, Color color, float size)
+        private void HandleRevived()
+        {
+            deathPlayed = false;
+            debrisDisableAt = float.PositiveInfinity;
+            ResetDebris();
+            SetCharacterRenderers(true);
+            for (int i = 0; i < candyFills.Length; i++)
+                if (candyFills[i] != null) candyFills[i].SetCandyVisible(true);
+            StopParticles();
+        }
+
+        private void ReleaseCandyDebris(Vector2 origin)
+        {
+            int poolIndex = 0;
+            for (int fillIndex = 0; fillIndex < candyFills.Length; fillIndex++)
+            {
+                RagdollCandyFill2D fill = candyFills[fillIndex];
+                if (fill == null) continue;
+                GameObject[] visuals = fill.CandyVisuals;
+                for (int i = 0; i < visuals.Length && poolIndex < candyDebrisBodies.Length; i++)
+                {
+                    SpriteRenderer source = visuals[i] != null ? visuals[i].GetComponent<SpriteRenderer>() : null;
+                    if (source == null) continue;
+                    ActivateDebris(candyDebrisBodies[poolIndex],
+                        poolIndex < candyDebrisRenderers.Length ? candyDebrisRenderers[poolIndex] : null,
+                        source.sprite, source.transform.position, source.transform.rotation,
+                        origin, 2.5f, 5.5f, 1.5f);
+                    poolIndex++;
+                }
+                fill.SetCandyVisible(false);
+            }
+        }
+
+        private void ReleaseGlassShards(Vector2 origin)
+        {
+            int index = 0;
+            for (int partIndex = 0; partIndex < controller.Parts.Count && index < glassShardBodies.Length; partIndex++)
+            {
+                Rigidbody2D partBody = controller.Parts[partIndex].Body;
+                Vector2 center = partBody != null ? partBody.worldCenterOfMass : origin;
+                for (int local = 0; local < 2 && index < glassShardBodies.Length; local++, index++)
+                    ActivateDebris(glassShardBodies[index],
+                        index < glassShardRenderers.Length ? glassShardRenderers[index] : null,
+                        null, center + UnityEngine.Random.insideUnitCircle * .12f,
+                        Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(0f, 360f)),
+                        origin, 3.5f, 6.5f, 2f);
+            }
+        }
+
+        private static void ActivateDebris(Rigidbody2D body, SpriteRenderer renderer, Sprite sprite,
+            Vector2 position, Quaternion rotation, Vector2 origin, float minimumForce, float maximumForce, float lift)
+        {
+            if (body == null) return;
+            body.gameObject.SetActive(true);
+            body.transform.SetPositionAndRotation(position, rotation);
+            if (renderer != null)
+            {
+                if (sprite != null) renderer.sprite = sprite;
+                renderer.enabled = true;
+            }
+            Collider2D collider = body.GetComponent<Collider2D>();
+            if (collider != null) collider.enabled = true;
+            body.simulated = true;
+            body.velocity = Vector2.zero;
+            body.angularVelocity = 0f;
+            Vector2 direction = position - origin;
+            if (direction.sqrMagnitude < .001f) direction = UnityEngine.Random.insideUnitCircle;
+            direction = (direction.normalized + Vector2.up * .55f).normalized;
+            body.AddForce(direction * UnityEngine.Random.Range(minimumForce, maximumForce) + Vector2.up * lift,
+                ForceMode2D.Impulse);
+            body.AddTorque(UnityEngine.Random.Range(-1.2f, 1.2f), ForceMode2D.Impulse);
+        }
+
+        private void ResetDebris()
+        {
+            ResetPool(candyDebrisBodies);
+            ResetPool(glassShardBodies);
+        }
+
+        private static void ResetPool(Rigidbody2D[] pool)
+        {
+            for (int i = 0; i < pool.Length; i++)
+            {
+                if (pool[i] == null) continue;
+                pool[i].velocity = Vector2.zero;
+                pool[i].angularVelocity = 0f;
+                pool[i].simulated = false;
+                pool[i].gameObject.SetActive(false);
+            }
+        }
+
+        private void SetCharacterRenderers(bool restore)
+        {
+            for (int i = 0; i < characterRenderers.Length; i++)
+                if (characterRenderers[i] != null)
+                    characterRenderers[i].enabled = restore && i < authoredRendererEnabled.Length
+                        ? authoredRendererEnabled[i]
+                        : false;
+        }
+        private Vector2 ResolveCenter()
+        {
+            if (controller != null && controller.Parts.Count > 0 && controller.Parts[0].Body != null)
+                return controller.Parts[0].Body.worldCenterOfMass;
+            return transform.position;
+        }
+
+        private static void PlayBurst(ParticleSystem system, Vector2 point)
+        {
+            system.transform.position = point;
+            system.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            system.Play(true);
+        }
+
+        private static void Emit(ParticleSystem system, Vector2 point, Color color, float size, int count)
         {
             ParticleSystem.EmitParams parameters = new ParticleSystem.EmitParams
             {
@@ -110,22 +261,31 @@ namespace KickTheBuddy.VFX
                 startColor = color,
                 startSize = size
             };
-
-            // A single shared system and a count of one prevent per-limb duplicate bursts.
-            sharedParticle.Emit(parameters, 1);
+            system.Emit(parameters, count);
         }
 
-        private void StopEffect()
+        private void StopParticles()
         {
-            if (sharedParticle != null)
-                sharedParticle.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            StopParticle(hitParticle);
+            StopParticle(comboParticle);
+            StopParticle(knockoutParticle);
+            StopParticle(deathParticle);
+        }
+
+        private static void StopParticle(ParticleSystem system)
+        {
+            if (system != null) system.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         }
 
         private void OnValidate()
         {
-            minimumParticleSize = Mathf.Max(.001f, minimumParticleSize);
-            maximumParticleSize = Mathf.Max(minimumParticleSize, maximumParticleSize);
             speedForMaximumStrength = Mathf.Max(.01f, speedForMaximumStrength);
+            maximumHitParticles = Mathf.Max(minimumHitParticles, maximumHitParticles);
+            debrisLifetime = Mathf.Max(.1f, debrisLifetime);
         }
     }
 }
+
+
+
+

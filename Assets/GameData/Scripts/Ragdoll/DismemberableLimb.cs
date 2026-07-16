@@ -16,9 +16,9 @@ namespace KickTheBuddy.Physics
         [Tooltip("Optional hazard mode. Leave disabled for normal characters so only collisions and attacks damage joints.")]
         [SerializeField] private bool damageFromJointStress;
 
-        private Rigidbody2D body;
-        private HingeJoint2D parentJoint;
-        private RagdollController owner;
+        [SerializeField] private Rigidbody2D body;
+        [SerializeField] private HingeJoint2D parentJoint;
+        [SerializeField] private RagdollController owner;
         private float maximumJointHealth;
         private bool severed;
 
@@ -32,13 +32,7 @@ namespace KickTheBuddy.Physics
         public bool IsSevered => severed;
         public Rigidbody2D Body => body;
 
-        private void Awake()
-        {
-            body = GetComponent<Rigidbody2D>();
-            parentJoint = GetComponent<HingeJoint2D>();
-            owner = GetComponentInParent<RagdollController>();
-            maximumJointHealth = Mathf.Max(1f, jointHealth);
-        }
+        private void Awake() { maximumJointHealth = Mathf.Max(1f, jointHealth); }
 
         private void FixedUpdate()
         {
@@ -90,11 +84,11 @@ namespace KickTheBuddy.Physics
             SeverLimb(force, point);
         }
 
-        internal void Initialize(RagdollController controller, float health, float stressThreshold, float stressRate)
+        internal void Initialize(RagdollController controller, Rigidbody2D authoredBody, HingeJoint2D authoredParentJoint, float health, float stressThreshold, float stressRate)
         {
             owner = controller;
-            body = GetComponent<Rigidbody2D>();
-            parentJoint = GetComponent<HingeJoint2D>();
+            body = authoredBody;
+            parentJoint = authoredParentJoint;
             maximumJointHealth = Mathf.Max(1f, health);
             jointHealth = maximumJointHealth;
             jointStressThreshold = Mathf.Max(0f, stressThreshold);

@@ -1,14 +1,18 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace KickTheBuddy.VFX
 {
-    /// <summary>Single authored particle used for every ragdoll impact.</summary>
     [CreateAssetMenu(menuName = "Kick The Buddy/VFX/Ragdoll VFX Profile", fileName = "Ragdoll VFX Profile")]
     public sealed class RagdollVFXProfile : ScriptableObject
     {
-        [Tooltip("One world-space ParticleSystem instance is reused for all hit points.")]
         [SerializeField] private ParticleSystem hitPrefab;
+        [SerializeField] private ParticleSystem comboPrefab;
+        [SerializeField] private ParticleSystem knockoutPrefab;
+        [SerializeField] private ParticleSystem deathPrefab;
 
         public ParticleSystem HitPrefab => hitPrefab;
+        public ParticleSystem ComboPrefab => comboPrefab;
+        public ParticleSystem KnockoutPrefab => knockoutPrefab;
+        public ParticleSystem DeathPrefab => deathPrefab;
     }
 }

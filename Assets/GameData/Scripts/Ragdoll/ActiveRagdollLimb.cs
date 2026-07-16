@@ -15,7 +15,7 @@ namespace KickTheBuddy.Physics
         [Min(0f)] [SerializeField] private float maximumMotorSpeed = 220f;
         [Min(0f)] [SerializeField] private float maximumMotorTorque = 100f;
 
-        private Rigidbody2D body;
+        [SerializeField] private Rigidbody2D body;
         private bool externallyDriven;
 
         public event Action<ActiveRagdollLimb, float> MotorUpdated;
@@ -27,10 +27,10 @@ namespace KickTheBuddy.Physics
         public float SpringForce { get => springForce; set => springForce = Mathf.Max(0f, value); }
         public float Damping { get => damping; set => damping = Mathf.Max(0f, value); }
 
-        private void Awake()
+        internal void Initialize(Rigidbody2D authoredBody, HingeJoint2D authoredJoint)
         {
-            body = GetComponent<Rigidbody2D>();
-            if (joint == null) joint = GetComponent<HingeJoint2D>();
+            body = authoredBody;
+            joint = authoredJoint;
         }
 
         private void FixedUpdate()

@@ -68,6 +68,8 @@ namespace KickTheBuddy.Physics
 
         [Header("Input")]
         [SerializeField] private Camera inputCamera;
+        [Tooltip("Explicit DamageReceiver2D references for Head, Belly, Arms, and Legs only.")]
+        [SerializeField] private DamageReceiver2D[] receivers = Array.Empty<DamageReceiver2D>();
         [SerializeField] private LayerMask draggableLayers = ~0;
         [SerializeField] private bool ignorePointerOverUI = true;
 
@@ -85,11 +87,7 @@ namespace KickTheBuddy.Physics
         public bool InputEnabled => inputEnabled;
         public DragConfiguration Drag => drag;
 
-        private void Awake()
-        {
-            if (inputCamera == null) inputCamera = Camera.main;
-            ApplyDragSettingsToAllParts();
-        }
+        private void Awake() => ApplyDragSettingsToAllParts();
 
         private void Update()
         {
@@ -129,7 +127,7 @@ namespace KickTheBuddy.Physics
 
             Vector2 world = ScreenToWorld(screenPoint);
             Collider2D hit = Physics2D.OverlapPoint(world, draggableLayers);
-            DamageReceiver2D receiver = hit != null ? hit.GetComponentInParent<DamageReceiver2D>() : null;
+            DamageReceiver2D receiver = ResolveReceiver(hit);
             if (receiver == null) return;
 
             // Applying immediately before BeginDrag makes Play Mode Inspector tuning affect the next grab.
@@ -168,9 +166,17 @@ namespace KickTheBuddy.Physics
         /// <summary>Pushes the common Inspector drag feel to every currently wired ragdoll limb.</summary>
         public void ApplyDragSettingsToAllParts()
         {
-            DamageReceiver2D[] receivers = GetComponentsInChildren<DamageReceiver2D>(true);
             for (int i = 0; i < receivers.Length; i++)
-                receivers[i].ApplyDragConfiguration(drag);
+                if (receivers[i] != null) receivers[i].ApplyDragConfiguration(drag);
+        }
+
+        private DamageReceiver2D ResolveReceiver(Collider2D hit)
+        {
+            if (hit == null) return null;
+            Rigidbody2D hitBody = hit.attachedRigidbody;
+            for (int i = 0; i < receivers.Length; i++)
+                if (receivers[i] != null && receivers[i].Body == hitBody) return receivers[i];
+            return null;
         }
 
         /// <summary>Enables or disables gameplay input and safely releases any active grabbed limb.</summary>

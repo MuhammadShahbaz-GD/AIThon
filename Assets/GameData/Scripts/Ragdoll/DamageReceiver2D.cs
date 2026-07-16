@@ -1,14 +1,14 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace KickTheBuddy.Physics
 {
-    /// <summary>Public interaction facade for grabbing, point forces, explosions, and impact routing.</summary>
+    /// <summary>Public interaction facade for one explicitly authored ragdoll main part.</summary>
     [DisallowMultipleComponent]
-    [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D))]
+    [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D), typeof(TargetJoint2D))]
     public sealed class DamageReceiver2D : MonoBehaviour
     {
-        // Common drag feel is owned and authored by RagdollInputManager.
         private float dragFrequency = 5f;
         private float dragDampingRatio = .9f;
         private float dragMaxForce = 1900f;
@@ -21,17 +21,21 @@ namespace KickTheBuddy.Physics
         private float stretchedFrequencyMultiplier = .9f;
         private float headForceMultiplier = 1.8f;
         private float headFrequencyMultiplier = 1.3f;
+
+        [Header("Authored References")]
+        [SerializeField] private Rigidbody2D body;
+        [SerializeField] private RagdollController controller;
+        [SerializeField] private DismemberableLimb dismemberable;
+        [SerializeField] private RagdollElementalEffects elements;
+        [SerializeField] private RagdollDamageManager damageManager;
+        [SerializeField] private RagdollPartHealth partHealth;
+        [SerializeField] private TargetJoint2D dragJoint;
+
         [Header("Reactions")]
         [Min(0f)] [SerializeField] private float knockoutForceThreshold = 18f;
         [Min(0f)] [SerializeField] private float knockoutDuration = 2f;
         [Min(0f)] [SerializeField] private float explosionKnockoutDuration = 4f;
 
-        private Rigidbody2D body;
-        private RagdollController controller;
-        private DismemberableLimb dismemberable;
-        private RagdollElementalEffects elements;
-        private RagdollDamageManager damageManager;
-        private TargetJoint2D dragJoint;
         private Vector2 pendingDragTarget;
         private Vector2 smoothedDragTarget;
         private Vector2 targetVelocity;
@@ -47,10 +51,33 @@ namespace KickTheBuddy.Physics
         public event Action<Vector2, float, float> ExplosionApplied;
         public event Action<float> KnockoutRequested;
 
+        public Rigidbody2D Body => body;
+        public RagdollPartHealth PartHealth => partHealth;
+
+        internal void Initialize(Rigidbody2D authoredBody, RagdollController owner,
+            DismemberableLimb structuralLimb, RagdollDamageManager damage, RagdollElementalEffects elemental,
+            RagdollPartHealth health, TargetJoint2D authoredDragJoint)
+        {
+            body = authoredBody;
+            controller = owner;
+            dismemberable = structuralLimb;
+            damageManager = damage;
+            partHealth = health;
+            dragJoint = authoredDragJoint;
+            elements = elemental;
+            if (dragJoint != null)
+            {
+                dragJoint.autoConfigureTarget = false;
+                dragJoint.enabled = false;
+            }
+            RefreshPartDragMultipliers();
+        }
+
+        internal void SetElementalEffects(RagdollElementalEffects value) => elements = value;
+
         internal void ApplyDragConfiguration(RagdollInputManager.DragConfiguration settings)
         {
             if (settings == null) return;
-
             dragFrequency = settings.Frequency;
             dragDampingRatio = settings.DampingRatio;
             dragMaxForce = settings.MaximumForce;
@@ -69,56 +96,40 @@ namespace KickTheBuddy.Physics
         private void RefreshPartDragMultipliers()
         {
             stretchLimit = ResolveStretchLimit(name);
-            bool isHead = name.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool isHead = partHealth != null ? partHealth.PartType == RagdollPartType.Head :
+                name.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0;
             partForceMultiplier = isHead ? headForceMultiplier : 1f;
             partFrequencyMultiplier = isHead ? headFrequencyMultiplier : 1f;
-            RagdollPartHealth partHealth = GetComponent<RagdollPartHealth>();
             if (partHealth != null) partFrequencyMultiplier *= partHealth.Flexibility;
-        }
-
-        public Rigidbody2D Body => body;
-        public RagdollPartHealth PartHealth => body != null ? body.GetComponent<RagdollPartHealth>() : null;
-
-        private void Awake()
-        {
-            body = GetComponent<Rigidbody2D>();
-            controller = GetComponentInParent<RagdollController>();
-            dismemberable = GetComponent<DismemberableLimb>();
-            RefreshPartDragMultipliers();
-            elements = controller != null ? controller.GetComponent<RagdollElementalEffects>() : null;
-            damageManager = controller != null ? controller.GetComponent<RagdollDamageManager>() : null;
         }
 
         private void FixedUpdate()
         {
-            if (dragging && dragJoint != null && dragJoint.enabled)
-            {
-                smoothedDragTarget = Vector2.SmoothDamp(smoothedDragTarget, pendingDragTarget, ref targetVelocity,
-                    targetSmoothTime, maximumTargetSpeed, Time.fixedDeltaTime);
-                Vector2 grabbedPoint = body.transform.TransformPoint(dragJoint.anchor);
-                float followDistance = Vector2.Distance(grabbedPoint, smoothedDragTarget);
-                float stretch = Mathf.Clamp01((followDistance - stretchLimit) / stretchLimit);
-                float elasticFrequency = Mathf.Lerp(1f, stretchedFrequencyMultiplier, stretch);
-                dragJoint.frequency = dragFrequency * partFrequencyMultiplier * elasticFrequency;
-                // Never clamp the pointer target: pulling the head must translate the complete body.
-                dragJoint.target = smoothedDragTarget;
-            }
+            if (!dragging || dragJoint == null || !dragJoint.enabled || body == null) return;
+            smoothedDragTarget = Vector2.SmoothDamp(smoothedDragTarget, pendingDragTarget, ref targetVelocity,
+                targetSmoothTime, maximumTargetSpeed, Time.fixedDeltaTime);
+            Vector2 grabbedPoint = body.transform.TransformPoint(dragJoint.anchor);
+            float followDistance = Vector2.Distance(grabbedPoint, smoothedDragTarget);
+            float stretch = Mathf.Clamp01((followDistance - stretchLimit) / stretchLimit);
+            dragJoint.frequency = dragFrequency * partFrequencyMultiplier *
+                                  Mathf.Lerp(1f, stretchedFrequencyMultiplier, stretch);
+            dragJoint.target = smoothedDragTarget;
         }
 
         public bool BeginDrag(Vector2 worldPoint)
         {
-            if (body == null || dragging || (controller != null && controller.CurrentState == RagdollState.Frozen)) return false;
-            dragJoint = GetComponent<TargetJoint2D>();
-            if (dragJoint == null) dragJoint = gameObject.AddComponent<TargetJoint2D>();
+            if (body == null || dragJoint == null || dragging ||
+                (controller != null && controller.CurrentState == RagdollState.Frozen)) return false;
+
             dragJoint.enabled = false;
-            dragJoint.autoConfigureTarget = false;
             dragJoint.anchor = transform.InverseTransformPoint(worldPoint);
             dragJoint.target = worldPoint;
             dragJoint.frequency = dragFrequency * partFrequencyMultiplier;
             dragJoint.dampingRatio = dragDampingRatio;
             dragJoint.maxForce = dragMaxForce * partForceMultiplier;
             dragJoint.enabled = true;
-            pendingDragTarget = smoothedDragTarget = worldPoint; targetVelocity = Vector2.zero;
+            pendingDragTarget = smoothedDragTarget = worldPoint;
+            targetVelocity = Vector2.zero;
             dragging = true;
             controller?.NotifyExternalDragStarted(body);
             Grabbed?.Invoke(this, worldPoint);
@@ -145,11 +156,9 @@ namespace KickTheBuddy.Physics
         public void ApplyPointForce(Rigidbody2D hitLimb, Vector2 direction, float force)
         {
             if (hitLimb == null || force <= 0f) return;
-            if (elements == null && controller != null) elements = controller.GetComponent<RagdollElementalEffects>();
             Vector2 normalized = direction.sqrMagnitude > 0f ? direction.normalized : Vector2.up;
             Vector2 impulse = normalized * force;
             hitLimb.AddForce(impulse, ForceMode2D.Impulse);
-            if (damageManager == null && controller != null) damageManager = controller.GetComponent<RagdollDamageManager>();
             damageManager?.ApplyDirectDamage(hitLimb, force, force, impulse, hitLimb.worldCenterOfMass);
             PointForceApplied?.Invoke(hitLimb, normalized, force);
             if (force >= knockoutForceThreshold) RequestKnockout(knockoutDuration);
@@ -158,8 +167,7 @@ namespace KickTheBuddy.Physics
         public void ApplyExplosionForce(Vector2 explosionOrigin, float radius, float maxForce)
         {
             if (controller == null || radius <= 0f || maxForce <= 0f) return;
-            if (elements == null) elements = controller.GetComponent<RagdollElementalEffects>();
-            var parts = controller.Parts;
+            IReadOnlyList<RagdollController.RagdollPart> parts = controller.Parts;
             for (int i = 0; i < parts.Count; i++)
             {
                 Rigidbody2D target = parts[i].Body;
@@ -168,10 +176,9 @@ namespace KickTheBuddy.Physics
                 float distance = offset.magnitude;
                 if (distance > radius) continue;
                 float force = maxForce * (1f - distance / radius);
-                Vector2 direction = distance > 0.001f ? offset / distance : Vector2.up;
+                Vector2 direction = distance > .001f ? offset / distance : Vector2.up;
                 Vector2 impulse = direction * force;
                 target.AddForceAtPosition(impulse, target.worldCenterOfMass, ForceMode2D.Impulse);
-                if (damageManager == null) damageManager = controller.GetComponent<RagdollDamageManager>();
                 damageManager?.ApplyDirectDamage(target, force, force, impulse, target.worldCenterOfMass);
             }
             ExplosionApplied?.Invoke(explosionOrigin, radius, maxForce);
@@ -181,11 +188,18 @@ namespace KickTheBuddy.Physics
         private void RequestKnockout(float duration)
         {
             KnockoutRequested?.Invoke(duration);
-            if (controller != null) controller.Knockout(duration);
+            controller?.Knockout(duration);
         }
 
         private float ResolveStretchLimit(string partName)
         {
+            if (partHealth != null)
+            {
+                if (partHealth.PartType == RagdollPartType.Head) return headStretchLimit;
+                if (partHealth.PartType == RagdollPartType.Arm) return armStretchLimit;
+                if (partHealth.PartType == RagdollPartType.Leg) return legStretchLimit;
+                return defaultStretchLimit;
+            }
             string value = partName.ToLowerInvariant();
             if (value.Contains("head")) return headStretchLimit;
             if (value.Contains("arm")) return armStretchLimit;
@@ -199,7 +213,5 @@ namespace KickTheBuddy.Physics
             dragging = false;
             if (dragJoint != null) dragJoint.enabled = false;
         }
-
-
     }
 }

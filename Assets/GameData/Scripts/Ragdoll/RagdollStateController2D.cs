@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace KickTheBuddy.Physics
 {
@@ -94,6 +94,7 @@ namespace KickTheBuddy.Physics
 
         public void Knockout(float duration)
         {
+            if (currentState == RagdollState.Dead) return;
             duration = Mathf.Max(0f, duration);
             pose.SetDragging(false);
             pose.CancelRecovery();
@@ -105,9 +106,21 @@ namespace KickTheBuddy.Physics
             owner?.NotifyCharacterKnockedOut();
         }
 
+        public void Die()
+        {
+            if (currentState == RagdollState.Dead) return;
+            reviveAt = float.PositiveInfinity;
+            currentState = RagdollState.Dead;
+            isLimp = true;
+            pose.SetDragging(false);
+            pose.CancelRecovery();
+            rig.EnterDeathState();
+            owner?.NotifyLimpStateChanged(true);
+        }
         public void Revive()
         {
             rig.RestoreAuthoredPhysics();
+            rig.RestoreDeathVisuals();
             if (profiles.ActiveProfile != null) profiles.ApplyProfile(profiles.ActiveProfile);
 
             damageManager?.RestoreAllParts();
@@ -130,3 +143,5 @@ namespace KickTheBuddy.Physics
         }
     }
 }
+
+
