@@ -4,7 +4,18 @@ namespace KickTheBuddy.Haptics
 {
     public enum HapticImpact { Light, Medium, Heavy, Soft, Rigid }
     public enum HapticNotification { Success, Warning, Error }
-    public enum GameHaptic { Selection, LightHit, HeavyHit, LimbBreak, Combo, LevelComplete, LevelFailed }
+    public enum GameHaptic
+    {
+        Selection,
+        LightHit,
+        HeavyHit,
+        LimbBreak,
+        Combo,
+        LevelComplete,
+        LevelFailed,
+        CharacterBlast,
+        Knockout
+    }
 
     [Serializable]
     public struct HapticPattern

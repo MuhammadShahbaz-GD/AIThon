@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using KickTheBuddy.Gameplay;
 using KickTheBuddy.Haptics;
 using UnityEditor;
@@ -60,12 +61,7 @@ namespace KickTheBuddy.Editor
                 BuildSplash(catalog);
                 BuildMenu(catalog);
                 ConfigureGameplay(catalog);
-                EditorBuildSettings.scenes = new[]
-                {
-                    new EditorBuildSettingsScene(SplashPath, true),
-                    new EditorBuildSettingsScene(MenuPath, true),
-                    new EditorBuildSettingsScene(GameplayPath, true)
-                };
+                EditorBuildSettings.scenes = CreateBuildSceneList(catalog);
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
                 EditorSceneManager.OpenScene(SplashPath, OpenSceneMode.Single);
@@ -239,8 +235,35 @@ namespace KickTheBuddy.Editor
         private static void ValidateBuildSettings()
         {
             EditorBuildSettingsScene[] scenes = EditorBuildSettings.scenes;
-            if (scenes.Length < 3 || scenes[0].path != SplashPath || scenes[1].path != MenuPath || scenes[2].path != GameplayPath)
-                throw new InvalidOperationException("Build Settings must be Splash, MainMenu, then RagdollSandbox.");
+            if (scenes.Length < 3 || scenes[0].path != SplashPath || scenes[1].path != MenuPath)
+                throw new InvalidOperationException("Build Settings must start with Splash and MainMenu.");
+            LevelCatalog catalog = AssetDatabase.LoadAssetAtPath<LevelCatalog>(CatalogPath);
+            if (catalog == null) throw new InvalidOperationException("Level Catalog is missing.");
+            for (int i = 0; i < catalog.Count; i++)
+            {
+                LevelDefinition level = catalog.Get(i);
+                bool found = false;
+                for (int j = 2; j < scenes.Length; j++)
+                    if (scenes[j].enabled && scenes[j].path == level.ScenePath) { found = true; break; }
+                if (!found) throw new InvalidOperationException(level.DisplayName + " is missing from Build Settings.");
+            }
+        }
+
+        private static EditorBuildSettingsScene[] CreateBuildSceneList(LevelCatalog catalog)
+        {
+            var result = new List<EditorBuildSettingsScene>(catalog.Count + 2)
+            {
+                new EditorBuildSettingsScene(SplashPath, true),
+                new EditorBuildSettingsScene(MenuPath, true)
+            };
+            var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { SplashPath, MenuPath };
+            for (int i = 0; i < catalog.Count; i++)
+            {
+                LevelDefinition level = catalog.Get(i);
+                if (level == null || string.IsNullOrWhiteSpace(level.ScenePath) || !paths.Add(level.ScenePath)) continue;
+                result.Add(new EditorBuildSettingsScene(level.ScenePath, true));
+            }
+            return result.ToArray();
         }
 
         private static void ValidateSplash()

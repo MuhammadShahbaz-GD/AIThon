@@ -13,12 +13,13 @@ MonoBehaviour:
   m_Name: Level_01
   m_EditorClassIdentifier: 
   levelId: level_01
-  displayName: Training Room
+  displayName: Level 1 - Wall Smash
   scenePath: Assets/GameData/Scene/RagdollSandbox.unity
-  objectiveText: Deal enough damage before time expires.
-  targetDamage: 900
-  timeLimit: 150
-  completionCoins: 250
-  oneStarScore: 900
-  twoStarScore: 1400
-  threeStarScore: 2000
+  objectiveText: Drag and throw the character into the walls until the glass breaks.
+  completionRule: 1
+  targetDamage: 140
+  timeLimit: 45
+  completionCoins: 150
+  oneStarScore: 120
+  twoStarScore: 220
+  threeStarScore: 350

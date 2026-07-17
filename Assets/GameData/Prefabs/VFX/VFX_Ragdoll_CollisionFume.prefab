@@ -41,7 +41,7 @@ ParticleSystem:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1045795571309850715}
   serializedVersion: 8
-  lengthInSec: 0.8
+  lengthInSec: 0.85
   simulationSpeed: 1
   stopAction: 0
   cullingMode: 0
@@ -116,8 +116,8 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.62
-      minScalar: 0.38
+      scalar: 0.78
+      minScalar: 0.45
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -169,8 +169,8 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.48
-      minScalar: 0.18
+      scalar: 0.34
+      minScalar: 0.12
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -222,8 +222,8 @@ ParticleSystem:
     startColor:
       serializedVersion: 2
       minMaxState: 2
-      minColor: {r: 1, g: 1, b: 1, a: 0.42}
-      maxColor: {r: 1, g: 1, b: 1, a: 0.68}
+      minColor: {r: 1, g: 0.98, b: 0.96, a: 0.72}
+      maxColor: {r: 0.9, g: 0.97, b: 1, a: 0.9}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -287,8 +287,8 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.24
-      minScalar: 0.12
+      scalar: 0.32
+      minScalar: 0.16
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -604,7 +604,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 18
+    maxNumParticles: 30
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -751,7 +751,7 @@ ParticleSystem:
     sphericalDirectionAmount: 0
     randomPositionAmount: 0
     radius:
-      value: 0.035
+      value: 0.045
       mode: 0
       spread: 0
       speed:
@@ -987,7 +987,16 @@ ParticleSystem:
         m_Curve:
         - serializedVersion: 3
           time: 0
-          value: 0.62
+          value: 0.68
+          inSlope: 0
+          outSlope: 0
+          tangentMode: 0
+          weightedMode: 0
+          inWeight: 0
+          outWeight: 0
+        - serializedVersion: 3
+          time: 0.55
+          value: 1.18
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -996,7 +1005,7 @@ ParticleSystem:
           outWeight: 0
         - serializedVersion: 3
           time: 1
-          value: 1.45
+          value: 1.5
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -1308,8 +1317,8 @@ ParticleSystem:
       maxColor: {r: 1, g: 1, b: 1, a: 1}
       maxGradient:
         serializedVersion: 2
-        key0: {r: 1, g: 1, b: 1, a: 0.62}
-        key1: {r: 0.86, g: 0.92, b: 1, a: 0.34}
+        key0: {r: 1, g: 0.98, b: 0.95, a: 0.84}
+        key1: {r: 0.84, g: 0.93, b: 1, a: 0.5}
         key2: {r: 0, g: 0, b: 0, a: 0}
         key3: {r: 0, g: 0, b: 0, a: 0}
         key4: {r: 0, g: 0, b: 0, a: 0}
@@ -1325,7 +1334,7 @@ ParticleSystem:
         ctime6: 0
         ctime7: 0
         atime0: 0
-        atime1: 29491
+        atime1: 31457
         atime2: 65535
         atime3: 0
         atime4: 0
@@ -1495,8 +1504,8 @@ ParticleSystem:
     x:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.14
-      minScalar: -0.14
+      scalar: 0.16
+      minScalar: -0.16
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -1548,8 +1557,8 @@ ParticleSystem:
     y:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.72
-      minScalar: 0.35
+      scalar: 0.85
+      minScalar: 0.42
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -2689,7 +2698,7 @@ ParticleSystem:
     strength:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.08
+      scalar: 0.1
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -2846,7 +2855,7 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     separateAxes: 0
-    frequency: 1.2
+    frequency: 1.15
     damping: 1
     octaves: 1
     octaveMultiplier: 0.5
@@ -2855,7 +2864,7 @@ ParticleSystem:
     scrollSpeed:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.22
+      scalar: 0.2
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -4812,7 +4821,7 @@ ParticleSystemRenderer:
   m_RenderAlignment: 0
   m_Pivot: {x: 0, y: 0, z: 0}
   m_Flip: {x: 0, y: 0, z: 0}
-  m_EnableGPUInstancing: 1
+  m_EnableGPUInstancing: 0
   m_ApplyActiveColorSpace: 1
   m_AllowRoll: 1
   m_FreeformStretching: 0

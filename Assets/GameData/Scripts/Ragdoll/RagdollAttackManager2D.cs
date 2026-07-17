@@ -10,7 +10,9 @@ namespace KickTheBuddy.Physics
         Hammer,
         Needle,
         Explosion,
-        Custom
+        Custom,
+        Lollipop,
+        Jelly
     }
 
     /// <summary>
@@ -63,7 +65,8 @@ namespace KickTheBuddy.Physics
 
         public bool CanDamage(GameObject target)
         {
-            return enabledForDamage &&
+            return attackType != RagdollAttackType.Jelly &&
+                   enabledForDamage &&
                    target != null &&
                    (damageableLayers.value & (1 << target.layer)) != 0;
         }
@@ -71,6 +74,9 @@ namespace KickTheBuddy.Physics
         /// <summary>Speed curve shared by walls, bullets, hammers, needles, and custom hazards.</summary>
         public float CalculateDamage(float relativeSpeed)
         {
+            // Jelly is a presentation-only nuisance. Keeping this invariant here prevents an
+            // accidental Inspector value from ever feeding health, score, combo, cracks, or KO.
+            if (attackType == RagdollAttackType.Jelly) return 0f;
             float excessSpeed = Mathf.Max(0f, relativeSpeed - minimumImpactSpeed);
             if (excessSpeed <= 0f && baseDamage <= 0f) return 0f;
             return Mathf.Min(baseDamage + excessSpeed * damagePerSpeed, maximumDamage);
@@ -91,6 +97,15 @@ namespace KickTheBuddy.Physics
             float damageCap)
         {
             attackType = type;
+            if (type == RagdollAttackType.Jelly)
+            {
+                baseDamage = 0f;
+                damagePerSpeed = 0f;
+                minimumImpactSpeed = 0f;
+                maximumDamage = 0f;
+                enabledForDamage = true;
+                return;
+            }
             baseDamage = Mathf.Max(0f, fixedDamage);
             damagePerSpeed = Mathf.Max(0f, speedDamage);
             minimumImpactSpeed = Mathf.Max(0f, minimumSpeed);
@@ -105,6 +120,14 @@ namespace KickTheBuddy.Physics
 
         private void OnValidate()
         {
+            if (attackType == RagdollAttackType.Jelly)
+            {
+                baseDamage = 0f;
+                damagePerSpeed = 0f;
+                minimumImpactSpeed = 0f;
+                maximumDamage = 0f;
+                return;
+            }
             baseDamage = Mathf.Max(0f, baseDamage);
             damagePerSpeed = Mathf.Max(0f, damagePerSpeed);
             minimumImpactSpeed = Mathf.Max(0f, minimumImpactSpeed);

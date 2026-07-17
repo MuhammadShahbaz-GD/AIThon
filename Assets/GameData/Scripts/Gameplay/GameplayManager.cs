@@ -15,6 +15,7 @@ namespace KickTheBuddy.Gameplay
         private SoundManager sounds;
         private RagdollController ragdoll;
         private RagdollInputManager ragdollInput;
+        private SandboxToolInput2D sandboxToolInput;
         private float damage;
         private float remainingTime;
         private int score;
@@ -34,7 +35,7 @@ namespace KickTheBuddy.Gameplay
         public event Action<float> TimeChanged;
         public event Action<int, int> LevelCompleted;
         public event Action LevelFailed;
-        public event Action MainMenuRequested;
+        public event Action NextLevelRequested;
 
         public void Initialize(LevelsManager levelsManager, GameSaveManager saveManager, SoundManager soundManager)
         {
@@ -52,6 +53,8 @@ namespace KickTheBuddy.Gameplay
             deathCompletion = null;
             BindRagdoll();
             ragdollInput?.SetInputEnabled(true);
+            sandboxToolInput?.ResetTools();
+            sandboxToolInput?.SetInputEnabled(true);
             damage = 0f;
             score = 0;
             remainingTime = level.TimeLimit;
@@ -68,6 +71,7 @@ namespace KickTheBuddy.Gameplay
         {
             StopDeathCompletion();
             ragdollInput?.SetInputEnabled(false);
+            sandboxToolInput?.SetInputEnabled(false);
             UnbindRagdoll();
             Time.timeScale = 1f;
             ChangeState(GameplayState.Loading);
@@ -77,6 +81,7 @@ namespace KickTheBuddy.Gameplay
         {
             StopDeathCompletion();
             ragdollInput?.SetInputEnabled(false);
+            sandboxToolInput?.SetInputEnabled(false);
             UnbindRagdoll();
             Time.timeScale = 1f;
             sounds?.PlayMusic(false);
@@ -112,6 +117,7 @@ namespace KickTheBuddy.Gameplay
         {
             if (State != GameplayState.Playing) return;
             ragdollInput?.SetInputEnabled(false);
+            sandboxToolInput?.SetInputEnabled(false);
             LevelDefinition level = levels.CurrentLevel;
             int stars = level.GetStars(score);
             saves.RecordLevel(level.LevelId, score, stars, level.CompletionCoins, levels.CurrentLevelIndex);
@@ -123,6 +129,8 @@ namespace KickTheBuddy.Gameplay
         public void FailLevel()
         {
             if (State != GameplayState.Playing) return;
+            ragdollInput?.SetInputEnabled(false);
+            sandboxToolInput?.SetInputEnabled(false);
             sounds.Play(GameSound.LevelFailed);
             ChangeState(GameplayState.LevelFailed);
             LevelFailed?.Invoke();
@@ -130,20 +138,16 @@ namespace KickTheBuddy.Gameplay
 
         public void NextLevel()
         {
+            if (State != GameplayState.LevelComplete) return;
             Time.timeScale = 1f;
-            if (levels.SelectNextLevel())
-            {
-                saves.RecordLevelSelection(levels.CurrentLevelIndex, true);
-                PrepareForLevelLoad();
-                levels.LoadCurrentLevel();
-            }
-            else MainMenuRequested?.Invoke();
+            NextLevelRequested?.Invoke();
         }
 
         public void BindRagdoll()
         {
             UnbindRagdoll();
             ragdoll = FindObjectOfType<RagdollController>();
+            sandboxToolInput = FindObjectOfType<SandboxToolInput2D>();
             if (ragdoll == null) return;
             ragdollInput = ragdoll.GetComponent<RagdollInputManager>();
             ragdoll.OnDamageTaken += HandleDamage;
@@ -162,7 +166,9 @@ namespace KickTheBuddy.Gameplay
             ObjectiveProgressChanged?.Invoke(damage, levels.CurrentLevel.TargetDamage);
             ScoreChanged?.Invoke(score);
             ScoreAwarded?.Invoke(gained, score, point, combo);
-            if (damage >= levels.CurrentLevel.TargetDamage && (ragdoll == null || ragdoll.CurrentHealth > 0f))
+            if (levels.CurrentLevel.CompletionRule == LevelCompletionRule.TargetDamage &&
+                damage >= levels.CurrentLevel.TargetDamage &&
+                (ragdoll == null || ragdoll.CurrentHealth > 0f))
                 CompleteLevel();
         }
 
@@ -170,6 +176,7 @@ namespace KickTheBuddy.Gameplay
         {
             if (State != GameplayState.Playing || deathCompletion != null) return;
             ragdollInput?.SetInputEnabled(false);
+            sandboxToolInput?.SetInputEnabled(false);
             deathCompletion = StartCoroutine(CompleteAfterDeath());
         }
 
@@ -201,8 +208,10 @@ namespace KickTheBuddy.Gameplay
                 ragdoll.OnCharacterDied -= HandleCharacterDied;
             }
             subscribed = false;
+            sandboxToolInput?.SetInputEnabled(false);
             ragdoll = null;
             ragdollInput = null;
+            sandboxToolInput = null;
         }
 
         private void StopDeathCompletion()

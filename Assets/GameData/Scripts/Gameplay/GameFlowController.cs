@@ -31,7 +31,7 @@ namespace KickTheBuddy.Gameplay
             saves = saveManager;
             sounds = soundManager;
             gameplay = gameplayManager;
-            gameplay.MainMenuRequested += ShowMainMenu;
+            gameplay.NextLevelRequested += PlayNextLevel;
             initialized = true;
         }
 
@@ -84,6 +84,19 @@ namespace KickTheBuddy.Gameplay
             levels.LoadCurrentLevel();
         }
 
+        public void PlayNextLevel()
+        {
+            if (!initialized || transitionInProgress) return;
+            int nextLevelIndex = levels.CurrentLevelIndex + 1;
+            if (nextLevelIndex < levels.Count && levels.IsUnlocked(nextLevelIndex))
+            {
+                PlayLevel(nextLevelIndex);
+                return;
+            }
+
+            ShowMainMenu();
+        }
+
         public void ShowMainMenu()
         {
             if (!initialized || transitionInProgress) return;
@@ -113,7 +126,7 @@ namespace KickTheBuddy.Gameplay
         public void Shutdown()
         {
             if (!initialized) return;
-            gameplay.MainMenuRequested -= ShowMainMenu;
+            gameplay.NextLevelRequested -= PlayNextLevel;
             initialized = false;
         }
 

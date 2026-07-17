@@ -20,11 +20,17 @@ namespace KickTheBuddy.Editor
         private const string ActiveKey = "KickTheBuddy.GameFlowSmoke.Active";
         private const string StageKey = "KickTheBuddy.GameFlowSmoke.Stage";
         private const string StartTimeKey = "KickTheBuddy.GameFlowSmoke.StartTime";
+        private const string StageStartTimeKey = "KickTheBuddy.GameFlowSmoke.StageStartTime";
+        private const string TimerSampleKey = "KickTheBuddy.GameFlowSmoke.TimerSample";
         private const string FailureKey = "KickTheBuddy.GameFlowSmoke.Failure";
         private const int StageSplash = 0;
         private const int StageGameplay = 1;
-        private const int StageReturnMenu = 2;
-        private const int StageSucceeded = 3;
+        private const int StageIdleFace = 2;
+        private const int StagePausedTimer = 3;
+        private const int StageResumedTimer = 4;
+        private const int StageNextLevel = 5;
+        private const int StageReturnMenu = 6;
+        private const int StageSucceeded = 7;
         private const int StageFailed = -1;
 
         static GameFlowPlayModeSmokeEditor()
@@ -70,7 +76,7 @@ namespace KickTheBuddy.Editor
             }
 
             if (!EditorApplication.isPlaying) return;
-            if (ElapsedSeconds() > 40d) { Fail("Timed out while waiting for stage " + stage + "."); return; }
+            if (ElapsedSeconds() > 60d) { Fail("Timed out while waiting for stage " + stage + "."); return; }
 
             try
             {
@@ -91,6 +97,63 @@ namespace KickTheBuddy.Editor
                             throw new InvalidOperationException("Continue selection was not persisted before gameplay.");
                         if (UnityEngine.Object.FindObjectOfType<KickTheBuddy.Physics.RagdollController>() == null)
                             throw new InvalidOperationException("Gameplay started without a bound ragdoll.");
+                        float configuredTime = root.Levels.CurrentLevel.TimeLimit;
+                        if (configuredTime < LevelDefinition.MinimumPlayTimeSeconds || Mathf.Abs(root.Gameplay.RemainingTime - configuredTime) > 0.1f)
+                            throw new InvalidOperationException($"Gameplay timer did not begin at the configured minimum-safe duration ({configuredTime:F1}s). Actual: {root.Gameplay.RemainingTime:F1}s.");
+                        BeginTimedStage(StageIdleFace);
+                        break;
+                    case StageIdleFace:
+                        // Allow the initial physics settling impact to finish before measuring the no-interaction idle delay.
+                        if (root == null || root.Gameplay.State != GameplayState.Playing || StageElapsedSeconds() < 6.5d) return;
+                        KickTheBuddy.Physics.RagdollAnimationController[] animations =
+                            UnityEngine.Object.FindObjectsOfType<KickTheBuddy.Physics.RagdollAnimationController>();
+                        bool idleFacePlaying = false;
+                        string idleFaceDiagnostics = string.Empty;
+                        for (int i = 0; i < animations.Length; i++)
+                        {
+                            idleFaceDiagnostics += $" [{animations[i].name}: state={animations[i].CurrentState}, authored={animations[i].HasAuthoredIdleFaceAnimation}, playing={animations[i].IsAuthoredIdleFacePlaying}]";
+                            if (animations[i].CurrentState == KickTheBuddy.Physics.RagdollAnimationState.Idle &&
+                                animations[i].HasAuthoredIdleFaceAnimation && animations[i].IsAuthoredIdleFacePlaying)
+                            {
+                                idleFacePlaying = true;
+                                break;
+                            }
+                        }
+                        if (!idleFacePlaying)
+                            throw new InvalidOperationException("The authored face sequence did not begin after the non-interacting idle delay." + idleFaceDiagnostics);
+                        root.Gameplay.Pause();
+                        SetTimerSample(root.Gameplay.RemainingTime);
+                        BeginTimedStage(StagePausedTimer);
+                        break;
+                    case StagePausedTimer:
+                        if (root == null || root.Gameplay.State != GameplayState.Paused || StageElapsedSeconds() < 0.25d) return;
+                        if (Mathf.Abs(root.Gameplay.RemainingTime - GetTimerSample()) > 0.001f)
+                            throw new InvalidOperationException("Gameplay timer continued while the game was paused.");
+                        root.Gameplay.Resume();
+                        SetTimerSample(root.Gameplay.RemainingTime);
+                        BeginTimedStage(StageResumedTimer);
+                        break;
+                    case StageResumedTimer:
+                        if (root == null || root.Gameplay.State != GameplayState.Playing || StageElapsedSeconds() < 0.25d) return;
+                        if (root.Gameplay.RemainingTime >= GetTimerSample() - 0.05f)
+                            throw new InvalidOperationException("Gameplay timer did not continue after resume.");
+                        root.Gameplay.Restart();
+                        if (Mathf.Abs(root.Gameplay.RemainingTime - root.Levels.CurrentLevel.TimeLimit) > 0.1f)
+                            throw new InvalidOperationException("Restart did not reset the gameplay timer to the full level duration.");
+                        root.Gameplay.CompleteLevel();
+                        if (root.Gameplay.State != GameplayState.LevelComplete)
+                            throw new InvalidOperationException("The completed level did not enter LevelComplete before Next was requested.");
+                        root.Gameplay.NextLevel();
+                        if (!root.Flow.IsTransitioning || root.Gameplay.State != GameplayState.Loading)
+                            throw new InvalidOperationException("Next did not enter the guarded single-scene loading flow.");
+                        SessionState.SetInt(StageKey, StageNextLevel);
+                        break;
+                    case StageNextLevel:
+                        if (scene.name != "CandyLab" || root == null || root.Gameplay.State != GameplayState.Playing) return;
+                        if (root.Levels.CurrentLevelIndex != 1 || root.Saves.Data.selectedLevel != 1)
+                            throw new InvalidOperationException("Next scene loaded without selecting and persisting Level 2.");
+                        if (Mathf.Abs(root.Gameplay.RemainingTime - root.Levels.CurrentLevel.TimeLimit) > .15f)
+                            throw new InvalidOperationException("Level 2 did not start with its full configured play time.");
                         root.Flow.ShowMainMenu();
                         SessionState.SetInt(StageKey, StageReturnMenu);
                         break;
@@ -120,6 +183,28 @@ namespace KickTheBuddy.Editor
             return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out start) ? EditorApplication.timeSinceStartup - start : 0d;
         }
 
+        private static void BeginTimedStage(int stage)
+        {
+            SessionState.SetInt(StageKey, stage);
+            SessionState.SetString(StageStartTimeKey, EditorApplication.timeSinceStartup.ToString("R", CultureInfo.InvariantCulture));
+        }
+
+        private static double StageElapsedSeconds()
+        {
+            string value = SessionState.GetString(StageStartTimeKey, "0");
+            double start;
+            return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out start) ? EditorApplication.timeSinceStartup - start : 0d;
+        }
+
+        private static void SetTimerSample(float value) => SessionState.SetString(TimerSampleKey, value.ToString("R", CultureInfo.InvariantCulture));
+
+        private static float GetTimerSample()
+        {
+            string value = SessionState.GetString(TimerSampleKey, "0");
+            float sample;
+            return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out sample) ? sample : 0f;
+        }
+
         private static void Fail(string message)
         {
             SessionState.SetString(FailureKey, message);
@@ -138,7 +223,7 @@ namespace KickTheBuddy.Editor
             DeleteSmokeSave();
             EditorSceneManager.OpenScene(SplashPath, OpenSceneMode.Single);
 
-            if (success) Debug.Log("FULL_GAME_FLOW_PLAYMODE_SMOKE_OK: Splash opened MainMenu, Continue opened gameplay in Playing state, and Main Menu return completed.");
+            if (success) Debug.Log("FULL_GAME_FLOW_PLAYMODE_SMOKE_OK: Splash opened MainMenu, idle face and timer checks passed, Next performed one guarded Level 2 scene load, Level 2 started, and Main Menu return completed.");
             else Debug.LogError("FULL_GAME_FLOW_PLAYMODE_SMOKE_FAILED: " + failure);
             if (batch) EditorApplication.Exit(success ? 0 : 1);
         }

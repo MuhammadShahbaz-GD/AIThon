@@ -44,12 +44,26 @@ namespace KickTheBuddy.VFX
         [Min(.01f)] [SerializeField] private float speedForMaximumStrength = 18f;
         [Range(1, 12)] [SerializeField] private int minimumHitParticles = 4;
         [Range(1, 16)] [SerializeField] private int maximumHitParticles = 11;
+        [Range(1, 12)] [SerializeField] private int minimumFumeParticles = 5;
+        [Range(1, 16)] [SerializeField] private int maximumFumeParticles = 10;
+        [Range(0, 8)] [SerializeField] private int minimumImpactGlassParticles = 2;
+        [Range(1, 12)] [SerializeField] private int maximumImpactGlassParticles = 7;
+        [Range(0f, 1f)] [SerializeField] private float impactGlassMinimumStrength = .12f;
+
+        [Header("Impact Glass Visibility")]
+        [Tooltip("Smallest possible glass crack emitted at the impact point.")]
+        [Min(.01f)] [SerializeField] private float minimumImpactGlassSize = .08f;
+        [Tooltip("Largest crack allowed on a light qualifying hit.")]
+        [Min(.01f)] [SerializeField] private float lightImpactGlassMaximumSize = .16f;
+        [Tooltip("Largest crack allowed at maximum impact strength.")]
+        [Min(.01f)] [SerializeField] private float heavyImpactGlassMaximumSize = .24f;
 
         private ParticleSystem hitParticle;
         private ParticleSystem comboParticle;
         private ParticleSystem knockoutParticle;
         private ParticleSystem deathParticle;
         private ParticleSystem collisionFumeParticle;
+        private ParticleSystem impactGlassParticle;
         private Color profileColor = Color.white;
         private bool deathPlayed;
         private Coroutine debrisCleanup;
@@ -60,6 +74,10 @@ namespace KickTheBuddy.VFX
         public event Action<Vector2> KnockoutEffectPlayed;
         public event Action<Vector2> DeathEffectPlayed;
 
+        public float MinimumImpactGlassSize => minimumImpactGlassSize;
+        public float LightImpactGlassMaximumSize => lightImpactGlassMaximumSize;
+        public float HeavyImpactGlassMaximumSize => heavyImpactGlassMaximumSize;
+
         private void Awake()
         {
             hitParticle = CreateShared(profile != null ? profile.HitPrefab : null, "Shared Hit");
@@ -67,6 +85,7 @@ namespace KickTheBuddy.VFX
             knockoutParticle = CreateShared(profile != null ? profile.KnockoutPrefab : null, "Shared Knockout");
             deathParticle = CreateShared(profile != null ? profile.DeathPrefab : null, "Shared Death");
             collisionFumeParticle = CreateShared(profile != null ? profile.CollisionFumePrefab : null, "Shared Collision Fumes");
+            impactGlassParticle = CreateShared(profile != null ? profile.ImpactGlassPrefab : null, "Shared Impact Glass");
             authoredRendererEnabled = new bool[characterRenderers.Length];
             for (int i = 0; i < characterRenderers.Length; i++)
                 authoredRendererEnabled[i] = characterRenderers[i] != null && characterRenderers[i].enabled;
@@ -79,6 +98,7 @@ namespace KickTheBuddy.VFX
             controller.OnImpactResolved += HandleImpact;
             controller.OnProfileDamageEffect += HandleProfileColor;
             controller.OnComboAdvanced += HandleCombo;
+            controller.OnLimbBroken += HandleLimbBroken;
             controller.OnCharacterKO += HandleKnockout;
             controller.OnCharacterDied += HandleDeath;
             controller.OnCharacterRevived += HandleRevived;
@@ -91,6 +111,7 @@ namespace KickTheBuddy.VFX
                 controller.OnImpactResolved -= HandleImpact;
                 controller.OnProfileDamageEffect -= HandleProfileColor;
                 controller.OnComboAdvanced -= HandleCombo;
+                controller.OnLimbBroken -= HandleLimbBroken;
                 controller.OnCharacterKO -= HandleKnockout;
                 controller.OnCharacterDied -= HandleDeath;
                 controller.OnCharacterRevived -= HandleRevived;
@@ -121,8 +142,38 @@ namespace KickTheBuddy.VFX
                     Mathf.Lerp(.04f, .09f, strength), count);
             if (collisionFumeParticle != null)
                 Emit(collisionFumeParticle, point, new Color(1f, 1f, 1f, Mathf.Lerp(.35f, .68f, strength)),
-                    Mathf.Lerp(.12f, .24f, strength), Mathf.RoundToInt(Mathf.Lerp(3f, 7f, strength)));
+                    Mathf.Lerp(.16f, .32f, strength),
+                    Mathf.RoundToInt(Mathf.Lerp(minimumFumeParticles, maximumFumeParticles, strength)));
+            if (impactGlassParticle != null && strength >= impactGlassMinimumStrength)
+                EmitImpactGlass(point, strength,
+                    Mathf.RoundToInt(Mathf.Lerp(minimumImpactGlassParticles, maximumImpactGlassParticles, strength)));
             ImpactEffectPlayed?.Invoke(point, strength);
+        }
+
+        private void EmitImpactGlass(Vector2 point, float strength, int count)
+        {
+            float minimumSpeed = Mathf.Lerp(.7f, 1.25f, strength);
+            float maximumSpeed = Mathf.Lerp(1.35f, 2.8f, strength);
+            for (int i = 0; i < count; i++)
+            {
+                Vector2 direction = UnityEngine.Random.insideUnitCircle;
+                if (direction.sqrMagnitude < .001f) direction = Vector2.up;
+                direction.Normalize();
+                direction.y = Mathf.Abs(direction.y) * .75f + .25f;
+                direction.Normalize();
+
+                ParticleSystem.EmitParams parameters = new ParticleSystem.EmitParams
+                {
+                    position = point + UnityEngine.Random.insideUnitCircle * .025f,
+                    velocity = direction * UnityEngine.Random.Range(minimumSpeed, maximumSpeed),
+                    startColor = Color.Lerp(new Color(.92f, .98f, 1f, .92f), new Color(1f, .72f, .82f, 1f), strength),
+                    startSize = UnityEngine.Random.Range(
+                        minimumImpactGlassSize,
+                        Mathf.Lerp(lightImpactGlassMaximumSize, heavyImpactGlassMaximumSize, strength)),
+                    rotation = UnityEngine.Random.Range(-Mathf.PI, Mathf.PI)
+                };
+                impactGlassParticle.Emit(parameters, 1);
+            }
         }
 
         private void HandleProfileColor(RagdollProfileType type, Color color, Vector2 point) => profileColor = color;
@@ -132,6 +183,12 @@ namespace KickTheBuddy.VFX
             if (deathPlayed || combo < 3 || combo % 3 != 0 || comboParticle == null) return;
             PlayBurst(comboParticle, point);
             ComboEffectPlayed?.Invoke(combo, point);
+        }
+
+        private void HandleLimbBroken(Rigidbody2D body, Vector2 point)
+        {
+            if (deathPlayed || controller == null || controller.CurrentHealth <= 0f || impactGlassParticle == null) return;
+            EmitImpactGlass(point, 1f, Mathf.Min(10, maximumImpactGlassParticles + 3));
         }
 
         private void HandleKnockout()
@@ -147,6 +204,11 @@ namespace KickTheBuddy.VFX
             if (deathPlayed) return;
             deathPlayed = true;
             Vector2 debrisOrigin = ResolveDebrisOrigin(point);
+            StopParticle(hitParticle);
+            StopParticle(comboParticle);
+            StopParticle(knockoutParticle);
+            StopParticle(collisionFumeParticle);
+            StopParticle(impactGlassParticle);
             if (deathParticle != null) PlayBurst(deathParticle, debrisOrigin);
             ReleaseCandyDebris(debrisOrigin);
             ReleaseGlassShards(debrisOrigin);
@@ -352,6 +414,7 @@ namespace KickTheBuddy.VFX
             StopParticle(knockoutParticle);
             StopParticle(deathParticle);
             StopParticle(collisionFumeParticle);
+            StopParticle(impactGlassParticle);
         }
 
         private static void StopParticle(ParticleSystem system)
@@ -363,6 +426,11 @@ namespace KickTheBuddy.VFX
         {
             speedForMaximumStrength = Mathf.Max(.01f, speedForMaximumStrength);
             maximumHitParticles = Mathf.Max(minimumHitParticles, maximumHitParticles);
+            maximumFumeParticles = Mathf.Max(minimumFumeParticles, maximumFumeParticles);
+            maximumImpactGlassParticles = Mathf.Max(minimumImpactGlassParticles, maximumImpactGlassParticles);
+            minimumImpactGlassSize = Mathf.Max(.01f, minimumImpactGlassSize);
+            lightImpactGlassMaximumSize = Mathf.Max(minimumImpactGlassSize, lightImpactGlassMaximumSize);
+            heavyImpactGlassMaximumSize = Mathf.Max(lightImpactGlassMaximumSize, heavyImpactGlassMaximumSize);
             debrisLifetime = Mathf.Max(1f, debrisLifetime);
             maximumActiveCandyDebris = Mathf.Clamp(maximumActiveCandyDebris, 4, 24);
             maximumActiveGlassShards = Mathf.Clamp(maximumActiveGlassShards, 4, 20);

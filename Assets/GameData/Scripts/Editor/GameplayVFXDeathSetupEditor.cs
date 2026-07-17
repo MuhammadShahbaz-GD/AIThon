@@ -323,6 +323,7 @@ namespace KickTheBuddy.Editor
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
+            ImpactFeedbackSetupEditor.SetupBatch();
             Debug.Log("Complete gameplay VFX installed: pooled impacts/fumes, camera shake, coins, combo/KO, candy blast, authored glass and spring debris.");
         }
 

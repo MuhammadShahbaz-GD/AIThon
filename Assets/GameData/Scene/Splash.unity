@@ -609,6 +609,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   haptics: {fileID: 0}
   heavyDamageThreshold: 15
+  comboMilestone: 3
+  comboForMaximumStrength: 12
 --- !u!114 &1038378007
 MonoBehaviour:
   m_ObjectHideFlags: 0

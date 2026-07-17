@@ -6,6 +6,7 @@ namespace KickTheBuddy.Haptics
 {
     internal sealed class HapticsPlatformDriver : IHapticsDriver, IDisposable
     {
+        private int[] scaledPatternAmplitudes = Array.Empty<int>();
 #if UNITY_ANDROID && !UNITY_EDITOR
         private AndroidJavaClass plugin;
 #endif
@@ -76,7 +77,7 @@ namespace KickTheBuddy.Haptics
         private void Pattern(long[] timings, int[] amplitudes, int repeat) { try { if (plugin != null) plugin.CallStatic("vibratePattern", timings, amplitudes, repeat); else Handheld.Vibrate(); } catch { Handheld.Vibrate(); } }
 #endif
         private static long Duration(HapticImpact impact) { switch (impact) { case HapticImpact.Light: return 22; case HapticImpact.Heavy: return 65; case HapticImpact.Soft: return 15; case HapticImpact.Rigid: return 85; default: return 40; } }
-        private static int[] Scale(int[] source, int length, float intensity) { int[] result = new int[length]; for (int i = 0; i < length; i++) { int value = source != null && i < source.Length ? source[i] : 180; result[i] = Mathf.Clamp(Mathf.RoundToInt(value * Mathf.Clamp01(intensity)), 0, 255); } return result; }
+        private int[] Scale(int[] source, int length, float intensity) { if (scaledPatternAmplitudes.Length != length) scaledPatternAmplitudes = new int[length]; for (int i = 0; i < length; i++) { int value = source != null && i < source.Length ? source[i] : 180; scaledPatternAmplitudes[i] = Mathf.Clamp(Mathf.RoundToInt(value * Mathf.Clamp01(intensity)), 0, 255); } return scaledPatternAmplitudes; }
         public void Dispose() {
 #if UNITY_ANDROID && !UNITY_EDITOR
             plugin?.Dispose(); plugin = null;

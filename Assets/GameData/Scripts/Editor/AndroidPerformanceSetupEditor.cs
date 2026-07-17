@@ -227,8 +227,11 @@ namespace KickTheBuddy.Editor
 
         private static void ConfigureAnimationTintBudget(Scene scene)
         {
-            RagdollController controller = FindSceneComponents<RagdollController>(scene).FirstOrDefault();
-            RagdollAnimationController animation = FindSceneComponents<RagdollAnimationController>(scene).FirstOrDefault();
+            RagdollController controller = FindSceneComponents<RagdollController>(scene)
+                .FirstOrDefault(candidate => candidate.gameObject.activeInHierarchy);
+            RagdollAnimationController animation = controller != null
+                ? controller.GetComponent<RagdollAnimationController>()
+                : null;
             if (controller == null || animation == null) return;
             var renderers = new List<SpriteRenderer>(controller.Parts.Count);
             for (int i = 0; i < controller.Parts.Count; i++)
@@ -257,7 +260,9 @@ namespace KickTheBuddy.Editor
         {
             int debrisLayer = EnsureLayer(DebrisLayerName);
             Physics2D.IgnoreLayerCollision(debrisLayer, debrisLayer, true);
-            RagdollVFXController vfx = FindSceneComponents<RagdollVFXController>(scene).FirstOrDefault();
+            RagdollVFXController vfx = FindSceneComponents<RagdollVFXController>(scene)
+                .FirstOrDefault(candidate => candidate.gameObject.activeInHierarchy &&
+                                             new SerializedObject(candidate).FindProperty("candyDebrisBodies").arraySize > 0);
             if (vfx == null) return;
             SerializedObject data = new SerializedObject(vfx);
             data.FindProperty("maximumActiveCandyDebris").intValue = 18;
