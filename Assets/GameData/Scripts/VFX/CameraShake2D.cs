@@ -31,6 +31,9 @@ namespace KickTheBuddy.VFX
 
         public event Action<float, float> ShakeStarted;
 
+        public float DeathAmplitude => deathAmplitude;
+        public float DeathDuration => deathDuration;
+
         private void OnEnable()
         {
             if (controller == null) return;

@@ -16,13 +16,27 @@ namespace KickTheBuddy.Physics
         [Tooltip("Optional hazard mode. Leave disabled for normal characters so only collisions and attacks damage joints.")]
         [SerializeField] private bool damageFromJointStress;
 
+        [Header("Distance Break Safety")]
+        [Tooltip("Break this parent connection if its two hinge anchors remain farther apart than the configured limit.")]
+        [SerializeField] private bool breakWhenOverstretched = true;
+        [Tooltip("Maximum world-space distance allowed between this limb hinge anchor and its connected-body anchor.")]
+        [Min(.01f)] [SerializeField] private float maximumAnchorSeparation = .55f;
+        [Tooltip("Consecutive physics steps outside the limit required before the limb breaks. Two filters one-frame solver spikes.")]
+        [Range(1, 10)] [SerializeField] private int requiredOverstretchFixedSteps = 2;
+        [Tooltip("Small outward impulse used when an overstretched limb separates.")]
+        [Min(0f)] [SerializeField] private float overstretchBreakImpulse = 1.5f;
+        [Tooltip("If disabled, grabbing never severs a limb; only impacts and ungrabbed structural overstretch can break it.")]
+        [SerializeField] private bool allowDistanceBreakWhileDragging;
+
         [SerializeField] private Rigidbody2D body;
         [SerializeField] private HingeJoint2D parentJoint;
         [SerializeField] private RagdollController owner;
         private float maximumJointHealth;
         private bool severed;
+        private int overstretchFixedStepCount;
 
         public event Action<DismemberableLimb, float, float, Vector2> Damaged;
+        public event Action<DismemberableLimb, float, float, Vector2> DistanceLimitExceeded;
         public event Action<DismemberableLimb, Vector2, Vector2> Severing;
         public event Action<DismemberableLimb> Severed;
 
@@ -31,11 +45,16 @@ namespace KickTheBuddy.Physics
         public bool CanBeSevered { get => canBeSevered; set => canBeSevered = value; }
         public bool IsSevered => severed;
         public Rigidbody2D Body => body;
+        public bool BreakWhenOverstretched => breakWhenOverstretched;
+        public float MaximumAnchorSeparation => maximumAnchorSeparation;
+        public int RequiredOverstretchFixedSteps => requiredOverstretchFixedSteps;
+        public bool AllowDistanceBreakWhileDragging => allowDistanceBreakWhileDragging;
 
         private void Awake() { maximumJointHealth = Mathf.Max(1f, jointHealth); }
 
         private void FixedUpdate()
         {
+            if (EvaluateDistanceBreak()) return;
             if (!damageFromJointStress || severed || parentJoint == null || !parentJoint.enabled) return;
             // User dragging may create very large solver reaction forces. Those forces are not impacts
             // and must never consume structural health; damage is supplied by collisions/tools/status effects.
@@ -43,6 +62,51 @@ namespace KickTheBuddy.Physics
             float excessForce = parentJoint.reactionForce.magnitude - jointStressThreshold;
             if (excessForce > 0f)
                 TakeDamage(excessForce * stressDamagePerForceSecond * Time.fixedDeltaTime, Vector2.zero, body.worldCenterOfMass);
+        }
+
+        /// <summary>
+        /// Detects a failed 2D joint by measuring the error between its two physical anchors. This is
+        /// independent from collision damage: the joint is allowed to flex normally, but cannot leave a
+        /// visually connected limb suspended several world units away from its parent.
+        /// </summary>
+        private bool EvaluateDistanceBreak()
+        {
+            if (!breakWhenOverstretched || severed || !canBeSevered || body == null ||
+                parentJoint == null || !parentJoint.enabled)
+            {
+                overstretchFixedStepCount = 0;
+                return false;
+            }
+
+            if (!allowDistanceBreakWhileDragging && owner != null && owner.IsUserDragging)
+            {
+                overstretchFixedStepCount = 0;
+                return false;
+            }
+
+            Vector2 limbAnchor = parentJoint.transform.TransformPoint(parentJoint.anchor);
+            Rigidbody2D connectedBody = parentJoint.connectedBody;
+            Vector2 connectedAnchor = connectedBody != null
+                ? connectedBody.transform.TransformPoint(parentJoint.connectedAnchor)
+                : parentJoint.connectedAnchor;
+            Vector2 separationVector = limbAnchor - connectedAnchor;
+            float limit = Mathf.Max(.01f, maximumAnchorSeparation);
+
+            if (separationVector.sqrMagnitude <= limit * limit)
+            {
+                overstretchFixedStepCount = 0;
+                return false;
+            }
+
+            overstretchFixedStepCount++;
+            if (overstretchFixedStepCount < requiredOverstretchFixedSteps) return false;
+
+            float separation = separationVector.magnitude;
+            Vector2 direction = separation > .0001f ? separationVector / separation : Vector2.up;
+            Vector2 breakPoint = (limbAnchor + connectedAnchor) * .5f;
+            DistanceLimitExceeded?.Invoke(this, separation, limit, breakPoint);
+            ForceSever(direction * overstretchBreakImpulse, breakPoint);
+            return severed;
         }
 
         internal void SetStressDamageEnabled(bool enabled)
@@ -64,6 +128,7 @@ namespace KickTheBuddy.Physics
         {
             if (severed || !canBeSevered) return;
             severed = true;
+            overstretchFixedStepCount = 0;
             Vector2 anchor = parentJoint != null ? parentJoint.transform.TransformPoint(parentJoint.anchor) : (Vector2)transform.position;
             Severing?.Invoke(this, force, point);
 
@@ -82,6 +147,18 @@ namespace KickTheBuddy.Physics
             if (!canBeSevered) return;
             jointHealth = 0f;
             SeverLimb(force, point);
+        }
+
+        /// <summary>Editor/runtime authoring helper for the structural distance safety limit.</summary>
+        public void ConfigureDistanceBreak(bool enabled, float maximumDistance, int fixedSteps,
+            float breakImpulse, bool allowWhileDragging)
+        {
+            breakWhenOverstretched = enabled;
+            maximumAnchorSeparation = Mathf.Max(.01f, maximumDistance);
+            requiredOverstretchFixedSteps = Mathf.Clamp(fixedSteps, 1, 10);
+            overstretchBreakImpulse = Mathf.Max(0f, breakImpulse);
+            allowDistanceBreakWhileDragging = allowWhileDragging;
+            overstretchFixedStepCount = 0;
         }
 
         internal void Initialize(RagdollController controller, Rigidbody2D authoredBody, HingeJoint2D authoredParentJoint, float health, float stressThreshold, float stressRate)
@@ -107,6 +184,9 @@ namespace KickTheBuddy.Physics
             jointHealth = Mathf.Max(0f, jointHealth);
             jointStressThreshold = Mathf.Max(0f, jointStressThreshold);
             stressDamagePerForceSecond = Mathf.Max(0f, stressDamagePerForceSecond);
+            maximumAnchorSeparation = Mathf.Max(.01f, maximumAnchorSeparation);
+            requiredOverstretchFixedSteps = Mathf.Clamp(requiredOverstretchFixedSteps, 1, 10);
+            overstretchBreakImpulse = Mathf.Max(0f, overstretchBreakImpulse);
         }
     }
 }

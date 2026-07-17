@@ -74,15 +74,25 @@ namespace KickTheBuddy.Physics.VFX
         private void HandleDepleted(RagdollPartHealth part)
         {
             SetCrackStage(crackSkins == null ? -1 : crackSkins.Length - 1);
-            if (exploded) return;
-
-            exploded = true;
-            Vector2 point = lastDamagePoint;
-            onExplode?.Invoke(this, point);
-            Exploded?.Invoke(this, point);
+            ExplodeOnce(lastDamagePoint);
 
             if (breakLimbAtZeroHealth && dismemberableLimb != null && !dismemberableLimb.IsSevered)
-                dismemberableLimb.ForceSever(breakImpulse, point);
+                dismemberableLimb.ForceSever(breakImpulse, lastDamagePoint);
+        }
+
+        private void HandleStructuralSevering(DismemberableLimb limb, Vector2 force, Vector2 point)
+        {
+            lastDamagePoint = point;
+            SetCrackStage(crackSkins == null ? -1 : crackSkins.Length - 1);
+            ExplodeOnce(point);
+        }
+
+        private void ExplodeOnce(Vector2 point)
+        {
+            if (exploded) return;
+            exploded = true;
+            onExplode?.Invoke(this, point);
+            Exploded?.Invoke(this, point);
         }
 
         private void HandleRestored(RagdollPartHealth part)
@@ -133,19 +143,27 @@ namespace KickTheBuddy.Physics.VFX
 
         private void Subscribe()
         {
-            if (limbHealth == null) return;
             Unsubscribe();
-            limbHealth.Damaged += HandleDamaged;
-            limbHealth.Depleted += HandleDepleted;
-            limbHealth.Restored += HandleRestored;
+            if (limbHealth != null)
+            {
+                limbHealth.Damaged += HandleDamaged;
+                limbHealth.Depleted += HandleDepleted;
+                limbHealth.Restored += HandleRestored;
+            }
+            if (dismemberableLimb != null)
+                dismemberableLimb.Severing += HandleStructuralSevering;
         }
 
         private void Unsubscribe()
         {
-            if (limbHealth == null) return;
-            limbHealth.Damaged -= HandleDamaged;
-            limbHealth.Depleted -= HandleDepleted;
-            limbHealth.Restored -= HandleRestored;
+            if (limbHealth != null)
+            {
+                limbHealth.Damaged -= HandleDamaged;
+                limbHealth.Depleted -= HandleDepleted;
+                limbHealth.Restored -= HandleRestored;
+            }
+            if (dismemberableLimb != null)
+                dismemberableLimb.Severing -= HandleStructuralSevering;
         }
 
         private void OnValidate()

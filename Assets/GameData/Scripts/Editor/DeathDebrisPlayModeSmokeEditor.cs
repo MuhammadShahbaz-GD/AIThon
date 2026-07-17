@@ -97,11 +97,14 @@ namespace KickTheBuddy.Editor
             Vector2 origin = ResolveTorsoCenter(ragdoll);
             DisableRagdollPhysicsLikeDeathState(ragdoll);
             vfx.SendMessage("HandleDeath", origin, SendMessageOptions.RequireReceiver);
+            if (vfx.transform.Find("Shared Candy Burst") == null)
+                throw new InvalidOperationException("The shared candy-sprite particle burst was not created.");
             Rigidbody2D[] bodies = pool.GetComponentsInChildren<Rigidbody2D>(true);
             int active = 0;
             for (int i = 0; i < bodies.Length; i++)
                 if (bodies[i] != null && bodies[i].gameObject.activeSelf && bodies[i].simulated) active++;
-            if (active != 40) throw new InvalidOperationException("Burst activated " + active + "/40 pooled bodies.");
+            if (active != vfx.ExpectedActiveDeathDebris)
+                throw new InvalidOperationException("Burst activated " + active + "/" + vfx.ExpectedActiveDeathDebris + " pooled bodies.");
             SessionState.SetString(BurstKey, Now());
             SessionState.SetInt(StageKey, StageMeasure);
         }
@@ -112,7 +115,9 @@ namespace KickTheBuddy.Editor
             Transform pool = ragdoll != null ? ragdoll.transform.Find("VFX Death Debris Pool") : null;
             Camera camera = Camera.main;
             Collider2D floor = FindCollider("Floor");
-            if (pool == null || camera == null || floor == null) throw new InvalidOperationException("Burst measurement references are missing.");
+            RagdollVFXController vfx = ragdoll != null ? ragdoll.GetComponent<RagdollVFXController>() : null;
+            if (pool == null || camera == null || floor == null || vfx == null)
+                throw new InvalidOperationException("Burst measurement references are missing.");
 
             Rigidbody2D[] bodies = pool.GetComponentsInChildren<Rigidbody2D>(true);
             float halfWidth = camera.orthographicSize * camera.aspect;
@@ -144,10 +149,13 @@ namespace KickTheBuddy.Editor
             }
 
             float spread = maximumX - minimumX;
-            if (candyVisible != 24 || glassActive != 16 || candyInside < 22 || candyOnFloor < 18 || spread < 3.5f)
-                throw new InvalidOperationException($"visibleCandy={candyVisible}/24, glass={glassActive}/16, inside={candyInside}/24, floor={candyOnFloor}/24, spread={spread:F2}.");
+            int candyParticles = vfx.ActiveCandyBurstParticles;
+            int expectedGlass = vfx.ExpectedActiveDeathDebris - 24;
+            if (candyVisible != 24 || glassActive != expectedGlass || candyParticles < 20 ||
+                candyInside < 22 || candyOnFloor < 18 || spread < 3.5f)
+                throw new InvalidOperationException($"visibleCandy={candyVisible}/24, candyParticles={candyParticles}, glass={glassActive}/{expectedGlass}, inside={candyInside}/24, floor={candyOnFloor}/24, spread={spread:F2}.");
 
-            Debug.Log($"TORSO_FLOOR_DEATH_BURST_SMOKE_OK: 24 candies visible, 16 glass/springs active, {candyInside} candies in camera, {candyOnFloor} on floor, spread={spread:F2}.");
+            Debug.Log($"TORSO_FLOOR_DEATH_BURST_SMOKE_OK: 24 physical candies, {candyParticles} gravity candy particles, {expectedGlass} glass/springs, {candyInside} candies in camera, {candyOnFloor} on floor, spread={spread:F2}.");
             SessionState.SetInt(StageKey, StageSucceeded);
             EditorApplication.isPlaying = false;
         }

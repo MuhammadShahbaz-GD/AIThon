@@ -35,7 +35,8 @@ namespace KickTheBuddy.Editor
                 if (attack == null) attack = boundary.AddComponent<RagdollAttackManager2D>();
 
                 // Boundaries deal damage only from meaningful impact speed.
-                attack.Configure(RagdollAttackType.Wall, 0f, 2.5f, 3.5f, 35f);
+                attack.Configure(RagdollAttackType.Wall, 0f, 1.25f, 4f,
+                    LongFunBalanceSetupEditor.MaximumRawDamagePerHit);
                 EditorUtility.SetDirty(boundary);
             }
 

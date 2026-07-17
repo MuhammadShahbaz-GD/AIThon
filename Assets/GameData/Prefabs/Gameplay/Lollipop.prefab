@@ -132,10 +132,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   attackType: 6
-  baseDamage: 12
-  damagePerSpeed: 3.5
-  minimumImpactSpeed: 2
-  maximumDamage: 52
+  baseDamage: 3
+  damagePerSpeed: 1.4
+  minimumImpactSpeed: 3
+  maximumDamage: 16
   damageableLayers:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -166,6 +166,7 @@ MonoBehaviour:
   maximumTargetSpeed: 65
   minimumStickSpeed: 2.5
   stickDuration: 0.65
+  reattachCooldown: 0.85
   slideDrag: 0.45
   slideDragDuration: 1.25
   squashAmount: 0.24

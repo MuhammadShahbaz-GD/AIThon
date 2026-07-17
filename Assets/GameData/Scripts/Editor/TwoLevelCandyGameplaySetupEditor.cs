@@ -31,8 +31,8 @@ namespace KickTheBuddy.Editor
         private const string JellyMaterialPath = "Assets/GameData/Materials/Gameplay/PMAT_JellySoft.physicsMaterial2D";
         private const string ToolsRootName = "Level 2 Interactive Tools";
         private const string ToolLayerName = "SandboxTool";
-        private const float LevelOnePlayTime = LevelDefinition.MinimumPlayTimeSeconds;
-        private const float LevelTwoPlayTime = 50f;
+        private const float LevelOnePlayTime = LongFunBalanceSetupEditor.LevelPlayTime;
+        private const float LevelTwoPlayTime = LongFunBalanceSetupEditor.LevelPlayTime;
 
         [MenuItem("Tools/Game/Build Level 1 And Level 2 Candy Gameplay")]
         public static void BuildFromMenu() => Build(false);
@@ -71,9 +71,11 @@ namespace KickTheBuddy.Editor
                     AssetDatabase.CreateAsset(levelTwo, LevelTwoAssetPath);
                 }
                 ConfigureLevel(levelOne, "level_01", "Level 1 - Wall Smash", LevelOneScenePath,
-                    "Drag and throw the character into the walls until the glass breaks.", 140f, LevelOnePlayTime, 150, 120, 220, 350);
+                    "Repeatedly throw the character into the walls until the glass finally breaks.",
+                    LongFunBalanceSetupEditor.HeadHealth, LevelOnePlayTime, 150, 120, 220, 350);
                 ConfigureLevel(levelTwo, "level_02", "Level 2 - Candy Lab", LevelTwoScenePath,
-                    "Break the character with the hard lollipop; use sticky jelly to annoy and distract it.", 200f, LevelTwoPlayTime, 250, 180, 320, 520);
+                    "Use repeated hard lollipop hits to break the character; sticky jelly only annoys it.",
+                    LongFunBalanceSetupEditor.HeadHealth, LevelTwoPlayTime, 250, 180, 320, 520);
 
                 LevelCatalog catalog = AssetDatabase.LoadAssetAtPath<LevelCatalog>(CatalogPath);
                 if (catalog == null) throw new InvalidOperationException("Level Catalog.asset is missing.");
@@ -88,6 +90,7 @@ namespace KickTheBuddy.Editor
                 ConfigureLevelOneScene();
                 ConfigureLevelTwoScene(lollipopPrefab, jellyPrefab, toolLayer);
                 JellyLiquidMechanicSetupEditor.SetupForLevelBuild();
+                LongFunBalanceSetupEditor.ApplyForLevelBuild();
                 EditorBuildSettings.scenes = new[]
                 {
                     new EditorBuildSettingsScene(SplashPath, true),
@@ -229,7 +232,7 @@ namespace KickTheBuddy.Editor
             Scene scene = EditorSceneManager.OpenScene(LevelOneScenePath, OpenSceneMode.Single);
             GameObject oldTools = FindRoot(scene, ToolsRootName);
             if (oldTools != null) UnityEngine.Object.DestroyImmediate(oldTools);
-            ConfigureWalls(scene, 6f, 3.8f, 2.5f, 48f);
+            ConfigureWalls(scene, 0f, 1.25f, 4f, LongFunBalanceSetupEditor.MaximumRawDamagePerHit);
             SetAuthoredCameraSize(scene);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -240,7 +243,7 @@ namespace KickTheBuddy.Editor
         private static void ConfigureLevelTwoScene(GameObject lollipopPrefab, GameObject jellyPrefab, int toolLayer)
         {
             Scene scene = EditorSceneManager.OpenScene(LevelTwoScenePath, OpenSceneMode.Single);
-            ConfigureWalls(scene, 0f, 2.2f, 3.5f, 25f);
+            ConfigureWalls(scene, 0f, .85f, 4.5f, 9f);
             GameObject oldTools = FindRoot(scene, ToolsRootName);
             if (oldTools != null) UnityEngine.Object.DestroyImmediate(oldTools);
 
@@ -315,7 +318,8 @@ namespace KickTheBuddy.Editor
             TargetJoint2D dragJoint = root.AddComponent<TargetJoint2D>();
             dragJoint.enabled = false;
             RagdollAttackManager2D attack = root.AddComponent<RagdollAttackManager2D>();
-            attack.Configure(RagdollAttackType.Lollipop, 12f, 3.5f, 2f, 52f);
+            attack.Configure(RagdollAttackType.Lollipop, 3f, 1.4f, 3f,
+                LongFunBalanceSetupEditor.MaximumRawDamagePerHit);
             SandboxTool2D tool = root.AddComponent<SandboxTool2D>();
             Transform visual = CreateVisual(root.transform, sprite, new Vector3(.66f, .66f, 1f));
             ConfigureTool(tool, SandboxToolKind.Lollipop, body, dragJoint, null, attack, visual, 1700f);

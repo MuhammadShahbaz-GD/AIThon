@@ -472,7 +472,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.3907311, w: -0.92050487}
   m_LocalPosition: {x: -0.3423582, y: 1.8122386, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -486,7 +486,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 28476887}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -577,9 +577,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -1324,7 +1324,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 5.25
+  orthographic size: 9.156756
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
@@ -1388,9 +1388,9 @@ MonoBehaviour:
   damageAmplitude: 0.08
   damageDuration: 0.14
   damageFrequency: 30
-  deathAmplitude: 0.24
-  deathDuration: 0.55
-  deathFrequency: 34
+  deathAmplitude: 0.55
+  deathDuration: 0.9
+  deathFrequency: 38
 --- !u!1 &100809918
 GameObject:
   m_ObjectHideFlags: 0
@@ -1759,7 +1759,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8aae770f21a5e042844a10a862a4c8f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  deathCompletionDelay: 1.6
+  deathCompletionDelay: 2
 --- !u!114 &137366982
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3156,7 +3156,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.89879405, w: -0.43837112}
   m_LocalPosition: {x: 0.44323266, y: 1.4663945, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -3170,7 +3170,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 231103370}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -3261,9 +3261,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -3508,7 +3508,7 @@ Transform:
   m_GameObject: {fileID: 233669010}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.71325034, w: -0.7009094}
-  m_LocalPosition: {x: 0.34786293, y: 1.9501482, z: 0}
+  m_LocalPosition: {x: 0.24074231, y: 1.7468938, z: 0}
   m_LocalScale: {x: 0.5904762, y: 0.5904762, z: 0.5904762}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4315,7 +4315,7 @@ Transform:
   m_GameObject: {fileID: 318738819}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.601815, w: 0.79863554}
-  m_LocalPosition: {x: 0.044769388, y: 1.4389813, z: 0}
+  m_LocalPosition: {x: 0.03282184, y: 1.3962361, z: 0}
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4794,7 +4794,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.9396927, w: 0.34202012}
   m_LocalPosition: {x: -0.455672, y: 0.7344024, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -4808,7 +4808,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 354756777}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -4899,9 +4899,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -5435,7 +5435,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.60876137, w: -0.7933534}
   m_LocalPosition: {x: -0.07392308, y: 0.66440284, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -5449,7 +5449,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 435030704}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -5540,9 +5540,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -5583,7 +5583,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.98768836, w: -0.15643454}
   m_LocalPosition: {x: 0.49267963, y: 0.8067331, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -5597,7 +5597,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 444618898}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -5688,9 +5688,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -5846,10 +5846,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   attackType: 0
-  baseDamage: 6
-  damagePerSpeed: 3.8
-  minimumImpactSpeed: 2.5
-  maximumDamage: 48
+  baseDamage: 0
+  damagePerSpeed: 1.25
+  minimumImpactSpeed: 4
+  maximumDamage: 16
   damageableLayers:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -5882,8 +5882,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 448430467}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.21643972, w: -0.976296}
-  m_LocalPosition: {x: -0.2321442, y: 0.3136059, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.6360783, w: 0.7716245}
+  m_LocalPosition: {x: 0.02671428, y: 0.60938966, z: 0}
   m_LocalScale: {x: 0.9459459, y: 0.9459459, z: 0.9459459}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6155,7 +6155,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.7880107, w: -0.6156615}
   m_LocalPosition: {x: 0.5018027, y: 1.7309135, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -6169,7 +6169,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 465003727}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -6260,9 +6260,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -6464,7 +6464,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: -1
-  m_Sprite: {fileID: 21300000, guid: e2cd07a1d9586464f91cde653a020e6b, type: 3}
+  m_Sprite: {fileID: 21300000, guid: fc5e7b855943861488c7def7ea94d4e9, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -6760,9 +6760,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   partType: 3
   criticalPart: 0
-  maximumHealth: 130
+  maximumHealth: 360
   healthContribution: 1
-  damageRatio: 0.6
+  damageRatio: 0.72
   flexibility: 0.9
   damageReactionStrength: 1.1
   structuralLimb: {fileID: 503350106}
@@ -6905,12 +6905,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c44a46d1412b2044f93ebe7ecde39816, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jointHealth: 100
+  jointHealth: 360
   canBeSevered: 1
   breakParticlesPrefab: {fileID: 0}
   jointStressThreshold: 450
   stressDamagePerForceSecond: 0.02
   damageFromJointStress: 0
+  breakWhenOverstretched: 1
+  maximumAnchorSeparation: 1.05
+  requiredOverstretchFixedSteps: 4
+  overstretchBreakImpulse: 1.5
+  allowDistanceBreakWhileDragging: 0
   body: {fileID: 503350098}
   parentJoint: {fileID: 503350099}
   owner: {fileID: 1789752363}
@@ -7043,7 +7048,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.44619787, w: 0.89493436}
   m_LocalPosition: {x: 0.17631179, y: 0.52947766, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -7057,7 +7062,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 505413308}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -7148,9 +7153,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -7447,9 +7452,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   partType: 3
   criticalPart: 0
-  maximumHealth: 130
+  maximumHealth: 360
   healthContribution: 1
-  damageRatio: 0.6
+  damageRatio: 0.72
   flexibility: 0.9
   damageReactionStrength: 1.1
   structuralLimb: {fileID: 517382179}
@@ -7568,12 +7573,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c44a46d1412b2044f93ebe7ecde39816, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jointHealth: 100
+  jointHealth: 360
   canBeSevered: 1
   breakParticlesPrefab: {fileID: 0}
   jointStressThreshold: 450
   stressDamagePerForceSecond: 0.02
   damageFromJointStress: 0
+  breakWhenOverstretched: 1
+  maximumAnchorSeparation: 1.05
+  requiredOverstretchFixedSteps: 4
+  overstretchBreakImpulse: 1.5
+  allowDistanceBreakWhileDragging: 0
   body: {fileID: 517382171}
   parentJoint: {fileID: 517382172}
   owner: {fileID: 1789752363}
@@ -7705,7 +7715,7 @@ Transform:
   m_GameObject: {fileID: 521983328}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.51503795, w: -0.85716736}
-  m_LocalPosition: {x: 0.17478327, y: 0.6160927, z: 0}
+  m_LocalPosition: {x: 0.122010626, y: 0.83173925, z: 0}
   m_LocalScale: {x: 0.45081967, y: 0.45081967, z: 0.45081967}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -8067,8 +8077,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 554071429}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.6626201, w: -0.74895567}
-  m_LocalPosition: {x: -0.4648722, y: 1.5843121, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0.544639, w: 0.8386707}
+  m_LocalPosition: {x: 0.34714288, y: 0.7881012, z: 0}
   m_LocalScale: {x: 1.1875, y: 1.1875, z: 1.1875}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -8227,7 +8237,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.57357645, w: -0.81915206}
   m_LocalPosition: {x: 0.22563525, y: 0.8229287, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -8241,7 +8251,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 558386735}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -8332,9 +8342,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -8491,8 +8501,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 567695822}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.4539906, w: -0.8910065}
-  m_LocalPosition: {x: 0.95512784, y: 1.3143122, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.18223561, w: 0.9832549}
+  m_LocalPosition: {x: 0.6548214, y: 1.2642673, z: 0}
   m_LocalScale: {x: 0.8037974, y: 0.8037974, z: 0.8037974}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -8808,8 +8818,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 589138129}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.6626201, w: -0.74895567}
-  m_LocalPosition: {x: 0.53, y: 0.42, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0.88294756, w: 0.46947166}
+  m_LocalPosition: {x: 0.50982106, y: 1.5905969, z: 0}
   m_LocalScale: {x: 1.1875, y: 1.1875, z: 1.1875}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9164,7 +9174,7 @@ Transform:
   m_GameObject: {fileID: 617594885}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.6626201, w: -0.74895567}
-  m_LocalPosition: {x: 0.39487216, y: 0.92568785, z: 0}
+  m_LocalPosition: {x: 0.27299032, y: 1.0441197, z: 0}
   m_LocalScale: {x: 1.1875, y: 1.1875, z: 1.1875}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9358,7 +9368,7 @@ Transform:
   m_GameObject: {fileID: 628211575}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.4539906, w: -0.8910065}
-  m_LocalPosition: {x: -0.03359667, y: 1.8852772, z: 0}
+  m_LocalPosition: {x: -0.020936832, y: 1.7023927, z: 0}
   m_LocalScale: {x: 0.8037974, y: 0.8037974, z: 0.8037974}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9562,7 +9572,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 9
   m_Sprite: {fileID: 21300000, guid: 75ef2ddd4f35e0f4dbb753012c457ebc, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.72156864}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -9825,7 +9835,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.9170601, w: -0.3987491}
   m_LocalPosition: {x: -0.6595038, y: 1.3311175, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -9839,7 +9849,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 669741307}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -9930,9 +9940,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -10571,8 +10581,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 741866745}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.21643972, w: -0.976296}
-  m_LocalPosition: {x: 0.1348722, y: 1.3456876, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.42261833, w: 0.90630776}
+  m_LocalPosition: {x: -0.45528984, y: 1.7904834, z: 0}
   m_LocalScale: {x: 0.9459459, y: 0.9459459, z: 0.9459459}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -10827,7 +10837,7 @@ Transform:
   m_GameObject: {fileID: 752702360}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.9636305, w: -0.26723826}
-  m_LocalPosition: {x: 0.71216804, y: 0.98991954, z: 0}
+  m_LocalPosition: {x: 0.49065354, y: 1.0881823, z: 0}
   m_LocalScale: {x: 0.5904762, y: 0.5904762, z: 0.5904762}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -11153,7 +11163,7 @@ Transform:
   m_GameObject: {fileID: 784865096}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.9135455, w: 0.4067366}
-  m_LocalPosition: {x: 0.30973104, y: 1.2425154, z: 0}
+  m_LocalPosition: {x: 0.21458404, y: 1.2614617, z: 0}
   m_LocalScale: {x: 0.6, y: 0.6, z: 0.6}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -11585,8 +11595,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 793155282}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.601815, w: 0.79863554}
-  m_LocalPosition: {x: -0.31, y: 2.41, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0.9998477, w: -0.017452296}
+  m_LocalPosition: {x: -0.21561222, y: 1.8121773, z: 0}
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -12052,7 +12062,7 @@ Transform:
   m_GameObject: {fileID: 816290161}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.9862856, w: 0.16504757}
-  m_LocalPosition: {x: -0.21063875, y: 1.6039486, z: 0}
+  m_LocalPosition: {x: -0.14238669, y: 1.5094028, z: 0}
   m_LocalScale: {x: 0.8141026, y: 0.8141026, z: 0.8141026}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -12209,8 +12219,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 839733314}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.6626201, w: -0.74895567}
-  m_LocalPosition: {x: -0.6, y: 2.09, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0.73727727, w: 0.6755903}
+  m_LocalPosition: {x: -0.5686592, y: 1.4429595, z: 0}
   m_LocalScale: {x: 1.1875, y: 1.1875, z: 1.1875}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -12451,8 +12461,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 851805968}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.4539906, w: -0.8910065}
-  m_LocalPosition: {x: 0.10153115, y: 1.3795893, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0.31730455, w: 0.94832367}
+  m_LocalPosition: {x: 0.09675416, y: 1.9331547, z: 0}
   m_LocalScale: {x: 0.8037974, y: 0.8037974, z: 0.8037974}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -12695,7 +12705,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.35020742, w: -0.93667215}
   m_LocalPosition: {x: 0.16849324, y: 1.8319663, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -12709,7 +12719,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 876738893}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -12800,9 +12810,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -12945,8 +12955,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 907019624}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.21643972, w: -0.976296}
-  m_LocalPosition: {x: -0.15785581, y: 2.116394, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.9925462, w: 0.12186927}
+  m_LocalPosition: {x: 0.5866993, y: 0.8740026, z: 0}
   m_LocalScale: {x: 0.9459459, y: 0.9459459, z: 0.9459459}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13105,7 +13115,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.97992474, w: -0.19936791}
   m_LocalPosition: {x: -0.19447373, y: 0.9054316, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -13119,7 +13129,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 922112238}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -13210,9 +13220,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -13335,8 +13345,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 940262985}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.034899388, w: -0.99939084}
-  m_LocalPosition: {x: 0.72, y: 1.91, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.80385685, w: -0.5948228}
+  m_LocalPosition: {x: 0.72647774, y: 1.5249567, z: 0}
   m_LocalScale: {x: 0.54320985, y: 0.54320985, z: 0.54320985}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13804,8 +13814,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1024002917}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.034899388, w: -0.99939084}
-  m_LocalPosition: {x: 0.7665018, y: 0.8995528, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.6293204, w: -0.77714604}
+  m_LocalPosition: {x: -0.6809093, y: 1.6431365, z: 0}
   m_LocalScale: {x: 0.54320985, y: 0.54320985, z: 0.54320985}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13962,8 +13972,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1031698085}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.9135455, w: 0.4067366}
-  m_LocalPosition: {x: -0.045038313, y: 2.213534, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0.9723699, w: 0.23344547}
+  m_LocalPosition: {x: -0.16981468, y: 0.757406, z: 0}
   m_LocalScale: {x: 0.6, y: 0.6, z: 0.6}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -14121,7 +14131,7 @@ Transform:
   m_GameObject: {fileID: 1035940193}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.034899388, w: -0.99939084}
-  m_LocalPosition: {x: 0.631374, y: 1.4052407, z: 0}
+  m_LocalPosition: {x: 0.4352293, y: 1.3730903, z: 0}
   m_LocalScale: {x: 0.54320985, y: 0.54320985, z: 0.54320985}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -14447,7 +14457,7 @@ Transform:
   m_GameObject: {fileID: 1074520996}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 8.02, y: 0.75, z: 0}
+  m_LocalPosition: {x: 8.75, y: 0.75, z: 0}
   m_LocalScale: {x: 0.5, y: 82.67969, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -14563,10 +14573,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   attackType: 0
-  baseDamage: 6
-  damagePerSpeed: 3.8
-  minimumImpactSpeed: 2.5
-  maximumDamage: 48
+  baseDamage: 0
+  damagePerSpeed: 1.25
+  minimumImpactSpeed: 4
+  maximumDamage: 16
   damageableLayers:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -14926,7 +14936,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 7
   m_Sprite: {fileID: 21300000, guid: 48dbfaf3719de7f46b87e405abeac2bf, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.72156864}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -14964,7 +14974,7 @@ Transform:
   m_GameObject: {fileID: 1116747512}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.9426415, w: -0.33380687}
-  m_LocalPosition: {x: 0.34940562, y: 1.6143118, z: 0}
+  m_LocalPosition: {x: 0.24180055, y: 1.5165119, z: 0}
   m_LocalScale: {x: 0.3826087, y: 0.3826087, z: 0.3826087}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -15284,8 +15294,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1136094296}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.21643972, w: -0.976296}
-  m_LocalPosition: {x: -0.5248722, y: 1.0843122, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.9914449, w: -0.13052627}
+  m_LocalPosition: {x: -0.1410936, y: 2.03348, z: 0}
   m_LocalScale: {x: 0.9459459, y: 0.9459459, z: 0.9459459}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -15528,7 +15538,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0.11942929, y: 1.3028527, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -15542,7 +15552,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 1164849461}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -15633,9 +15643,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -16344,9 +16354,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   partType: 2
   criticalPart: 0
-  maximumHealth: 100
+  maximumHealth: 300
   healthContribution: 1
-  damageRatio: 0.65
+  damageRatio: 0.75
   flexibility: 2
   damageReactionStrength: 1.3
   structuralLimb: {fileID: 1198307701}
@@ -16479,12 +16489,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c44a46d1412b2044f93ebe7ecde39816, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jointHealth: 100
+  jointHealth: 300
   canBeSevered: 1
   breakParticlesPrefab: {fileID: 0}
   jointStressThreshold: 450
   stressDamagePerForceSecond: 0.02
   damageFromJointStress: 0
+  breakWhenOverstretched: 1
+  maximumAnchorSeparation: 0.9
+  requiredOverstretchFixedSteps: 4
+  overstretchBreakImpulse: 1.5
+  allowDistanceBreakWhileDragging: 0
   body: {fileID: 1198307693}
   parentJoint: {fileID: 1198307694}
   owner: {fileID: 1789752363}
@@ -17437,7 +17452,7 @@ Transform:
   m_GameObject: {fileID: 1245040308}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.86602545, w: -0.4999999}
-  m_LocalPosition: {x: -0.6956845, y: 1.053201, z: 0}
+  m_LocalPosition: {x: -0.4751253, y: 1.131593, z: 0}
   m_LocalScale: {x: 0.5904762, y: 0.5904762, z: 0.5904762}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -17754,6 +17769,15 @@ MonoBehaviour:
   maximumArmCounterBalanceAngle: 14
   maximumLegStabilizationAngle: 10
   limbBalanceResponseSpeed: 90
+  reactToBrokenLeg: 1
+  allowOneLegRecovery: 0
+  brokenLegFallDuration: 0.8
+  brokenLegRecoveryDelay: 0.45
+  brokenLegFallTorque: 32
+  oneLegMotorStrength: 0.55
+  oneLegBalanceStrength: 0.35
+  oneLegLiftStrength: 0.12
+  oneLegHeadStrength: 0.75
 --- !u!114 &1251663628
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17901,6 +17925,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d27b7d289209c044864a1a40ddeb90b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  incomingDamageMultiplier: 0.65
   repeatHitCooldown: 0.15
   controller: {fileID: 0}
   elementalEffects: {fileID: 0}
@@ -18442,8 +18467,8 @@ Transform:
   m_GameObject: {fileID: 1275783601}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.25, z: -0.02}
-  m_LocalScale: {x: 1.25, y: 1.25, z: 1}
+  m_LocalPosition: {x: 0, y: 0.55, z: -0.02}
+  m_LocalScale: {x: 2, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1990132074}
@@ -18455,7 +18480,7 @@ SpriteRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1275783601}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 0
   m_ReceiveShadows: 0
   m_DynamicOccludee: 1
@@ -18647,7 +18672,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.76040596, w: -0.64944804}
   m_LocalPosition: {x: -0.44739735, y: 1.495161, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -18661,7 +18686,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 1317581925}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -18752,9 +18777,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -19074,7 +19099,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.4848096, w: 0.8746197}
   m_LocalPosition: {x: 0.028753927, y: 1.0452913, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -19088,7 +19113,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 1376705357}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -19179,9 +19204,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -19459,8 +19484,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1414214893}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.21643972, w: -0.976296}
-  m_LocalPosition: {x: -0.66, y: 1.59, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.9304176, w: 0.36650115}
+  m_LocalPosition: {x: -0.69074094, y: 1.2186742, z: 0}
   m_LocalScale: {x: 0.9459459, y: 0.9459459, z: 0.9459459}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -19908,7 +19933,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.9986295, w: 0.052335974}
   m_LocalPosition: {x: -0.09877666, y: 1.7054609, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -19922,7 +19947,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 1437358377}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -20013,9 +20038,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -20086,7 +20111,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 10
   m_Sprite: {fileID: 21300000, guid: 3f2d7432863479f4ca608ee140863e84, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.72156864}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -20491,7 +20516,7 @@ Transform:
   m_GameObject: {fileID: 1503335560}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.28401527, w: -0.9588198}
-  m_LocalPosition: {x: -0.54586744, y: 1.6768612, z: 0}
+  m_LocalPosition: {x: -0.3723517, y: 1.5594203, z: 0}
   m_LocalScale: {x: 0.5872093, y: 0.5872093, z: 0.5872093}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -21122,7 +21147,7 @@ Transform:
   m_GameObject: {fileID: 1556072021}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.21643972, w: -0.976296}
-  m_LocalPosition: {x: -0.36727202, y: 0.81929374, z: 0}
+  m_LocalPosition: {x: -0.24983624, y: 0.97113395, z: 0}
   m_LocalScale: {x: 0.9459459, y: 0.9459459, z: 0.9459459}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -21281,7 +21306,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.104528494, w: -0.9945219}
   m_LocalPosition: {x: -0.4808637, y: 1.0129696, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -21295,7 +21320,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 1569969093}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -21386,9 +21411,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -21429,7 +21454,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.95371693, w: 0.30070582}
   m_LocalPosition: {x: 0.32212687, y: 1.0970207, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -21443,7 +21468,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 1577903205}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -21534,9 +21559,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -21758,9 +21783,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   partType: 2
   criticalPart: 0
-  maximumHealth: 100
+  maximumHealth: 300
   healthContribution: 1
-  damageRatio: 0.65
+  damageRatio: 0.75
   flexibility: 1.2
   damageReactionStrength: 1.3
   structuralLimb: {fileID: 1587646694}
@@ -21890,12 +21915,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c44a46d1412b2044f93ebe7ecde39816, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jointHealth: 100
+  jointHealth: 300
   canBeSevered: 1
   breakParticlesPrefab: {fileID: 0}
   jointStressThreshold: 450
   stressDamagePerForceSecond: 0.02
   damageFromJointStress: 0
+  breakWhenOverstretched: 1
+  maximumAnchorSeparation: 0.9
+  requiredOverstretchFixedSteps: 4
+  overstretchBreakImpulse: 1.5
+  allowDistanceBreakWhileDragging: 0
   body: {fileID: 1587646686}
   parentJoint: {fileID: 1587646687}
   owner: {fileID: 1789752363}
@@ -22024,8 +22054,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1596795121}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.21643972, w: -0.976296}
-  m_LocalPosition: {x: -0.022727966, y: 1.6107061, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.92718387, w: -0.3746067}
+  m_LocalPosition: {x: -0.37161222, y: 0.65090114, z: 0}
   m_LocalScale: {x: 0.9459459, y: 0.9459459, z: 0.9459459}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -22582,7 +22612,7 @@ Transform:
   m_GameObject: {fileID: 1614793156}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.8290376, w: -0.55919284}
-  m_LocalPosition: {x: -0.49091882, y: 1.3113487, z: 0}
+  m_LocalPosition: {x: -0.33465725, y: 1.3086809, z: 0}
   m_LocalScale: {x: 0.7537313, y: 0.7537313, z: 0.7537313}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -23198,7 +23228,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.8480481, w: 0.52991927}
   m_LocalPosition: {x: -0.32623687, y: 1.2424321, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -23212,7 +23242,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 1638526501}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -23303,9 +23333,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -23419,8 +23449,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1645737013}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.21643972, w: -0.976296}
-  m_LocalPosition: {x: 0.27, y: 0.84, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.80901706, w: 0.5877852}
+  m_LocalPosition: {x: 0.4571606, y: 1.8382449, z: 0}
   m_LocalScale: {x: 0.9459459, y: 0.9459459, z: 0.9459459}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -23738,9 +23768,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   partType: 0
   criticalPart: 0
-  maximumHealth: 250
-  healthContribution: 2
-  damageRatio: 0.6
+  maximumHealth: 650
+  healthContribution: 1
+  damageRatio: 0.72
   flexibility: 1
   damageReactionStrength: 1.3
   structuralLimb: {fileID: 1649876825}
@@ -23782,12 +23812,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c44a46d1412b2044f93ebe7ecde39816, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jointHealth: 100
+  jointHealth: 650
   canBeSevered: 1
   breakParticlesPrefab: {fileID: 0}
   jointStressThreshold: 450
   stressDamagePerForceSecond: 0.02
   damageFromJointStress: 0
+  breakWhenOverstretched: 0
+  maximumAnchorSeparation: 0.9
+  requiredOverstretchFixedSteps: 4
+  overstretchBreakImpulse: 1.5
+  allowDistanceBreakWhileDragging: 0
   body: {fileID: 1649876819}
   parentJoint: {fileID: 0}
   owner: {fileID: 1789752363}
@@ -23927,7 +23962,7 @@ Transform:
   m_GameObject: {fileID: 1653507344}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -7.96, y: 0.75, z: 0}
+  m_LocalPosition: {x: -8.76, y: 0.75, z: 0}
   m_LocalScale: {x: 0.5, y: 79.75, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -24043,10 +24078,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   attackType: 0
-  baseDamage: 6
-  damagePerSpeed: 3.8
-  minimumImpactSpeed: 2.5
-  maximumDamage: 48
+  baseDamage: 0
+  damagePerSpeed: 1.25
+  minimumImpactSpeed: 4
+  maximumDamage: 16
   damageableLayers:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -24126,7 +24161,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 7
   m_Sprite: {fileID: 21300000, guid: 4bb92c3101b9d6347820d6cc01effa7c, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.72156864}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -24683,7 +24718,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.68835455, w: 0.7253744}
   m_LocalPosition: {x: 0.18815659, y: 1.5456328, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -24697,7 +24732,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 1700574174}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -24788,9 +24823,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -25159,7 +25194,7 @@ Transform:
   m_GameObject: {fileID: 1781703642}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.9961947, w: -0.08715577}
-  m_LocalPosition: {x: -0.036343366, y: 0.8803127, z: 0}
+  m_LocalPosition: {x: -0.022821054, y: 1.0129926, z: 0}
   m_LocalScale: {x: 1.4893616, y: 1.4893616, z: 1.4893616}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -25643,17 +25678,17 @@ MonoBehaviour:
   - {fileID: 1024002921}
   - {fileID: 1863213321}
   maximumActiveCandyDebris: 24
-  maximumActiveGlassShards: 16
+  maximumActiveGlassShards: 20
   debrisLifetime: 10
   deathDebrisOriginBody: {fileID: 1649876819}
   gameplayCamera: {fileID: 83975540}
   torsoPackingSize: {x: 0.9543626, y: 0.9790791}
   floorWorldY: -4.18
   screenEdgePadding: 0.55
-  candyFlightTimeRange: {x: 1.08, y: 1.36}
-  glassFlightTimeRange: {x: 0.92, y: 1.22}
-  maximumDebrisSpeed: 12
-  angularVelocityRange: {x: 220, y: 520}
+  candyFlightTimeRange: {x: 0.88, y: 1.18}
+  glassFlightTimeRange: {x: 0.82, y: 1.12}
+  maximumDebrisSpeed: 15
+  angularVelocityRange: {x: 300, y: 720}
   lightHitColor: {r: 1, g: 1, b: 1, a: 1}
   heavyHitColor: {r: 1, g: 1, b: 1, a: 1}
   speedForMaximumStrength: 18
@@ -25679,7 +25714,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d27b7d289209c044864a1a40ddeb90b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  repeatHitCooldown: 0.15
+  incomingDamageMultiplier: 0.65
+  repeatHitCooldown: 0.45
   controller: {fileID: 1789752363}
   elementalEffects: {fileID: 1789752373}
 --- !u!114 &1789752368
@@ -25787,15 +25823,15 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 59a3abbd2fb17014ba8929d37e374def, type: 3}
   - {fileID: 21300000, guid: a05f6aca26d28eb42855660e39e4da13, type: 3}
   idleFaceFramesPerSecond: 24
-  facePositionOffset: {x: 0, y: 0.25}
-  faceScale: {x: 1.25, y: 1.25}
-  eyeSpacing: 0.289
-  eyeVerticalOffset: 0.25
-  eyeWidth: 0.18
-  pupilPositionOffset: {x: 0, y: 0}
+  facePositionOffset: {x: 0, y: 0.55}
+  faceScale: {x: 2, y: 2}
+  eyeSpacing: 0.176
+  eyeVerticalOffset: 0.231
+  eyeWidth: 0.113
+  pupilPositionOffset: {x: 0, y: -0.21}
   pupilScale: {x: 0.38, y: 0.45}
   mouthPositionOffset: {x: 0, y: -0.2}
-  mouthWidth: 0.125
+  mouthWidth: 0.129
   damageReactionDuration: 0.4
   damageFlashColor: {r: 1, g: 1, b: 1, a: 1}
   deadTint: {r: 1, g: 1, b: 1, a: 1}
@@ -25862,6 +25898,15 @@ MonoBehaviour:
   maximumArmCounterBalanceAngle: 14
   maximumLegStabilizationAngle: 10
   limbBalanceResponseSpeed: 90
+  reactToBrokenLeg: 1
+  allowOneLegRecovery: 0
+  brokenLegFallDuration: 0.8
+  brokenLegRecoveryDelay: 0.45
+  brokenLegFallTorque: 32
+  oneLegMotorStrength: 0.55
+  oneLegBalanceStrength: 0.35
+  oneLegLiftStrength: 0.12
+  oneLegHeadStrength: 0.75
 --- !u!114 &1789752371
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -26236,7 +26281,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.25038, w: 0.96814764}
   m_LocalPosition: {x: -0.13722657, y: 1.4381353, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -26250,7 +26295,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 1805132453}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -26341,9 +26386,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -26583,10 +26628,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   attackType: 0
-  baseDamage: 6
-  damagePerSpeed: 3.8
-  minimumImpactSpeed: 2.5
-  maximumDamage: 48
+  baseDamage: 0
+  damagePerSpeed: 1.25
+  minimumImpactSpeed: 4
+  maximumDamage: 16
   damageableLayers:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -26912,7 +26957,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 12
   m_Sprite: {fileID: 21300000, guid: 61423049febad5045ac65bab8311f9b2, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.2901961}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -26950,7 +26995,7 @@ Transform:
   m_GameObject: {fileID: 1840042911}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.78260815, w: 0.62251467}
-  m_LocalPosition: {x: -0.1971214, y: 1.1746641, z: 0}
+  m_LocalPosition: {x: -0.13311386, y: 1.214916, z: 0}
   m_LocalScale: {x: 1.0744681, y: 1.0744681, z: 1.0744681}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -27154,7 +27199,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 9
   m_Sprite: {fileID: 21300000, guid: 5a09aa7ebcf36284dba8fc5b7a1d912c, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.72156864}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -27275,8 +27320,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1863213317}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.034899388, w: -0.99939084}
-  m_LocalPosition: {x: 0.8551278, y: 1.4043119, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.4146932, w: -0.90996134}
+  m_LocalPosition: {x: 0.29402235, y: 0.5643148, z: 0}
   m_LocalScale: {x: 0.54320985, y: 0.54320985, z: 0.54320985}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -27666,7 +27711,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.6560591, w: 0.75470954}
   m_LocalPosition: {x: -0.6139082, y: 1.745854, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -27680,7 +27725,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 1887688800}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -27771,9 +27816,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -27953,7 +27998,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.9953962, w: 0.0958457}
   m_LocalPosition: {x: -0.02579133, y: 2.0241768, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -27967,7 +28012,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 1949228719}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -28058,9 +28103,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -28387,9 +28432,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   partType: 1
   criticalPart: 1
-  maximumHealth: 140
-  healthContribution: 10
-  damageRatio: 1.5
+  maximumHealth: 500
+  healthContribution: 1
+  damageRatio: 0.75
   flexibility: 0.9
   damageReactionStrength: 2
   structuralLimb: {fileID: 1990132081}
@@ -28443,12 +28488,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c44a46d1412b2044f93ebe7ecde39816, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jointHealth: 100
+  jointHealth: 500
   canBeSevered: 1
   breakParticlesPrefab: {fileID: 0}
   jointStressThreshold: 450
   stressDamagePerForceSecond: 0.02
   damageFromJointStress: 0
+  breakWhenOverstretched: 1
+  maximumAnchorSeparation: 0.65
+  requiredOverstretchFixedSteps: 4
+  overstretchBreakImpulse: 1.5
+  allowDistanceBreakWhileDragging: 0
   body: {fileID: 1990132076}
   parentJoint: {fileID: 1990132075}
   owner: {fileID: 1789752363}
@@ -29562,7 +29612,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.82412624, w: 0.5664062}
   m_LocalPosition: {x: 0.7392008, y: 1.4039588, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -29576,7 +29626,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 2067324356}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -29667,9 +29717,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -29908,8 +29958,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2092803997}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.4539906, w: -0.8910065}
-  m_LocalPosition: {x: 0.82, y: 1.82, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0.06975638, w: 0.9975641}
+  m_LocalPosition: {x: -0.48575005, y: 0.8912283, z: 0}
   m_LocalScale: {x: 0.8037974, y: 0.8037974, z: 0.8037974}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -30068,7 +30118,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.14780937, w: -0.9890159}
   m_LocalPosition: {x: 0.57871246, y: 1.1738452, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1168947206}
@@ -30082,7 +30132,7 @@ CircleCollider2D:
   m_GameObject: {fileID: 2099397042}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 66bcd665fa9f3f4428277972495ae07f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -30173,9 +30223,9 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 0.08
-  m_LinearDrag: 0.2
-  m_AngularDrag: 0.35
-  m_GravityScale: 1.25
+  m_LinearDrag: 0.08
+  m_AngularDrag: 0.15
+  m_GravityScale: 1.45
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2

@@ -93,7 +93,8 @@ namespace KickTheBuddy.Editor
             RagdollVFXController vfx = ragdoll.GetComponent<RagdollVFXController>();
             RagdollDamageManager damage = ragdoll.GetComponent<RagdollDamageManager>();
             HapticsManager haptics = UnityEngine.Object.FindObjectOfType<HapticsManager>();
-            if (vfx == null || damage == null || haptics == null) return;
+            CameraShake2D cameraShake = UnityEngine.Object.FindObjectOfType<CameraShake2D>();
+            if (vfx == null || damage == null || haptics == null || cameraShake == null) return;
 
             ParticleSystem fumes = FindSharedParticle(vfx.transform, "Shared Collision Fumes");
             ParticleSystem glass = FindSharedParticle(vfx.transform, "Shared Impact Glass");
@@ -108,6 +109,8 @@ namespace KickTheBuddy.Editor
             int comboCues = 0;
             int blastCues = 0;
             float strongestCombo = 0f;
+            float strongestShake = 0f;
+            float longestShake = 0f;
             Vector2 reportedPoint = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
             void OnHaptic(GameHaptic cue, float intensity)
             {
@@ -115,9 +118,15 @@ namespace KickTheBuddy.Editor
                 if (cue == GameHaptic.CharacterBlast) blastCues++;
             }
             void OnImpact(Vector2 point, float strength) => reportedPoint = point;
+            void OnShake(float amplitude, float duration)
+            {
+                strongestShake = Mathf.Max(strongestShake, amplitude);
+                longestShake = Mathf.Max(longestShake, duration);
+            }
             haptics.Configure(true);
             haptics.HapticPlayed += OnHaptic;
             vfx.ImpactEffectPlayed += OnImpact;
+            cameraShake.ShakeStarted += OnShake;
 
             Vector2 impactPoint = torso.Body.worldCenterOfMass + new Vector2(.12f, .08f);
             for (int i = 0; i < 3; i++)
@@ -133,17 +142,23 @@ namespace KickTheBuddy.Editor
             if (comboCues != 1 || strongestCombo < .75f)
                 throw new InvalidOperationException("Combo milestone did not produce one strong haptic cue.");
 
-            float lethalDamage = head.Health.CurrentHealth / Mathf.Max(.01f, head.Health.DamageRatio) + 1f;
+            float lethalDamage = head.Health.CurrentHealth /
+                                 Mathf.Max(.01f, head.Health.DamageRatio * damage.IncomingDamageMultiplier) + 1f;
             if (!damage.ApplyDirectDamage(head.Body, lethalDamage, 22f, Vector2.up * 4f, head.Body.worldCenterOfMass))
                 throw new InvalidOperationException("Critical head damage was not applied.");
             if (blastCues != 1 || ragdoll.CurrentHealth > 0f)
                 throw new InvalidOperationException("Character blast did not produce exactly one success haptic.");
+            if (strongestShake < .5f || longestShake < .8f)
+                throw new InvalidOperationException($"Death shake was too weak: amplitude={strongestShake:F2}, duration={longestShake:F2}.");
 
             haptics.HapticPlayed -= OnHaptic;
             vfx.ImpactEffectPlayed -= OnImpact;
+            cameraShake.ShakeStarted -= OnShake;
             Debug.Log("IMPACT_FEEDBACK_PLAYMODE_OK: exactHitPoint=true, whiteFumes=true, fallingGlass=true, comboCue=" +
                       comboCues + ", comboIntensity=" + strongestCombo.ToString("F2", CultureInfo.InvariantCulture) +
-                      ", characterBlastCue=" + blastCues + ", crackSize=" +
+                      ", characterBlastCue=" + blastCues + ", deathShake=" +
+                      strongestShake.ToString("F2", CultureInfo.InvariantCulture) + "x" +
+                      longestShake.ToString("F2", CultureInfo.InvariantCulture) + "s, crackSize=" +
                       vfx.MinimumImpactGlassSize.ToString("F2", CultureInfo.InvariantCulture) + "-" +
                       vfx.HeavyImpactGlassMaximumSize.ToString("F2", CultureInfo.InvariantCulture) + ".");
             SessionState.SetBool(SuccessKey, true);

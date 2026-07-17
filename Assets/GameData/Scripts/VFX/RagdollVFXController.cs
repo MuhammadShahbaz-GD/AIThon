@@ -62,6 +62,7 @@ namespace KickTheBuddy.VFX
         private ParticleSystem comboParticle;
         private ParticleSystem knockoutParticle;
         private ParticleSystem deathParticle;
+        private ParticleSystem candyBurstParticle;
         private ParticleSystem collisionFumeParticle;
         private ParticleSystem impactGlassParticle;
         private Color profileColor = Color.white;
@@ -77,6 +78,10 @@ namespace KickTheBuddy.VFX
         public float MinimumImpactGlassSize => minimumImpactGlassSize;
         public float LightImpactGlassMaximumSize => lightImpactGlassMaximumSize;
         public float HeavyImpactGlassMaximumSize => heavyImpactGlassMaximumSize;
+        public int ActiveCandyBurstParticles => candyBurstParticle != null ? candyBurstParticle.particleCount : 0;
+        public int ExpectedActiveDeathDebris =>
+            Mathf.Min(maximumActiveCandyDebris, candyDebrisBodies.Length) +
+            Mathf.Min(maximumActiveGlassShards, glassShardBodies.Length);
 
         private void Awake()
         {
@@ -84,6 +89,7 @@ namespace KickTheBuddy.VFX
             comboParticle = CreateShared(profile != null ? profile.ComboPrefab : null, "Shared Combo");
             knockoutParticle = CreateShared(profile != null ? profile.KnockoutPrefab : null, "Shared Knockout");
             deathParticle = CreateShared(profile != null ? profile.DeathPrefab : null, "Shared Death");
+            candyBurstParticle = CreateShared(profile != null ? profile.CandyBurstPrefab : null, "Shared Candy Burst");
             collisionFumeParticle = CreateShared(profile != null ? profile.CollisionFumePrefab : null, "Shared Collision Fumes");
             impactGlassParticle = CreateShared(profile != null ? profile.ImpactGlassPrefab : null, "Shared Impact Glass");
             authoredRendererEnabled = new bool[characterRenderers.Length];
@@ -210,6 +216,7 @@ namespace KickTheBuddy.VFX
             StopParticle(collisionFumeParticle);
             StopParticle(impactGlassParticle);
             if (deathParticle != null) PlayBurst(deathParticle, debrisOrigin);
+            if (candyBurstParticle != null) PlayBurst(candyBurstParticle, debrisOrigin);
             ReleaseCandyDebris(debrisOrigin);
             ReleaseGlassShards(debrisOrigin);
             SetCharacterRenderers(false);
@@ -413,6 +420,7 @@ namespace KickTheBuddy.VFX
             StopParticle(comboParticle);
             StopParticle(knockoutParticle);
             StopParticle(deathParticle);
+            StopParticle(candyBurstParticle);
             StopParticle(collisionFumeParticle);
             StopParticle(impactGlassParticle);
         }

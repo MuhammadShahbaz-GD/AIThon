@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace KickTheBuddy.Physics
@@ -49,6 +50,26 @@ namespace KickTheBuddy.Physics
         [Range(0f, 30f)] [SerializeField] private float maximumLegStabilizationAngle = 10f;
         [Min(0f)] [SerializeField] private float limbBalanceResponseSpeed = 90f;
 
+        [Header("Broken Leg Recovery")]
+        [Tooltip("A severed leg forces the body to fall toward its missing support.")]
+        [SerializeField] private bool reactToBrokenLeg = true;
+        [Tooltip("Optional wounded behavior. Disable to keep the character grounded permanently after either leg is severed.")]
+        [SerializeField] private bool allowOneLegRecovery;
+        [Tooltip("Time spent with standing motors disabled while the body falls toward the missing support.")]
+        [Min(0f)] [SerializeField] private float brokenLegFallDuration = .8f;
+        [Tooltip("Additional grounded pause before one-leg stabilization begins.")]
+        [Min(0f)] [SerializeField] private float brokenLegRecoveryDelay = .45f;
+        [Tooltip("Continuous torso torque applied toward the broken-leg side during the forced stumble.")]
+        [Min(0f)] [SerializeField] private float brokenLegFallTorque = 32f;
+        [Tooltip("Joint motor strength retained while trying to stabilize on one leg.")]
+        [Range(0f, 1f)] [SerializeField] private float oneLegMotorStrength = .55f;
+        [Tooltip("Torso balance strength retained after one leg has broken.")]
+        [Range(0f, 1f)] [SerializeField] private float oneLegBalanceStrength = .35f;
+        [Tooltip("Upward get-up lift retained after one leg has broken. Keep low to prevent hovering.")]
+        [Range(0f, 1f)] [SerializeField] private float oneLegLiftStrength = .12f;
+        [Tooltip("Head-upright strength retained while wounded so the character still feels alive.")]
+        [Range(0f, 1f)] [SerializeField] private float oneLegHeadStrength = .75f;
+
         private RagdollController owner;
         private RagdollRigController2D rig;
         private RagdollProfileController2D profiles;
@@ -57,18 +78,55 @@ namespace KickTheBuddy.Physics
         private bool isDragging;
         private bool initialized;
         private float smoothedTorsoBalanceAngle;
+        private int brokenLegCount;
+        private bool brokenLegFallPending;
+        private bool ownerEventsSubscribed;
+        private bool oneLegRecoveryStarted;
+        private float brokenLegFallDirection = 1f;
+        private float brokenLegFallUntil = float.NegativeInfinity;
+        private float brokenLegRecoveryAt = float.NegativeInfinity;
+
+        public event Action<Rigidbody2D, int> BrokenLegResponseStarted;
+        public event Action OneLegRecoveryStarted;
 
         public bool IsGettingUp => isGettingUp;
         public bool IsDragging => isDragging;
         public float StandUpDelay => standUpDelay;
+        public int BrokenLegCount => brokenLegCount;
+        public bool IsBrokenLegStumbling => brokenLegCount == 1 &&
+                                           (brokenLegFallPending || Time.fixedTime < brokenLegFallUntil);
+        public bool IsOneLegRecoveryActive => allowOneLegRecovery && brokenLegCount == 1 && !brokenLegFallPending &&
+                                              Time.fixedTime >= brokenLegRecoveryAt;
+        public float BrokenLegFallDuration => brokenLegFallDuration;
+        public float BrokenLegRecoveryDelay => brokenLegRecoveryDelay;
+        public float BrokenLegFallTorque => brokenLegFallTorque;
+        public float OneLegMotorStrength => oneLegMotorStrength;
+        public float OneLegBalanceStrength => oneLegBalanceStrength;
+        public float OneLegLiftStrength => oneLegLiftStrength;
+        public float OneLegHeadStrength => oneLegHeadStrength;
+        public bool ReactToBrokenLeg => reactToBrokenLeg;
+        public bool AllowOneLegRecovery => allowOneLegRecovery;
 
         internal void Initialize(RagdollController controller, RagdollRigController2D ragdollRig, RagdollProfileController2D profileController)
         {
+            UnsubscribeFromOwner();
             owner = controller;
             rig = ragdollRig;
             profiles = profileController;
             initialized = owner != null && rig != null && profiles != null;
+            brokenLegCount = CountBrokenLegs();
+            brokenLegFallPending = false;
+            oneLegRecoveryStarted = false;
+            brokenLegFallUntil = float.NegativeInfinity;
+            brokenLegRecoveryAt = float.NegativeInfinity;
+            SubscribeToOwner();
         }
+
+        private void OnEnable() => SubscribeToOwner();
+
+        private void OnDisable() => UnsubscribeFromOwner();
+
+        private void OnDestroy() => UnsubscribeFromOwner();
 
         private void FixedUpdate()
         {
@@ -112,6 +170,59 @@ namespace KickTheBuddy.Physics
                 return;
             }
 
+            if (reactToBrokenLeg && brokenLegCount >= 2)
+            {
+                brokenLegFallPending = false;
+                oneLegRecoveryStarted = false;
+                CancelRecovery();
+                smoothedTorsoBalanceAngle = 0f;
+                SetMotors(false);
+                ApplyHeadUpright(rig.Head, oneLegHeadStrength * .7f);
+                return;
+            }
+
+            if (reactToBrokenLeg && brokenLegCount == 1)
+            {
+                if (brokenLegFallPending) BeginBrokenLegFall();
+                if (Time.fixedTime < brokenLegFallUntil)
+                {
+                    CancelRecovery();
+                    smoothedTorsoBalanceAngle = 0f;
+                    SetMotors(false);
+                    torso.AddTorque(brokenLegFallDirection * brokenLegFallTorque, ForceMode2D.Force);
+                    ApplyHeadUpright(rig.Head, oneLegHeadStrength * .45f);
+                    return;
+                }
+
+                // With a missing support limb there is no valid standing pose. Keep every pose motor,
+                // torso balance force and get-up lift disabled so physics leaves the character grounded.
+                // A small head-only world-space torque preserves an alive/wounded reaction without standing.
+                if (!allowOneLegRecovery)
+                {
+                    oneLegRecoveryStarted = false;
+                    CancelRecovery();
+                    smoothedTorsoBalanceAngle = 0f;
+                    SetMotors(false);
+                    ApplyHeadUpright(rig.Head, oneLegHeadStrength * .55f);
+                    return;
+                }
+
+                if (Time.fixedTime < brokenLegRecoveryAt)
+                {
+                    CancelRecovery();
+                    smoothedTorsoBalanceAngle = 0f;
+                    SetMotors(false);
+                    ApplyHeadUpright(rig.Head, oneLegHeadStrength * .65f);
+                    return;
+                }
+
+                if (!oneLegRecoveryStarted)
+                {
+                    oneLegRecoveryStarted = true;
+                    OneLegRecoveryStarted?.Invoke();
+                }
+            }
+
             float torsoBalanceError = Mathf.DeltaAngle(torso.rotation, 0f);
             float tilt = Mathf.Abs(torsoBalanceError);
             UpdateLimbBalanceAngle(torsoBalanceError);
@@ -122,7 +233,7 @@ namespace KickTheBuddy.Physics
                 // Keep an alert, coherent body pose while waiting for the stronger get-up phase.
                 // This avoids a dead-looking limp pause without adding torso lift or locomotion.
                 ApplyPoseMotors(standingMotorTorque);
-                ApplyHeadUpright(rig.Head, 1f);
+                ApplyHeadUpright(rig.Head, ResolveOneLegStrength(oneLegHeadStrength));
                 if (fallenTime < standUpDelay) return;
                 isGettingUp = true;
             }
@@ -131,10 +242,11 @@ namespace KickTheBuddy.Physics
             {
                 ApplyPoseMotors(getUpMotorTorque);
                 ApplyBalance(torso, getUpBalanceTorque);
-                ApplyHeadUpright(rig.Head, standUpSpeed);
+                ApplyHeadUpright(rig.Head, standUpSpeed * ResolveOneLegStrength(oneLegHeadStrength));
                 float velocityLimit = maximumGetUpVelocity * standUpSpeed;
                 if (torso.velocity.y < velocityLimit)
-                    torso.AddForce(Vector2.up * getUpLiftForce * standUpSpeed, ForceMode2D.Force);
+                    torso.AddForce(Vector2.up * getUpLiftForce * standUpSpeed *
+                                   ResolveOneLegStrength(oneLegLiftStrength), ForceMode2D.Force);
 
                 if (tilt <= standingAngle && Mathf.Abs(torso.angularVelocity) < 45f)
                     CancelRecovery();
@@ -144,8 +256,82 @@ namespace KickTheBuddy.Physics
             fallenTime = 0f;
             ApplyPoseMotors(standingMotorTorque);
             ApplyBalance(torso, standingBalanceTorque);
-            ApplyHeadUpright(rig.Head, 1f);
+            ApplyHeadUpright(rig.Head, ResolveOneLegStrength(oneLegHeadStrength));
         }
+
+        private void BeginBrokenLegFall()
+        {
+            brokenLegFallPending = false;
+            oneLegRecoveryStarted = false;
+            brokenLegFallUntil = Time.fixedTime + brokenLegFallDuration;
+            brokenLegRecoveryAt = brokenLegFallUntil + brokenLegRecoveryDelay;
+            CancelRecovery();
+        }
+
+        private void HandleLimbBroken(Rigidbody2D brokenBody, Vector2 point)
+        {
+            if (!reactToBrokenLeg || brokenBody == null || rig == null) return;
+
+            RagdollController.RagdollPart brokenPart = null;
+            var parts = rig.Parts;
+            for (int i = 0; i < parts.Count; i++)
+            {
+                RagdollController.RagdollPart part = parts[i];
+                if (part != null && part.Body == brokenBody)
+                {
+                    brokenPart = part;
+                    break;
+                }
+            }
+
+            if (brokenPart == null || brokenPart.PartType != RagdollPartType.Leg) return;
+            int previousCount = brokenLegCount;
+            brokenLegCount = CountBrokenLegs();
+            if (brokenLegCount <= previousCount) return;
+
+            Rigidbody2D torso = rig.Torso;
+            if (torso != null)
+                brokenLegFallDirection = brokenBody.worldCenterOfMass.x >= torso.worldCenterOfMass.x ? -1f : 1f;
+
+            brokenLegFallPending = brokenLegCount == 1;
+            oneLegRecoveryStarted = false;
+            brokenLegFallUntil = float.NegativeInfinity;
+            brokenLegRecoveryAt = float.PositiveInfinity;
+            CancelRecovery();
+            BrokenLegResponseStarted?.Invoke(brokenBody, brokenLegCount);
+        }
+
+        private int CountBrokenLegs()
+        {
+            if (rig == null) return 0;
+            int count = 0;
+            var parts = rig.Parts;
+            for (int i = 0; i < parts.Count; i++)
+            {
+                RagdollController.RagdollPart part = parts[i];
+                if (part != null && part.PartType == RagdollPartType.Leg &&
+                    part.DismemberableLimb != null && part.DismemberableLimb.IsSevered)
+                    count++;
+            }
+            return count;
+        }
+
+        private void SubscribeToOwner()
+        {
+            if (!isActiveAndEnabled || owner == null || ownerEventsSubscribed) return;
+            owner.OnLimbBroken += HandleLimbBroken;
+            ownerEventsSubscribed = true;
+        }
+
+        private void UnsubscribeFromOwner()
+        {
+            if (!ownerEventsSubscribed) return;
+            if (owner != null) owner.OnLimbBroken -= HandleLimbBroken;
+            ownerEventsSubscribed = false;
+        }
+
+        private float ResolveOneLegStrength(float oneLegStrength) =>
+            reactToBrokenLeg && brokenLegCount == 1 ? oneLegStrength : 1f;
 
         private void ApplyHeadUpright(Rigidbody2D head, float strengthMultiplier)
         {
@@ -187,7 +373,7 @@ namespace KickTheBuddy.Physics
                 torque = profile.JointSpringForce * (isGettingUp ? 1.75f : 1f);
 
             float speedMultiplier = isGettingUp ? standUpSpeed : 1f;
-            torque *= speedMultiplier;
+            torque *= speedMultiplier * ResolveOneLegStrength(oneLegMotorStrength);
             var joints = rig.Joints;
 
             for (int i = 0; i < joints.Count; i++)
@@ -252,6 +438,7 @@ namespace KickTheBuddy.Physics
             float error = Mathf.DeltaAngle(torso.rotation, 0f);
             RagdollProfile profile = profiles.ActiveProfile;
             float damping = profile != null ? profile.JointDamping : balanceDamping;
+            torque *= ResolveOneLegStrength(oneLegBalanceStrength);
 
             if (!isGettingUp &&
                 Mathf.Abs(error) <= idleAngleDeadZone &&
@@ -289,6 +476,13 @@ namespace KickTheBuddy.Physics
             headUprightDamping = Mathf.Max(0f, headUprightDamping);
             maximumHeadUprightTorque = Mathf.Max(0f, maximumHeadUprightTorque);
             limbBalanceResponseSpeed = Mathf.Max(0f, limbBalanceResponseSpeed);
+            brokenLegFallDuration = Mathf.Max(0f, brokenLegFallDuration);
+            brokenLegRecoveryDelay = Mathf.Max(0f, brokenLegRecoveryDelay);
+            brokenLegFallTorque = Mathf.Max(0f, brokenLegFallTorque);
+            oneLegMotorStrength = Mathf.Clamp01(oneLegMotorStrength);
+            oneLegBalanceStrength = Mathf.Clamp01(oneLegBalanceStrength);
+            oneLegLiftStrength = Mathf.Clamp01(oneLegLiftStrength);
+            oneLegHeadStrength = Mathf.Clamp01(oneLegHeadStrength);
         }
     }
 }

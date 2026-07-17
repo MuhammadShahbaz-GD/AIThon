@@ -15,12 +15,12 @@ MonoBehaviour:
   levelId: level_02
   displayName: Level 2 - Candy Lab
   scenePath: Assets/GameData/Scene/CandyLab.unity
-  objectiveText: Break the character with the hard lollipop; use sticky jelly to
-    annoy and distract it.
+  objectiveText: Use repeated hard lollipop hits to break the character; sticky jelly
+    only annoys it.
   completionRule: 1
-  targetDamage: 200
-  timeLimit: 50
-  completionCoins: 250
+  targetDamage: 500
+  timeLimit: 500
+  completionCoins: 500
   oneStarScore: 180
   twoStarScore: 320
   threeStarScore: 520

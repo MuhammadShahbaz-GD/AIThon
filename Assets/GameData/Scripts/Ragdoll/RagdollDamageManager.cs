@@ -9,6 +9,10 @@ namespace KickTheBuddy.Physics
     [RequireComponent(typeof(RagdollController))]
     public sealed class RagdollDamageManager : MonoBehaviour, IRagdollCollisionReceiver
     {
+        [Header("Damage Tuning")]
+        [Tooltip("Character-wide damage scale applied after an attack calculates its speed-based raw damage.")]
+        [Range(.05f, 1f)] [SerializeField] private float incomingDamageMultiplier = .65f;
+
         [Header("Safety")]
         [Min(0f)] [SerializeField] private float repeatHitCooldown = .08f;
 
@@ -27,6 +31,7 @@ namespace KickTheBuddy.Physics
 
         public float CurrentHealth { get; private set; }
         public float MaximumHealth { get; private set; }
+        public float IncomingDamageMultiplier => incomingDamageMultiplier;
 
         internal void Initialize(RagdollController owner, RagdollElementalEffects elements)
         {
@@ -78,10 +83,13 @@ namespace KickTheBuddy.Physics
             int index = FindPartIndex(brokenBody);
             if (index < 0) return;
             RagdollPartHealth part = parts[index].Health;
-            if (part == null || !part.IsCritical) return;
+            if (part == null) return;
+
+            // A physically detached part is depleted even when it broke from structural distance rather
+            // than impact damage. This keeps combined health, crack presentation, and the visible body state aligned.
             part.ForceDeplete(point);
-            RecalculateAggregateHealth(0f, 0f, point, true);
-            CriticalPartDepleted?.Invoke(part);
+            RecalculateAggregateHealth(0f, 0f, point, part.IsCritical);
+            if (part.IsCritical) CriticalPartDepleted?.Invoke(part);
         }
 
         internal void RestoreAllParts()
@@ -98,7 +106,9 @@ namespace KickTheBuddy.Physics
             if (index < 0) return false;
             RagdollController.RagdollPart configuredPart = parts[index];
             RagdollPartHealth health = configuredPart.Health;
-            float appliedDamage = health.TakeDamage(rawDamage, force, point);
+            // Attacks remain responsible for speed/material tuning. This single character-wide scale
+            // extends play time without duplicating balance multipliers across walls, tools and bullets.
+            float appliedDamage = health.TakeDamage(rawDamage * incomingDamageMultiplier, force, point);
             if (appliedDamage <= 0f) return false;
 
             elementalEffects?.NotifyImpact(configuredPart.DismemberableLimb, impactSpeed, point);
@@ -148,6 +158,10 @@ namespace KickTheBuddy.Physics
             lastHitTime = Time.time;
         }
 
-        private void OnValidate() => repeatHitCooldown = Mathf.Max(0f, repeatHitCooldown);
+        private void OnValidate()
+        {
+            incomingDamageMultiplier = Mathf.Clamp(incomingDamageMultiplier, .05f, 1f);
+            repeatHitCooldown = Mathf.Max(0f, repeatHitCooldown);
+        }
     }
 }

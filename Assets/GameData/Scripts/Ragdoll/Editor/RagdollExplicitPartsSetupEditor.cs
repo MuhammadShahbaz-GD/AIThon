@@ -135,6 +135,10 @@ namespace KickTheBuddy.Editor
 
                 RagdollPartType type = ResolvePartType(body.name);
                 ConfigureHealthIfNeeded(health, type);
+                dismemberable.ConfigureDistanceBreak(type != RagdollPartType.Torso,
+                    LongFunBalanceSetupEditor.MaximumAnchorSeparationFor(type),
+                    LongFunBalanceSetupEditor.DistanceBreakFixedSteps,
+                    LongFunBalanceSetupEditor.DistanceBreakImpulse, false);
                 SetReference(relay, "body", body);
                 SetReference(active, "body", body);
                 SetReference(active, "joint", firstHinge);
@@ -243,10 +247,19 @@ namespace KickTheBuddy.Editor
             if (health.PartType == type) return;
             switch (type)
             {
-                case RagdollPartType.Head: health.Configure(type, 40f, 2f, 1.25f, .9f, 1.4f, true); break;
-                case RagdollPartType.Torso: health.Configure(type, 100f, 2f, 1f, 1f, 1f, false); break;
-                case RagdollPartType.Arm: health.Configure(type, 45f, 1f, .9f, 1.2f, .85f, false); break;
-                case RagdollPartType.Leg: health.Configure(type, 60f, 1f, .85f, .9f, .8f, false); break;
+                case RagdollPartType.Head:
+                    health.Configure(type, LongFunBalanceSetupEditor.HeadHealth, 1f,
+                        LongFunBalanceSetupEditor.HeadDamageRatio, .9f, 1.4f, true);
+                    break;
+                case RagdollPartType.Torso:
+                    health.Configure(type, LongFunBalanceSetupEditor.TorsoHealth, 1f, .72f, 1f, 1f, false);
+                    break;
+                case RagdollPartType.Arm:
+                    health.Configure(type, LongFunBalanceSetupEditor.ArmHealth, 1f, .75f, 1.2f, .85f, false);
+                    break;
+                case RagdollPartType.Leg:
+                    health.Configure(type, LongFunBalanceSetupEditor.LegHealth, 1f, .72f, .9f, .8f, false);
+                    break;
             }
             EditorUtility.SetDirty(health);
         }
