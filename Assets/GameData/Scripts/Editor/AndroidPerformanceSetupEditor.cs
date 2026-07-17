@@ -22,6 +22,7 @@ namespace KickTheBuddy.Editor
         private const string ScenePath = "Assets/GameData/Scene/RagdollSandbox.unity";
         private const string CandyFolder = "Assets/GameData/Art/Candies";
         private const string CandyAtlasPath = CandyFolder + "/Candies.spriteatlas";
+        private const string LauncherIconPath = "Assets/GameData/Art/testIcon.png";
         private const string DebrisLayerName = "DeathDebris";
 
         [MenuItem("Tools/Performance/Apply Android 60 FPS Budget")]
@@ -37,11 +38,10 @@ namespace KickTheBuddy.Editor
         public static void BuildAndroidReleaseBatch()
         {
             ValidateAndroidPerformance();
+            ConfigureAndroidBuildTarget(buildAppBundle: true);
             string outputDirectory = Path.GetFullPath("Builds/Android");
             Directory.CreateDirectory(outputDirectory);
-            string[] scenes = EditorBuildSettings.scenes.Where(scene => scene.enabled)
-                .Select(scene => scene.path).ToArray();
-            if (scenes.Length == 0) scenes = new[] { ScenePath };
+            string[] scenes = GetValidatedBuildScenes();
             var options = new BuildPlayerOptions
             {
                 scenes = scenes,
@@ -55,6 +55,44 @@ namespace KickTheBuddy.Editor
                     $"Android build failed: {report.summary.result}, errors={report.summary.totalErrors}.");
             Debug.Log($"ANDROID_RELEASE_BUILD passed output={options.locationPathName} " +
                       $"sizeBytes={report.summary.totalSize} duration={report.summary.totalTime}");
+        }
+
+        [MenuItem("Tools/Performance/Build Android Testing APK")]
+        public static void BuildAndroidTestingApkMenu() => BuildAndroidTestingApkBatch();
+
+        /// <summary>
+        /// Produces a device-installable, non-development APK with the same optimized settings as release.
+        /// This is intentionally separate from the Play Store AAB path above.
+        /// </summary>
+        public static void BuildAndroidTestingApkBatch()
+        {
+            ValidateAndroidPerformance();
+            ConfigureAndroidBuildTarget(buildAppBundle: false);
+
+            string outputDirectory = Path.GetFullPath("Builds/Android");
+            Directory.CreateDirectory(outputDirectory);
+            string outputPath = Path.Combine(outputDirectory, "AIThon_Test.apk");
+            string[] scenes = GetValidatedBuildScenes();
+            var options = new BuildPlayerOptions
+            {
+                scenes = scenes,
+                locationPathName = outputPath,
+                target = BuildTarget.Android,
+                options = BuildOptions.None
+            };
+
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+            if (report.summary.result != BuildResult.Succeeded || !File.Exists(outputPath))
+            {
+                throw new InvalidOperationException(
+                    $"Android testing APK failed: {report.summary.result}, " +
+                    $"errors={report.summary.totalErrors}, warnings={report.summary.totalWarnings}.");
+            }
+
+            var file = new FileInfo(outputPath);
+            Debug.Log($"ANDROID_TEST_APK_BUILD_OK output={outputPath} sizeBytes={file.Length} " +
+                      $"duration={report.summary.totalTime} warnings={report.summary.totalWarnings} " +
+                      $"scenes={scenes.Length} package={PlayerSettings.GetApplicationIdentifier(BuildTargetGroup.Android)}");
         }
 
         [MenuItem("Tools/Performance/Audit Android Gameplay Scene")]
@@ -320,6 +358,61 @@ namespace KickTheBuddy.Editor
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
             PlayerSettings.Android.optimizedFramePacing = true;
             EditorUserBuildSettings.buildAppBundle = true;
+        }
+
+        private static void ConfigureAndroidBuildTarget(bool buildAppBundle)
+        {
+            if (!EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Android, BuildTarget.Android))
+                throw new InvalidOperationException("Unity could not switch to the installed Android build target.");
+
+            PlayerSettings.SetScriptingBackend(BuildTargetGroup.Android, ScriptingImplementation.IL2CPP);
+            PlayerSettings.SetManagedStrippingLevel(BuildTargetGroup.Android, ManagedStrippingLevel.Medium);
+            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+            PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevelAuto;
+            PlayerSettings.Android.optimizedFramePacing = true;
+            ConfigureLauncherIconImport();
+            EditorUserBuildSettings.buildAppBundle = buildAppBundle;
+            EditorUserBuildSettings.development = false;
+            EditorUserBuildSettings.allowDebugging = false;
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void ConfigureLauncherIconImport()
+        {
+            TextureImporter importer = AssetImporter.GetAtPath(LauncherIconPath) as TextureImporter;
+            if (importer == null)
+                throw new FileNotFoundException("Android launcher icon is missing.", LauncherIconPath);
+
+            TextureImporterPlatformSettings android = importer.GetPlatformTextureSettings("Android");
+            bool requiresReimport = importer.textureCompression != TextureImporterCompression.Uncompressed ||
+                                    !android.overridden ||
+                                    android.textureCompression != TextureImporterCompression.Uncompressed ||
+                                    android.format != TextureImporterFormat.RGBA32;
+            if (!requiresReimport) return;
+
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            android.name = "Android";
+            android.overridden = true;
+            android.maxTextureSize = 512;
+            android.format = TextureImporterFormat.RGBA32;
+            android.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.SetPlatformTextureSettings(android);
+            importer.SaveAndReimport();
+        }
+
+        private static string[] GetValidatedBuildScenes()
+        {
+            string[] scenes = EditorBuildSettings.scenes.Where(scene => scene.enabled)
+                .Select(scene => scene.path).ToArray();
+            if (scenes.Length == 0)
+                throw new InvalidOperationException("Android build has no enabled scenes in Build Settings.");
+
+            for (int i = 0; i < scenes.Length; i++)
+            {
+                if (File.Exists(Path.GetFullPath(scenes[i]))) continue;
+                throw new FileNotFoundException($"Enabled build scene does not exist: {scenes[i]}", scenes[i]);
+            }
+            return scenes;
         }
 
         private static void ConfigureSimulationBudget()
