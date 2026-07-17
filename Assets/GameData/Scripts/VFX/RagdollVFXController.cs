@@ -26,6 +26,12 @@ namespace KickTheBuddy.VFX
         [Range(4, 20)] [SerializeField] private int maximumActiveGlassShards = 16;
         [Min(1f)] [SerializeField] private float debrisLifetime = 10f;
 
+        [Header("Death Debris Readability")]
+        [Tooltip("Runtime visual/collider scale applied over each candy's authored scale. This never compounds between deaths.")]
+        [Range(.5f, 3f)] [SerializeField] private float candyDebrisScaleMultiplier = 1.55f;
+        [Tooltip("Runtime visual/collider scale applied over each glass/spring piece's authored scale.")]
+        [Range(.5f, 3f)] [SerializeField] private float glassDebrisScaleMultiplier = 1.45f;
+
         [Header("Torso-Mapped Death Burst")]
         [Tooltip("All pooled debris is packed around this body before the death burst.")]
         [SerializeField] private Rigidbody2D deathDebrisOriginBody;
@@ -33,10 +39,16 @@ namespace KickTheBuddy.VFX
         [SerializeField] private Vector2 torsoPackingSize = new Vector2(1.55f, 1.55f);
         [SerializeField] private float floorWorldY = -3.95f;
         [Min(0f)] [SerializeField] private float screenEdgePadding = .55f;
-        [SerializeField] private Vector2 candyFlightTimeRange = new Vector2(1.08f, 1.36f);
-        [SerializeField] private Vector2 glassFlightTimeRange = new Vector2(.92f, 1.22f);
-        [Min(1f)] [SerializeField] private float maximumDebrisSpeed = 12f;
-        [SerializeField] private Vector2 angularVelocityRange = new Vector2(220f, 520f);
+        [SerializeField] private Vector2 candyFlightTimeRange = new Vector2(1.35f, 1.75f);
+        [SerializeField] private Vector2 glassFlightTimeRange = new Vector2(1.15f, 1.55f);
+        [Tooltip("Extra outward impulse layered over the floor-targeted candy trajectory.")]
+        [Min(0f)] [SerializeField] private float candyBurstImpulse = 2.2f;
+        [Tooltip("Glass receives a sharper burst so its silhouette separates from the candy cloud.")]
+        [Min(0f)] [SerializeField] private float glassBurstImpulse = 3.1f;
+        [Tooltip("Redirects the radial impulse upward so pieces remain readable instead of disappearing into the floor.")]
+        [Range(0f, 2f)] [SerializeField] private float upwardBurstBias = .7f;
+        [Min(1f)] [SerializeField] private float maximumDebrisSpeed = 18f;
+        [SerializeField] private Vector2 angularVelocityRange = new Vector2(420f, 950f);
 
         [Header("Impact")]
         [SerializeField] private Color lightHitColor = new Color(1f, .85f, .25f);
@@ -69,6 +81,8 @@ namespace KickTheBuddy.VFX
         private bool deathPlayed;
         private Coroutine debrisCleanup;
         private bool[] authoredRendererEnabled = Array.Empty<bool>();
+        private Vector3[] candyAuthoredScales = Array.Empty<Vector3>();
+        private Vector3[] glassAuthoredScales = Array.Empty<Vector3>();
 
         public event Action<Vector2, float> ImpactEffectPlayed;
         public event Action<int, Vector2> ComboEffectPlayed;
@@ -95,6 +109,8 @@ namespace KickTheBuddy.VFX
             authoredRendererEnabled = new bool[characterRenderers.Length];
             for (int i = 0; i < characterRenderers.Length; i++)
                 authoredRendererEnabled[i] = characterRenderers[i] != null && characterRenderers[i].enabled;
+            candyAuthoredScales = CacheAuthoredScales(candyDebrisBodies);
+            glassAuthoredScales = CacheAuthoredScales(glassShardBodies);
             ResetDebris();
         }
 
@@ -247,7 +263,9 @@ namespace KickTheBuddy.VFX
                 ActivateDebris(candyDebrisBodies[index],
                     index < candyDebrisRenderers.Length ? candyDebrisRenderers[index] : null,
                     position, Quaternion.Euler(0f, 0f, Hash01(index, .27f) * 360f),
-                    landingPoint, ResolveFlightTime(index, candyFlightTimeRange, .47f), index, .31f);
+                    landingPoint, ResolveFlightTime(index, candyFlightTimeRange, .47f), origin,
+                    candyBurstImpulse, ResolveAuthoredScale(candyAuthoredScales, index),
+                    candyDebrisScaleMultiplier, index, .31f);
             }
 
             // Authored fill visuals are presentation-only. Hide them even when an optimized scene
@@ -270,25 +288,58 @@ namespace KickTheBuddy.VFX
                 ActivateDebris(glassShardBodies[index],
                     index < glassShardRenderers.Length ? glassShardRenderers[index] : null,
                     position, Quaternion.Euler(0f, 0f, Hash01(index, .73f) * 360f),
-                    landingPoint, ResolveFlightTime(index, glassFlightTimeRange, .83f), index, .67f);
+                    landingPoint, ResolveFlightTime(index, glassFlightTimeRange, .83f), origin,
+                    glassBurstImpulse, ResolveAuthoredScale(glassAuthoredScales, index),
+                    glassDebrisScaleMultiplier, index, .67f);
             }
         }
 
         private void ActivateDebris(Rigidbody2D body, SpriteRenderer renderer, Vector2 position,
-            Quaternion rotation, Vector2 landingPoint, float flightTime, int index, float spinPhase)
+            Quaternion rotation, Vector2 landingPoint, float flightTime, Vector2 burstOrigin,
+            float burstImpulse, Vector3 authoredScale, float scaleMultiplier, int index, float spinPhase)
         {
             if (body == null) return;
             body.gameObject.SetActive(true);
+            body.transform.localScale = authoredScale * scaleMultiplier;
             body.transform.SetPositionAndRotation(position, rotation);
             if (renderer != null)
             {
                 renderer.enabled = true;
             }
             body.simulated = true;
-            body.velocity = ResolveBallisticVelocity(body, position, landingPoint, flightTime);
+            Vector2 launchVelocity = ResolveBallisticVelocity(body, position, landingPoint, flightTime);
+            launchVelocity += ResolveBurstImpulse(position, burstOrigin, burstImpulse, index, spinPhase);
+            body.velocity = Vector2.ClampMagnitude(launchVelocity, maximumDebrisSpeed);
             float spin = Mathf.Lerp(angularVelocityRange.x, angularVelocityRange.y, Hash01(index, spinPhase));
             body.angularVelocity = (index & 1) == 0 ? spin : -spin;
         }
+
+        private Vector2 ResolveBurstImpulse(Vector2 position, Vector2 origin, float impulse, int index, float phase)
+        {
+            if (impulse <= 0f) return Vector2.zero;
+            Vector2 direction = position - origin;
+            if (direction.sqrMagnitude < .0001f)
+            {
+                float angle = Hash01(index, phase + .19f) * Mathf.PI * 2f;
+                direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+            }
+            direction.Normalize();
+            direction.y = Mathf.Abs(direction.y) + upwardBurstBias;
+            direction.Normalize();
+            float variation = Mathf.Lerp(.78f, 1.22f, Hash01(index, phase + .43f));
+            return direction * (impulse * variation);
+        }
+
+        private static Vector3[] CacheAuthoredScales(Rigidbody2D[] pool)
+        {
+            var scales = new Vector3[pool.Length];
+            for (int i = 0; i < pool.Length; i++)
+                scales[i] = pool[i] != null ? pool[i].transform.localScale : Vector3.one;
+            return scales;
+        }
+
+        private static Vector3 ResolveAuthoredScale(Vector3[] scales, int index) =>
+            index >= 0 && index < scales.Length ? scales[index] : Vector3.one;
 
         private void ResetDebris()
         {
@@ -448,6 +499,11 @@ namespace KickTheBuddy.VFX
             candyFlightTimeRange = SortPositiveRange(candyFlightTimeRange);
             glassFlightTimeRange = SortPositiveRange(glassFlightTimeRange);
             angularVelocityRange = SortPositiveRange(angularVelocityRange);
+            candyDebrisScaleMultiplier = Mathf.Clamp(candyDebrisScaleMultiplier, .5f, 3f);
+            glassDebrisScaleMultiplier = Mathf.Clamp(glassDebrisScaleMultiplier, .5f, 3f);
+            candyBurstImpulse = Mathf.Max(0f, candyBurstImpulse);
+            glassBurstImpulse = Mathf.Max(0f, glassBurstImpulse);
+            upwardBurstBias = Mathf.Clamp(upwardBurstBias, 0f, 2f);
             maximumDebrisSpeed = Mathf.Max(1f, maximumDebrisSpeed);
         }
 

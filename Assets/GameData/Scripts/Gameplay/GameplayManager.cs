@@ -16,6 +16,7 @@ namespace KickTheBuddy.Gameplay
         private RagdollController ragdoll;
         private RagdollInputManager ragdollInput;
         private SandboxToolInput2D sandboxToolInput;
+        private CandyCannonController2D candyCannons;
         private float damage;
         private float remainingTime;
         private int score;
@@ -61,6 +62,8 @@ namespace KickTheBuddy.Gameplay
             ragdollInput?.SetInputEnabled(true);
             sandboxToolInput?.ResetTools();
             sandboxToolInput?.SetInputEnabled(true);
+            candyCannons?.ResetCannons();
+            candyCannons?.SetInputEnabled(true);
             damage = 0f;
             score = 0;
             remainingTime = level.TimeLimit;
@@ -78,6 +81,7 @@ namespace KickTheBuddy.Gameplay
             StopDeathCompletion();
             ragdollInput?.SetInputEnabled(false);
             sandboxToolInput?.SetInputEnabled(false);
+            candyCannons?.SetInputEnabled(false);
             UnbindRagdoll();
             Time.timeScale = 1f;
             ChangeState(GameplayState.Loading);
@@ -88,6 +92,7 @@ namespace KickTheBuddy.Gameplay
             StopDeathCompletion();
             ragdollInput?.SetInputEnabled(false);
             sandboxToolInput?.SetInputEnabled(false);
+            candyCannons?.SetInputEnabled(false);
             UnbindRagdoll();
             Time.timeScale = 1f;
             sounds?.PlayMusic(false);
@@ -123,6 +128,7 @@ namespace KickTheBuddy.Gameplay
             if (State != GameplayState.Playing) return;
             ragdollInput?.SetInputEnabled(false);
             sandboxToolInput?.SetInputEnabled(false);
+            candyCannons?.CompleteInteraction();
             LevelDefinition level = levels.CurrentLevel;
             int stars = level.GetStars(score);
             saves.RecordLevel(level.LevelId, score, stars, level.CompletionCoins, levels.CurrentLevelIndex);
@@ -136,6 +142,7 @@ namespace KickTheBuddy.Gameplay
             if (State != GameplayState.Playing) return;
             ragdollInput?.SetInputEnabled(false);
             sandboxToolInput?.SetInputEnabled(false);
+            candyCannons?.CompleteInteraction();
             sounds.Play(GameSound.LevelFailed);
             ChangeState(GameplayState.LevelFailed);
             LevelFailed?.Invoke();
@@ -161,6 +168,8 @@ namespace KickTheBuddy.Gameplay
             ragdoll = sceneLevels.ActiveRagdoll;
             ragdollInput = sceneLevels.ActiveRagdollInput;
             sandboxToolInput = sceneLevels.ActiveSandboxToolInput;
+            candyCannons = sceneLevels.ActiveCandyCannons;
+            if (candyCannons != null) candyCannons.ConfigureAudio(sounds);
             if (ragdoll == null || ragdollInput == null)
             {
                 Debug.LogError("The selected level has incomplete ragdoll references.", sceneLevels);
@@ -194,6 +203,7 @@ namespace KickTheBuddy.Gameplay
             if (State != GameplayState.Playing || deathCompletion != null) return;
             ragdollInput?.SetInputEnabled(false);
             sandboxToolInput?.SetInputEnabled(false);
+            candyCannons?.CompleteInteraction();
             deathCompletion = StartCoroutine(CompleteAfterDeath());
         }
 
@@ -226,9 +236,11 @@ namespace KickTheBuddy.Gameplay
             }
             subscribed = false;
             sandboxToolInput?.SetInputEnabled(false);
+            candyCannons?.SetInputEnabled(false);
             ragdoll = null;
             ragdollInput = null;
             sandboxToolInput = null;
+            candyCannons = null;
         }
 
         private void StopDeathCompletion()

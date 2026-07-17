@@ -12,7 +12,7 @@ using UnityEngine.SceneManagement;
 namespace KickTheBuddy.Editor
 {
     /// <summary>
-    /// Migrates the two authored gameplay levels into one shipping scene. The legacy CandyLab scene is
+    /// Maintains all authored gameplay levels inside one shipping scene. The legacy CandyLab scene is
     /// retained as a non-build source asset, while runtime progression only reloads RagdollSandbox.
     /// </summary>
     public static class SingleSceneLevelsSetupEditor
@@ -22,11 +22,13 @@ namespace KickTheBuddy.Editor
         public const string LevelsRootName = "Levels";
         public const string LevelOneRootName = "Level 01 - Wall Smash";
         public const string LevelTwoRootName = "Level 02 - Candy Lab";
+        public const string LevelThreeRootName = "Level 03 - Candy Cannons";
 
         private const string SplashPath = "Assets/GameData/Scene/Splash.unity";
         private const string MenuPath = "Assets/GameData/Scene/MainMenu.unity";
         private const string LevelOneAssetPath = "Assets/GameData/Materials/Gameplay/Level_01.asset";
         private const string LevelTwoAssetPath = "Assets/GameData/Materials/Gameplay/Level_02.asset";
+        private const string LevelThreeAssetPath = "Assets/GameData/Materials/Gameplay/Level_03.asset";
         private const string LollipopPrefabPath = "Assets/GameData/Prefabs/Gameplay/Lollipop.prefab";
         private const string JellyPrefabPath = "Assets/GameData/Prefabs/Gameplay/Jelly.prefab";
         private const string JellyPoolPrefabPath = "Assets/GameData/Prefabs/VFX/VFX_Jelly_ContactPool.prefab";
@@ -37,6 +39,9 @@ namespace KickTheBuddy.Editor
         private const float LevelTwoWallDamagePerSpeed = .85f;
         private const float LevelTwoWallMinimumSpeed = 4.5f;
         private const float LevelTwoWallMaximumDamage = 9f;
+        private const float LevelThreeWallDamagePerSpeed = .55f;
+        private const float LevelThreeWallMinimumSpeed = 5f;
+        private const float LevelThreeWallMaximumDamage = 8f;
 
         [MenuItem("Tools/Game/Build Single-Scene Level Hierarchy")]
         public static void BuildFromMenu() => Build(false);
@@ -63,7 +68,7 @@ namespace KickTheBuddy.Editor
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
                 ValidateOrThrow();
-                Debug.Log("SINGLE_SCENE_LEVELS_BUILD_OK: one shared Levels/Room plus Level 01 and Level 02 content roots are authored in RagdollSandbox.");
+                Debug.Log("SINGLE_SCENE_LEVELS_BUILD_OK: one shared Levels/Room and all available level roots are authored in RagdollSandbox.");
                 if (exitWhenDone && Application.isBatchMode) EditorApplication.Exit(0);
             }
             catch (Exception exception)
@@ -93,8 +98,10 @@ namespace KickTheBuddy.Editor
         {
             LevelDefinition levelOne = AssetDatabase.LoadAssetAtPath<LevelDefinition>(LevelOneAssetPath);
             LevelDefinition levelTwo = AssetDatabase.LoadAssetAtPath<LevelDefinition>(LevelTwoAssetPath);
+            LevelDefinition levelThree = AssetDatabase.LoadAssetAtPath<LevelDefinition>(LevelThreeAssetPath);
             if (levelOne == null || levelTwo == null)
                 throw new InvalidOperationException("Both LevelDefinition assets are required.");
+            int expectedLevelCount = levelThree != null ? 3 : 2;
             if (!string.Equals(levelOne.ScenePath, GameplayScenePath, StringComparison.Ordinal) ||
                 !string.Equals(levelTwo.ScenePath, GameplayScenePath, StringComparison.Ordinal))
                 throw new InvalidOperationException("Every gameplay level must point to the one RagdollSandbox scene.");
@@ -102,6 +109,9 @@ namespace KickTheBuddy.Editor
                 LevelOneWallMinimumSpeed, LevelOneWallMaximumDamage);
             ValidateDefinitionRoomProfile(levelTwo, LevelTwoWallDamagePerSpeed,
                 LevelTwoWallMinimumSpeed, LevelTwoWallMaximumDamage);
+            if (levelThree != null)
+                ValidateDefinitionRoomProfile(levelThree, LevelThreeWallDamagePerSpeed,
+                    LevelThreeWallMinimumSpeed, LevelThreeWallMaximumDamage);
 
             EditorBuildSettingsScene[] buildScenes = EditorBuildSettings.scenes;
             if (buildScenes.Length != 3 || buildScenes[0].path != SplashPath || buildScenes[1].path != MenuPath ||
@@ -112,21 +122,27 @@ namespace KickTheBuddy.Editor
             GameObject levelsRoot = FindRoot(scene, LevelsRootName);
             if (levelsRoot == null) throw new InvalidOperationException("The gameplay scene is missing its Levels root.");
             GameplayLevelSceneController controller = levelsRoot.GetComponent<GameplayLevelSceneController>();
-            if (controller == null || controller.LevelCount != 2)
-                throw new InvalidOperationException("Levels must have one configured GameplayLevelSceneController with two entries.");
+            if (controller == null || controller.LevelCount != expectedLevelCount)
+                throw new InvalidOperationException("Levels has an incorrect GameplayLevelSceneController entry count.");
 
             Transform levelOneRoot = FindDirectChild(levelsRoot.transform, LevelOneRootName);
             Transform levelTwoRoot = FindDirectChild(levelsRoot.transform, LevelTwoRootName);
+            Transform levelThreeRoot = FindDirectChild(levelsRoot.transform, LevelThreeRootName);
             if (levelOneRoot == null || levelTwoRoot == null)
                 throw new InvalidOperationException("Levels must contain the Level 01 and Level 02 child roots.");
-            if (!levelOneRoot.gameObject.activeSelf || levelTwoRoot.gameObject.activeSelf)
-                throw new InvalidOperationException("The authored preview state must enable Level 01 and disable Level 02.");
+            if (levelThree != null && levelThreeRoot == null)
+                throw new InvalidOperationException("Levels must contain the authored Level 03 child root.");
+            if (!levelOneRoot.gameObject.activeSelf || levelTwoRoot.gameObject.activeSelf ||
+                (levelThreeRoot != null && levelThreeRoot.gameObject.activeSelf))
+                throw new InvalidOperationException("The preview must enable Level 01 and disable later levels.");
 
             Transform sharedRoom = FindDirectChild(levelsRoot.transform, "Room");
             if (sharedRoom == null || !sharedRoom.gameObject.activeSelf)
                 throw new InvalidOperationException("Levels must contain one active shared Room child.");
             if (FindDirectChild(levelOneRoot, "Room") != null || FindDirectChild(levelTwoRoot, "Room") != null)
                 throw new InvalidOperationException("Room must be shared under Levels, never duplicated inside a level root.");
+            if (levelThreeRoot != null && FindDirectChild(levelThreeRoot, "Room") != null)
+                throw new InvalidOperationException("Level 03 must also use the shared Room.");
             ValidateRoom(sharedRoom, "Levels/Room", LevelOneWallDamagePerSpeed,
                 LevelOneWallMinimumSpeed, LevelOneWallMaximumDamage);
             if (levelOneRoot.GetComponentInChildren<SandboxToolInput2D>(true) != null)
@@ -135,10 +151,13 @@ namespace KickTheBuddy.Editor
 
             SerializedObject controllerData = new SerializedObject(controller);
             SerializedProperty entries = controllerData.FindProperty("levels");
-            if (entries == null || entries.arraySize != 2)
+            if (entries == null || entries.arraySize != expectedLevelCount)
                 throw new InvalidOperationException("The Levels controller entries are not fully authored.");
-            ValidateEntry(entries.GetArrayElementAtIndex(0), "level_01", levelOneRoot.gameObject, false);
-            ValidateEntry(entries.GetArrayElementAtIndex(1), "level_02", levelTwoRoot.gameObject, true);
+            ValidateEntry(entries.GetArrayElementAtIndex(0), "level_01", levelOneRoot.gameObject, false, false);
+            ValidateEntry(entries.GetArrayElementAtIndex(1), "level_02", levelTwoRoot.gameObject, true, false);
+            if (levelThree != null)
+                ValidateEntry(entries.GetArrayElementAtIndex(2), "level_03",
+                    levelThreeRoot.gameObject, false, true);
             SerializedProperty sharedRoomReference = controllerData.FindProperty("sharedRoom");
             SerializedProperty sharedAttacks = controllerData.FindProperty("sharedRoomAttacks");
             if (sharedRoomReference == null || sharedRoomReference.objectReferenceValue != sharedRoom.gameObject ||
@@ -168,7 +187,7 @@ namespace KickTheBuddy.Editor
             if (CountMissingScripts(scene) != 0)
                 throw new InvalidOperationException("The single gameplay scene contains missing script references.");
 
-            Debug.Log("SINGLE_SCENE_LEVELS_VALIDATION_OK: one shared Levels/Room, two level-content roots, per-level room profiles, Level 2 tools, and zero missing scripts.");
+            Debug.Log("SINGLE_SCENE_LEVELS_VALIDATION_OK: one shared Levels/Room, all catalog content roots, per-level room profiles, tools, and zero missing scripts.");
         }
 
         private static void ValidateDefinitionRoomProfile(LevelDefinition definition, float damagePerSpeed,
@@ -187,6 +206,9 @@ namespace KickTheBuddy.Editor
                 LevelOneWallMinimumSpeed, LevelOneWallMaximumDamage);
             ConfigureLevelDefinition(LevelTwoAssetPath, LevelTwoWallDamagePerSpeed,
                 LevelTwoWallMinimumSpeed, LevelTwoWallMaximumDamage);
+            if (AssetDatabase.LoadAssetAtPath<LevelDefinition>(LevelThreeAssetPath) != null)
+                ConfigureLevelDefinition(LevelThreeAssetPath, LevelThreeWallDamagePerSpeed,
+                    LevelThreeWallMinimumSpeed, LevelThreeWallMaximumDamage);
         }
 
         private static void ConfigureLevelDefinition(string assetPath, float wallDamagePerSpeed,
@@ -428,9 +450,15 @@ namespace KickTheBuddy.Editor
         {
             SerializedObject data = new SerializedObject(controller);
             SerializedProperty levels = data.FindProperty("levels");
-            levels.arraySize = 2;
-            ConfigureEntry(levels.GetArrayElementAtIndex(0), "level_01", levelOne, ragdoll, ragdollInput, null);
-            ConfigureEntry(levels.GetArrayElementAtIndex(1), "level_02", levelTwo, ragdoll, ragdollInput, toolInput);
+            Transform levelThree = FindDirectChild(controller.transform, LevelThreeRootName);
+            CandyCannonController2D cannons =
+                levelThree != null ? levelThree.GetComponent<CandyCannonController2D>() : null;
+            levels.arraySize = levelThree != null && cannons != null ? 3 : 2;
+            ConfigureEntry(levels.GetArrayElementAtIndex(0), "level_01", levelOne, ragdoll, ragdollInput, null, null);
+            ConfigureEntry(levels.GetArrayElementAtIndex(1), "level_02", levelTwo, ragdoll, ragdollInput, toolInput, null);
+            if (levels.arraySize == 3)
+                ConfigureEntry(levels.GetArrayElementAtIndex(2), "level_03", levelThree.gameObject,
+                    ragdoll, ragdollInput, null, cannons);
             data.FindProperty("sharedRoom").objectReferenceValue = sharedRoom;
             SerializedProperty roomAttacks = data.FindProperty("sharedRoomAttacks");
             roomAttacks.arraySize = sharedRoomAttacks.Length;
@@ -441,24 +469,28 @@ namespace KickTheBuddy.Editor
         }
 
         private static void ConfigureEntry(SerializedProperty entry, string id, GameObject root,
-            RagdollController ragdoll, RagdollInputManager ragdollInput, SandboxToolInput2D toolInput)
+            RagdollController ragdoll, RagdollInputManager ragdollInput, SandboxToolInput2D toolInput,
+            CandyCannonController2D cannons)
         {
             entry.FindPropertyRelative("levelId").stringValue = id;
             entry.FindPropertyRelative("root").objectReferenceValue = root;
             entry.FindPropertyRelative("ragdoll").objectReferenceValue = ragdoll;
             entry.FindPropertyRelative("ragdollInput").objectReferenceValue = ragdollInput;
             entry.FindPropertyRelative("sandboxToolInput").objectReferenceValue = toolInput;
+            entry.FindPropertyRelative("candyCannons").objectReferenceValue = cannons;
         }
 
         private static void ValidateEntry(SerializedProperty entry, string id, GameObject expectedRoot,
-            bool requiresTools)
+            bool requiresTools, bool requiresCannons)
         {
             if (entry.FindPropertyRelative("levelId").stringValue != id ||
                 entry.FindPropertyRelative("root").objectReferenceValue != expectedRoot ||
                 entry.FindPropertyRelative("ragdoll").objectReferenceValue == null ||
                 entry.FindPropertyRelative("ragdollInput").objectReferenceValue == null ||
                 (requiresTools && entry.FindPropertyRelative("sandboxToolInput").objectReferenceValue == null) ||
-                (!requiresTools && entry.FindPropertyRelative("sandboxToolInput").objectReferenceValue != null))
+                (!requiresTools && entry.FindPropertyRelative("sandboxToolInput").objectReferenceValue != null) ||
+                (requiresCannons && entry.FindPropertyRelative("candyCannons").objectReferenceValue == null) ||
+                (!requiresCannons && entry.FindPropertyRelative("candyCannons").objectReferenceValue != null))
                 throw new InvalidOperationException(id + " has incomplete explicit scene references.");
         }
 

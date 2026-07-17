@@ -80,9 +80,8 @@ namespace KickTheBuddy.Editor
             EditorUtility.SetDirty(profile);
 
             UpgradeCandyDeathScene(ScenePath, profile, brokenPieceSprites, glassMaterial);
-            UpgradeCandyDeathScene(CandyLabScenePath, profile, brokenPieceSprites, glassMaterial);
             AssetDatabase.SaveAssets();
-            Debug.Log("CANDY_DEATH_EXPLOSION_UPGRADE_OK: both gameplay scenes use 36 gravity candy particles, 24 pooled physical candies, 20 active glass/spring bodies, and heavy death camera shake.");
+            Debug.Log("CANDY_DEATH_EXPLOSION_UPGRADE_OK: the single gameplay scene uses a compact 36-particle candy flash, enlarged pooled candy/glass debris, a strong upward radial burst, and heavy death camera shake.");
         }
 
         private static void UpgradeCandyDeathScene(string scenePath, RagdollVFXProfile profile,
@@ -129,10 +128,7 @@ namespace KickTheBuddy.Editor
             data.FindProperty("floorWorldY").floatValue = floorCollider.bounds.max.y;
             data.FindProperty("maximumActiveCandyDebris").intValue = 24;
             data.FindProperty("maximumActiveGlassShards").intValue = Mathf.Min(20, glassBodies.Length);
-            data.FindProperty("candyFlightTimeRange").vector2Value = new Vector2(.88f, 1.18f);
-            data.FindProperty("glassFlightTimeRange").vector2Value = new Vector2(.82f, 1.12f);
-            data.FindProperty("maximumDebrisSpeed").floatValue = 15f;
-            data.FindProperty("angularVelocityRange").vector2Value = new Vector2(300f, 720f);
+            ApplyBurstReadabilitySettings(data);
             data.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(vfx);
 
@@ -179,10 +175,7 @@ namespace KickTheBuddy.Editor
             data.FindProperty("screenEdgePadding").floatValue = .55f;
             data.FindProperty("maximumActiveCandyDebris").intValue = 24;
             data.FindProperty("maximumActiveGlassShards").intValue = Mathf.Min(20, glassBodies.Length);
-            data.FindProperty("candyFlightTimeRange").vector2Value = new Vector2(.88f, 1.18f);
-            data.FindProperty("glassFlightTimeRange").vector2Value = new Vector2(.82f, 1.12f);
-            data.FindProperty("maximumDebrisSpeed").floatValue = 15f;
-            data.FindProperty("angularVelocityRange").vector2Value = new Vector2(300f, 720f);
+            ApplyBurstReadabilitySettings(data);
             data.ApplyModifiedPropertiesWithoutUndo();
 
             EditorUtility.SetDirty(vfx);
@@ -412,10 +405,7 @@ namespace KickTheBuddy.Editor
             vfxData.FindProperty("torsoPackingSize").vector2Value = torsoPackingSize;
             vfxData.FindProperty("floorWorldY").floatValue = floorCollider.bounds.max.y;
             vfxData.FindProperty("screenEdgePadding").floatValue = .55f;
-            vfxData.FindProperty("candyFlightTimeRange").vector2Value = new Vector2(.88f, 1.18f);
-            vfxData.FindProperty("glassFlightTimeRange").vector2Value = new Vector2(.82f, 1.12f);
-            vfxData.FindProperty("maximumDebrisSpeed").floatValue = 15f;
-            vfxData.FindProperty("angularVelocityRange").vector2Value = new Vector2(300f, 720f);
+            ApplyBurstReadabilitySettings(vfxData);
             vfxData.ApplyModifiedPropertiesWithoutUndo();
 
             SetupCameraShake(ragdoll);
@@ -574,8 +564,8 @@ namespace KickTheBuddy.Editor
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.maxParticles = 48;
             main.startLifetime = new ParticleSystem.MinMaxCurve(2.2f, 3.4f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(5.5f, 9f);
-            main.startSize = new ParticleSystem.MinMaxCurve(.16f, .29f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(7.5f, 12.5f);
+            main.startSize = new ParticleSystem.MinMaxCurve(.28f, .48f);
             main.startRotation = new ParticleSystem.MinMaxCurve(-Mathf.PI, Mathf.PI);
             main.gravityModifier = new ParticleSystem.MinMaxCurve(.95f, 1.35f);
 
@@ -587,7 +577,7 @@ namespace KickTheBuddy.Editor
             ParticleSystem.ShapeModule shape = system.shape;
             shape.enabled = true;
             shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = .34f;
+            shape.radius = .2f;
             shape.arc = 360f;
             shape.randomDirectionAmount = .18f;
 
@@ -606,7 +596,7 @@ namespace KickTheBuddy.Editor
             ParticleSystem.SizeOverLifetimeModule size = system.sizeOverLifetime;
             size.enabled = true;
             size.size = new ParticleSystem.MinMaxCurve(1f,
-                new AnimationCurve(new Keyframe(0f, .78f), new Keyframe(.18f, 1.08f), new Keyframe(1f, .86f)));
+                new AnimationCurve(new Keyframe(0f, .86f), new Keyframe(.12f, 1.14f), new Keyframe(1f, .9f)));
 
             ParticleSystem.RotationOverLifetimeModule rotation = system.rotationOverLifetime;
             rotation.enabled = true;
@@ -648,7 +638,7 @@ namespace KickTheBuddy.Editor
             renderer.sharedMaterial = material;
             renderer.sortingOrder = 114;
             renderer.minParticleSize = 0f;
-            renderer.maxParticleSize = .12f;
+            renderer.maxParticleSize = .2f;
 
             PrefabUtility.SaveAsPrefabAsset(root, CandyBurstPrefabPath);
             PrefabUtility.UnloadPrefabContents(root);
@@ -985,6 +975,14 @@ namespace KickTheBuddy.Editor
             if (data.FindProperty("maximumActiveCandyDebris").intValue != 24 ||
                 data.FindProperty("maximumActiveGlassShards").intValue != 20)
                 throw new InvalidOperationException(scene.name + " does not use the authored 24-candy/20-glass death budget.");
+            if (data.FindProperty("candyDebrisScaleMultiplier").floatValue < 1.5f ||
+                data.FindProperty("glassDebrisScaleMultiplier").floatValue < 1.4f ||
+                data.FindProperty("candyFlightTimeRange").vector2Value.x < 1.3f ||
+                data.FindProperty("glassFlightTimeRange").vector2Value.x < 1.1f ||
+                data.FindProperty("candyBurstImpulse").floatValue < 2f ||
+                data.FindProperty("glassBurstImpulse").floatValue < 3f ||
+                data.FindProperty("maximumDebrisSpeed").floatValue < 18f)
+                throw new InvalidOperationException(scene.name + " is missing the enlarged, high-arc physical death burst tuning.");
             ValidateCandyBurst(configuredProfile.CandyBurstPrefab);
 
             Rigidbody2D[] candies = ReadBodyArray(data.FindProperty("candyDebrisBodies"));
@@ -1006,10 +1004,29 @@ namespace KickTheBuddy.Editor
             ParticleSystem.EmissionModule emission = system.emission;
             ParticleSystem.TextureSheetAnimationModule sheet = system.textureSheetAnimation;
             ParticleSystem.CollisionModule collision = system.collision;
+            ParticleSystem.ShapeModule shape = system.shape;
+            ParticleSystem.Burst burst = emission.burstCount > 0
+                ? emission.GetBurst(0)
+                : new ParticleSystem.Burst();
             if (main.maxParticles != 48 || main.gravityModifier.constantMax < 1.3f ||
-                emission.burstCount != 1 || sheet.spriteCount != 24 ||
+                main.startSpeed.constantMax < 12f || main.startSize.constantMax < .45f ||
+                !shape.enabled || shape.radius > .25f ||
+                emission.burstCount != 1 || burst.count.constantMax < 36f || sheet.spriteCount != 24 ||
                 !collision.enabled || collision.mode != ParticleSystemCollisionMode.Collision2D)
-                throw new InvalidOperationException("Candy burst must use 24 supplied sprites, one 36-particle burst, gravity, and 2D collision.");
+                throw new InvalidOperationException("Candy burst must start compact, eject large candy sprites at high speed, use gravity, and retain 2D collision.");
+        }
+
+        private static void ApplyBurstReadabilitySettings(SerializedObject data)
+        {
+            data.FindProperty("candyDebrisScaleMultiplier").floatValue = 1.55f;
+            data.FindProperty("glassDebrisScaleMultiplier").floatValue = 1.45f;
+            data.FindProperty("candyFlightTimeRange").vector2Value = new Vector2(1.35f, 1.75f);
+            data.FindProperty("glassFlightTimeRange").vector2Value = new Vector2(1.15f, 1.55f);
+            data.FindProperty("candyBurstImpulse").floatValue = 2.2f;
+            data.FindProperty("glassBurstImpulse").floatValue = 3.1f;
+            data.FindProperty("upwardBurstBias").floatValue = .7f;
+            data.FindProperty("maximumDebrisSpeed").floatValue = 18f;
+            data.FindProperty("angularVelocityRange").vector2Value = new Vector2(420f, 950f);
         }
 
         private static Collider2D ResolveSceneCollider(string objectName)

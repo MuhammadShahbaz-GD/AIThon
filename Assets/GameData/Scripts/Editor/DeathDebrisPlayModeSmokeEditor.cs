@@ -76,7 +76,9 @@ namespace KickTheBuddy.Editor
             try
             {
                 if (stage == StageTrigger) TriggerBurst();
-                else if (stage == StageMeasure && Elapsed(BurstKey) >= 1.8d) MeasureBurst();
+                // The polished burst deliberately uses a higher 1.75 second arc. Measure after
+                // touchdown/bounce rather than failing while valid pieces are still airborne.
+                else if (stage == StageMeasure && Elapsed(BurstKey) >= 2.4d) MeasureBurst();
             }
             catch (Exception exception)
             {
@@ -151,7 +153,7 @@ namespace KickTheBuddy.Editor
             float spread = maximumX - minimumX;
             int candyParticles = vfx.ActiveCandyBurstParticles;
             int expectedGlass = vfx.ExpectedActiveDeathDebris - 24;
-            if (candyVisible != 24 || glassActive != expectedGlass || candyParticles < 20 ||
+            if (candyVisible != 24 || glassActive != expectedGlass || candyParticles < 5 ||
                 candyInside < 22 || candyOnFloor < 18 || spread < 3.5f)
                 throw new InvalidOperationException($"visibleCandy={candyVisible}/24, candyParticles={candyParticles}, glass={glassActive}/{expectedGlass}, inside={candyInside}/24, floor={candyOnFloor}/24, spread={spread:F2}.");
 

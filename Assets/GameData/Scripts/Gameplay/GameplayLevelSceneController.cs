@@ -21,12 +21,14 @@ namespace KickTheBuddy.Gameplay
             [SerializeField] private RagdollController ragdoll;
             [SerializeField] private RagdollInputManager ragdollInput;
             [SerializeField] private SandboxToolInput2D sandboxToolInput;
+            [SerializeField] private CandyCannonController2D candyCannons;
 
             public string LevelId => levelId;
             public GameObject Root => root;
             public RagdollController Ragdoll => ragdoll;
             public RagdollInputManager RagdollInput => ragdollInput;
             public SandboxToolInput2D SandboxToolInput => sandboxToolInput;
+            public CandyCannonController2D CandyCannons => candyCannons;
         }
 
         [Tooltip("Entries must match the Level Catalog order. Their roots must be direct children of this Levels object.")]
@@ -50,6 +52,8 @@ namespace KickTheBuddy.Gameplay
         public RagdollInputManager ActiveRagdollInput => activeContent != null ? activeContent.RagdollInput : null;
         public SandboxToolInput2D ActiveSandboxToolInput =>
             activeContent != null ? activeContent.SandboxToolInput : null;
+        public CandyCannonController2D ActiveCandyCannons =>
+            activeContent != null ? activeContent.CandyCannons : null;
         public GameObject SharedRoom => sharedRoom;
         public IReadOnlyList<RagdollAttackManager2D> SharedRoomAttacks => sharedRoomAttacks;
         public int LevelCount => levels.Length;
@@ -105,6 +109,7 @@ namespace KickTheBuddy.Gameplay
             // GameplayManager enables the selected inputs only after it has reset and subscribed to the level.
             selectedContent.RagdollInput.SetInputEnabled(false);
             selectedContent.SandboxToolInput?.SetInputEnabled(false);
+            selectedContent.CandyCannons?.SetInputEnabled(false);
             if (!ConfigureSharedRoom(definition))
             {
                 DisableAllLevels();
@@ -179,6 +184,7 @@ namespace KickTheBuddy.Gameplay
                 if (content == null) continue;
                 content.RagdollInput?.SetInputEnabled(false);
                 content.SandboxToolInput?.SetInputEnabled(false);
+                content.CandyCannons?.SetInputEnabled(false);
                 if (content.Root != null) content.Root.SetActive(false);
             }
             if (sharedRoom != null) sharedRoom.SetActive(false);
