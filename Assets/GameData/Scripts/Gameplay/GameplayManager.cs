@@ -36,6 +36,7 @@ namespace KickTheBuddy.Gameplay
         public event Action<int, int> LevelCompleted;
         public event Action LevelFailed;
         public event Action NextLevelRequested;
+        public event Action RetryLevelRequested;
 
         public void Initialize(LevelsManager levelsManager, GameSaveManager saveManager, SoundManager soundManager)
         {
@@ -51,7 +52,12 @@ namespace KickTheBuddy.Gameplay
             if (level == null) return;
             if (deathCompletion != null) StopCoroutine(deathCompletion);
             deathCompletion = null;
-            BindRagdoll();
+            if (!BindRagdoll())
+            {
+                ChangeState(GameplayState.LevelFailed);
+                LevelFailed?.Invoke();
+                return;
+            }
             ragdollInput?.SetInputEnabled(true);
             sandboxToolInput?.ResetTools();
             sandboxToolInput?.SetInputEnabled(true);
@@ -106,11 +112,10 @@ namespace KickTheBuddy.Gameplay
 
         public void Restart()
         {
-            if (deathCompletion != null) StopCoroutine(deathCompletion);
-            deathCompletion = null;
+            if (State == GameplayState.Booting || State == GameplayState.MainMenu ||
+                State == GameplayState.Loading) return;
             Time.timeScale = 1f;
-            ragdoll?.Revive();
-            BeginLevel();
+            RetryLevelRequested?.Invoke();
         }
 
         public void CompleteLevel()
@@ -143,16 +148,28 @@ namespace KickTheBuddy.Gameplay
             NextLevelRequested?.Invoke();
         }
 
-        public void BindRagdoll()
+        public bool BindRagdoll()
         {
             UnbindRagdoll();
-            ragdoll = FindObjectOfType<RagdollController>();
-            sandboxToolInput = FindObjectOfType<SandboxToolInput2D>();
-            if (ragdoll == null) return;
-            ragdollInput = ragdoll.GetComponent<RagdollInputManager>();
+            GameplayLevelSceneController sceneLevels = GameplayLevelSceneController.Active;
+            if (sceneLevels == null || sceneLevels.ActiveLevelRoot == null)
+            {
+                Debug.LogError("The gameplay scene Levels controller did not activate its saved level.", this);
+                return false;
+            }
+
+            ragdoll = sceneLevels.ActiveRagdoll;
+            ragdollInput = sceneLevels.ActiveRagdollInput;
+            sandboxToolInput = sceneLevels.ActiveSandboxToolInput;
+            if (ragdoll == null || ragdollInput == null)
+            {
+                Debug.LogError("The selected level has incomplete ragdoll references.", sceneLevels);
+                return false;
+            }
             ragdoll.OnDamageTaken += HandleDamage;
             ragdoll.OnCharacterDied += HandleCharacterDied;
             subscribed = true;
+            return true;
         }
 
         private void HandleDamage(float amount, Vector2 point)

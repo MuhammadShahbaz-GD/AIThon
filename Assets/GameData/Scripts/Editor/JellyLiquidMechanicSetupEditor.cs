@@ -15,7 +15,7 @@ namespace KickTheBuddy.Editor
     /// <summary>Authors and validates the zero-damage Jelly contact presentation for Level 2.</summary>
     public static class JellyLiquidMechanicSetupEditor
     {
-        private const string ScenePath = "Assets/GameData/Scene/CandyLab.unity";
+        private const string ScenePath = SingleSceneLevelsSetupEditor.GameplayScenePath;
         private const string LevelAssetPath = "Assets/GameData/Materials/Gameplay/Level_02.asset";
         private const string JellyPrefabPath = "Assets/GameData/Prefabs/Gameplay/Jelly.prefab";
         private const string LollipopPrefabPath = "Assets/GameData/Prefabs/Gameplay/Lollipop.prefab";
@@ -294,7 +294,7 @@ namespace KickTheBuddy.Editor
             SandboxTool2D jelly = FindTool(input, SandboxToolKind.Jelly);
             RagdollController ragdoll = FindActiveSceneComponent<RagdollController>(scene);
             if (jelly == null || jelly.Attack == null || ragdoll == null)
-                throw new InvalidOperationException("CandyLab Jelly or active ragdoll references are incomplete.");
+                throw new InvalidOperationException("Level 02 Jelly or active ragdoll references are incomplete.");
             RagdollAnimationController animation = ragdoll.GetComponent<RagdollAnimationController>();
             if (animation == null) throw new InvalidOperationException("Active ragdoll is missing RagdollAnimationController.");
 
@@ -353,7 +353,7 @@ namespace KickTheBuddy.Editor
             LevelDefinition level = AssetDatabase.LoadAssetAtPath<LevelDefinition>(LevelAssetPath);
             if (level == null || level.ObjectiveText.IndexOf("annoy", StringComparison.OrdinalIgnoreCase) < 0)
                 throw new InvalidOperationException("Level 2 objective does not explain the Jelly nuisance mechanic.");
-            if (CountMissingScripts(scene) != 0) throw new InvalidOperationException("CandyLab contains missing scripts.");
+            if (CountMissingScripts(scene) != 0) throw new InvalidOperationException("The gameplay scene contains missing scripts.");
 
             Debug.Log("JELLY_LIQUID_MECHANIC_VALIDATION_OK: damage=0 at speeds 0/8/100, six pooled sliding splats, one shared droplet emitter, authored active-ragdoll references, annoyed reaction, missingScripts=0.");
         }

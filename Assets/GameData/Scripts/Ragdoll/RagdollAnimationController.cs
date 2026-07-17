@@ -14,68 +14,73 @@ namespace KickTheBuddy.Physics
         Annoyed
     }
 
-    public enum IdleFaceExpression
+    /// <summary>The authored facial sequences available to gameplay and presentation systems.</summary>
+    public enum RagdollFaceExpression
     {
-        Neutral,
-        Happy,
-        Curious,
-        Sleepy,
-        Surprised,
-        Grumpy
+        Smile,
+        Laugh,
+        Shock,
+        Cry,
+        Depressed,
+        Hidden
     }
 
     /// <summary>
-    /// Coordinates procedural face reactions and an optional Animator without applying physics forces.
+    /// Event-driven visual presenter for the active ragdoll. Physics and damage stay in their
+    /// dedicated modules; this component only converts those signals into face animation,
+    /// optional Animator parameters, and a short body-colour reaction.
     /// </summary>
     [DisallowMultipleComponent]
-    [RequireComponent(typeof(RagdollController), typeof(RagdollDamageManager))]
+    [RequireComponent(typeof(RagdollController), typeof(RagdollDamageManager), typeof(RagdollInputManager))]
     public sealed class RagdollAnimationController : MonoBehaviour
     {
         [Header("Optional Authored Animator")]
         [SerializeField] private Animator animator;
-        [SerializeField] private Camera inputCamera;
-        [Tooltip("Only the main character skin renderers should be tinted; candy and debris renderers are excluded.")]
+        [Tooltip("Assign only the six visible ragdoll-part renderers. Candy/debris and the face are excluded.")]
         [SerializeField] private SpriteRenderer[] bodyRenderers = Array.Empty<SpriteRenderer>();
 
-        [Header("Idle")]
-        [Min(0f)] [SerializeField] private float idleDelay = 2.5f;
-        [Min(.5f)] [SerializeField] private float minimumBlinkInterval = 2f;
-        [Min(.5f)] [SerializeField] private float maximumBlinkInterval = 4.5f;
-        [Min(.03f)] [SerializeField] private float blinkDuration = .12f;
-        [Range(0f, .1f)] [SerializeField] private float idleGazeDistance = .04f;
-        [Range(0f, .05f)] [SerializeField] private float idleFaceBob = .012f;
-        [Min(.25f)] [SerializeField] private float minimumExpressionDuration = 1.5f;
-        [Min(.25f)] [SerializeField] private float maximumExpressionDuration = 3.5f;
-        [Min(0f)] [SerializeField] private float expressionBlendSpeed = 10f;
-        [Range(15f, 60f)] [SerializeField] private float faceUpdateRate = 30f;
-
-        [Header("Authored Idle Face")]
-        [Tooltip("Dedicated overlay used only while the ragdoll is idle. Assign this in the scene; runtime code never searches for it.")]
-        [SerializeField] private SpriteRenderer idleFaceRenderer;
-        [Tooltip("Frames imported from Laughing Animations/1 in playback order.")]
-        [SerializeField] private Sprite[] idleFaceSequenceOne = Array.Empty<Sprite>();
-        [Tooltip("Frames imported from Laughing Animations/2 in playback order.")]
-        [SerializeField] private Sprite[] idleFaceSequenceTwo = Array.Empty<Sprite>();
-        [Range(1f, 30f)] [SerializeField] private float idleFaceFramesPerSecond = 24f;
+        [Header("Authored Face Expressions")]
+        [Tooltip("One explicitly authored overlay below the Head. Runtime code never searches for or creates it.")]
+        [SerializeField] private SpriteRenderer faceRenderer;
+        [SerializeField] private Sprite[] smileFrames = Array.Empty<Sprite>();
+        [SerializeField] private Sprite[] laughFrames = Array.Empty<Sprite>();
+        [SerializeField] private Sprite[] shockFrames = Array.Empty<Sprite>();
+        [SerializeField] private Sprite[] cryFrames = Array.Empty<Sprite>();
+        [SerializeField] private Sprite[] depressedFrames = Array.Empty<Sprite>();
+        [Range(1f, 30f)] [SerializeField] private float faceFramesPerSecond = 24f;
 
         [Header("Face Layout")]
-        [Tooltip("Moves the complete procedural face in the head's local space.")]
+        [Tooltip("Local-space offset of the complete face overlay below the Head.")]
         [SerializeField] private Vector2 facePositionOffset = Vector2.zero;
-        [Tooltip("Scales the complete face without changing the head sprite.")]
+        [Tooltip("Local-space scale of the complete face overlay.")]
         [SerializeField] private Vector2 faceScale = Vector2.one;
-        [Range(.01f, .6f)] [SerializeField] private float eyeSpacing = .18f;
-        [Range(-.5f, .5f)] [SerializeField] private float eyeVerticalOffset = .1f;
-        [Range(.02f, .5f)] [SerializeField] private float eyeWidth = .18f;
-        [SerializeField] private Vector2 pupilPositionOffset = Vector2.zero;
-        [SerializeField] private Vector2 pupilScale = new Vector2(.38f, .45f);
-        [SerializeField] private Vector2 mouthPositionOffset = new Vector2(0f, -.2f);
-        [Range(.02f, .6f)] [SerializeField] private float mouthWidth = .22f;
 
-        [Header("Reactions")]
-        [Min(.05f)] [SerializeField] private float damageReactionDuration = .28f;
+        [Header("Expression Feel")]
+        [Min(0f)] [SerializeField] private float idleDelay = 2.5f;
+        [Range(0f, 1f)] [SerializeField] private float idleLaughChancePerSmileLoop = .07f;
+        [Min(.1f)] [SerializeField] private float normalHitShockDuration = 1.55f;
+        [Min(.1f)] [SerializeField] private float comboCryDuration = 1.9f;
+        [Min(.1f)] [SerializeField] private float maximumDamageCryDuration = 2.2f;
+        [Min(.1f)] [SerializeField] private float limbBreakCryDuration = 2.7f;
+        [Min(2)] [SerializeField] private int comboCryThreshold = 3;
+        [Tooltip("Post-mitigation damage that counts as a maximum-strength single hit for this character balance.")]
+        [Min(.01f)] [SerializeField] private float maximumDamageThreshold = 6f;
+        [Tooltip("Fallback fraction of one part's maximum health removed by a single maximum-strength hit.")]
+        [Range(.005f, .25f)] [SerializeField] private float maximumDamageHealthRatio = .02f;
+        [Range(0f, 1f)] [SerializeField] private float depressedHealthThreshold = .3f;
+
+        [Header("Body Damage Reaction")]
+        [Min(.05f)] [SerializeField] private float damageReactionDuration = .4f;
         [SerializeField] private Color damageFlashColor = new Color(1f, .35f, .3f);
         [SerializeField] private Color deadTint = new Color(.35f, .35f, .38f);
         [Range(0f, 1f)] [SerializeField] private float tintStrength = .45f;
+
+        private const int PriorityNone = 0;
+        private const int PriorityNormalHit = 50;
+        private const int PriorityComboOrMaximum = 70;
+        private const int PriorityLimbBreak = 80;
+        private const int PriorityKnockout = 90;
+        private const int PriorityDeath = 100;
 
         private static readonly int IdleParameter = Animator.StringToHash("IsIdle");
         private static readonly int DraggingParameter = Animator.StringToHash("IsDragging");
@@ -87,132 +92,155 @@ namespace KickTheBuddy.Physics
         private RagdollController controller;
         private RagdollDamageManager damageManager;
         private RagdollInputManager inputManager;
-        private Transform head;
-        private Transform face;
-        private Transform leftEye;
-        private Transform rightEye;
-        private Transform leftPupil;
-        private Transform rightPupil;
-        private Transform mouth;
         private Color[] baseColors = Array.Empty<Color>();
+        private Sprite[] activeFrames = Array.Empty<Sprite>();
         private RagdollAnimationState state;
-        private Vector2 dragPoint;
-        private float reactionStrength;
+        private RagdollFaceExpression currentExpression = RagdollFaceExpression.Hidden;
+        private RagdollFaceExpression lockedExpression = RagdollFaceExpression.Smile;
+        private int frameIndex;
+        private int lockedPriority;
+        private float nextFrameTime;
+        private float lockedUntil;
         private float hurtUntil;
         private float annoyedUntil;
-        private float annoyanceStrength;
-        private float annoyedSide = 1f;
-        private Vector2 annoyedPoint;
         private float lastInteractionTime;
-        private float nextBlinkTime;
-        private float blinkEndTime;
-        private bool blinking;
-        private bool dragging;
-        private bool inputBound;
-        private IdleFaceExpression idleExpression;
-        private float nextIdleExpressionTime;
-        private float curiousDirection = 1f;
-        private float nextFaceUpdateTime;
+        private float reactionStrength;
+        private float annoyanceStrength;
         private Color lastTintColor;
         private float lastTintBlend = -1f;
-        private Sprite[] activeIdleFaceSequence = Array.Empty<Sprite>();
-        private int activeIdleFaceSequenceIndex = -1;
-        private int idleFaceFrameIndex = -1;
-        private float nextIdleFaceFrameTime;
-        private bool authoredIdleFacePlaying;
+        private bool dragging;
+        private bool inputBound;
+        private bool sequenceComplete;
+        private bool facePlaying;
+        private bool hasBrokenLimb;
 
         public event Action<RagdollAnimationState> StateChanged;
+        public event Action<RagdollFaceExpression> FaceExpressionChanged;
+        public event Action<RagdollFaceExpression, float> FaceReactionStarted;
+        public event Action<RagdollFaceExpression> FaceSequenceCompleted;
         public event Action<RagdollPartHealth, float> DamageReactionPlayed;
         public event Action<DamageReceiver2D> DragReactionStarted;
         public event Action IdleAnimationStarted;
-        public event Action<IdleFaceExpression> IdleExpressionChanged;
         public event Action<Rigidbody2D, float> AnnoyedReactionPlayed;
 
         public RagdollAnimationState CurrentState => state;
-        public bool HasAuthoredIdleFaceAnimation =>
-            idleFaceRenderer != null && (HasFrames(idleFaceSequenceOne) || HasFrames(idleFaceSequenceTwo));
-        public bool IsAuthoredIdleFacePlaying => authoredIdleFacePlaying;
+        public RagdollFaceExpression CurrentFaceExpression => currentExpression;
+        public bool HasAuthoredFaceAnimation =>
+            faceRenderer != null && HasFrames(smileFrames) && HasFrames(shockFrames) &&
+            HasFrames(cryFrames) && HasFrames(depressedFrames);
+        public bool IsAuthoredFacePlaying => facePlaying && faceRenderer != null && faceRenderer.enabled;
+
+        // Compatibility aliases retained for existing validation code while the project migrates terminology.
+        public bool HasAuthoredIdleFaceAnimation => HasAuthoredFaceAnimation;
+        public bool IsAuthoredIdleFacePlaying => IsAuthoredFacePlaying;
 
         private void Awake()
         {
             controller = GetComponent<RagdollController>();
             damageManager = GetComponent<RagdollDamageManager>();
             inputManager = GetComponent<RagdollInputManager>();
-            if (inputCamera == null) inputCamera = Camera.main;
 
             RagdollLifeVisuals legacyVisuals = GetComponent<RagdollLifeVisuals>();
             if (legacyVisuals != null) legacyVisuals.enabled = false;
 
-            head = FindChildContaining(transform, "head");
-            if (head != null) CreateFaceIfNeeded();
-
-            if (bodyRenderers == null || bodyRenderers.Length == 0)
-                bodyRenderers = GetComponentsInChildren<SpriteRenderer>(true);
+            if (bodyRenderers == null) bodyRenderers = Array.Empty<SpriteRenderer>();
             baseColors = new Color[bodyRenderers.Length];
             for (int i = 0; i < bodyRenderers.Length; i++)
                 baseColors[i] = bodyRenderers[i] != null ? bodyRenderers[i].color : Color.white;
 
             lastInteractionTime = Time.time;
-            ScheduleBlink();
-            ScheduleIdleExpression();
+            ApplyFaceLayout();
+            SetFaceExpression(RagdollFaceExpression.Smile, true);
+            ApplyAnimatorState();
         }
 
-        private void Start()
-        {
-            BindInput();
-        }
+        private void Start() => BindInput();
 
         private void OnEnable()
         {
-            if (controller != null)
-            {
-                controller.OnCharacterKO += HandleKnockout;
-                controller.OnCharacterRevived += HandleRevived;
-            }
-
-            if (damageManager != null)
-                damageManager.DamageCalculated += HandleDamage;
-
+            SubscribeController();
+            if (damageManager != null) damageManager.DamageCalculated += HandleDamage;
             BindInput();
-            if (state == RagdollAnimationState.Idle) StartAuthoredIdleFace();
+            RefreshFaceExpression(true);
         }
 
         private void OnDisable()
         {
-            if (controller != null)
-            {
-                controller.OnCharacterKO -= HandleKnockout;
-                controller.OnCharacterRevived -= HandleRevived;
-            }
-
-            if (damageManager != null)
-                damageManager.DamageCalculated -= HandleDamage;
-
+            UnsubscribeController();
+            if (damageManager != null) damageManager.DamageCalculated -= HandleDamage;
             UnbindInput();
-            StopAuthoredIdleFace();
             RestoreBodyColors();
+            facePlaying = false;
+            if (faceRenderer != null) faceRenderer.enabled = false;
         }
 
         private void Update()
         {
             UpdateState();
-            UpdateAuthoredIdleFace();
-            float now = Time.unscaledTime;
-            if (!authoredIdleFacePlaying && now >= nextFaceUpdateTime)
-            {
-                float interval = 1f / Mathf.Max(1f, faceUpdateRate);
-                nextFaceUpdateTime = now + interval;
-                UpdateFace(interval);
-            }
+            RefreshFaceExpression(false);
+            AdvanceFaceAnimation();
             UpdateBodyTint();
+        }
+
+        /// <summary>Explicit presentation hook for non-damage gameplay that needs a normal shock.</summary>
+        public void PlayShockReaction(float duration)
+        {
+            RequestTemporaryExpression(
+                RagdollFaceExpression.Shock,
+                duration > 0f ? duration : normalHitShockDuration,
+                PriorityNormalHit);
+        }
+
+        /// <summary>Explicit presentation hook for scripted severe reactions.</summary>
+        public void PlayCryReaction(float duration)
+        {
+            RequestTemporaryExpression(
+                RagdollFaceExpression.Cry,
+                duration > 0f ? duration : maximumDamageCryDuration,
+                PriorityComboOrMaximum);
+        }
+
+        /// <summary>
+        /// Plays a visual-only jelly nuisance reaction. It deliberately avoids health, combo,
+        /// knockout, and physics paths used by real attacks.
+        /// </summary>
+        public void PlayAnnoyedReaction(
+            Rigidbody2D contactedPart,
+            Vector2 contactPoint,
+            float intensity,
+            float duration)
+        {
+            if (controller == null || controller.CurrentHealth <= 0f ||
+                controller.CurrentState == RagdollState.KnockedOut) return;
+
+            annoyanceStrength = Mathf.Clamp01(intensity);
+            annoyedUntil = Mathf.Max(annoyedUntil, Time.time + Mathf.Max(.15f, duration));
+            lastInteractionTime = Time.time;
+            RefreshFaceExpression(true);
+            AnnoyedReactionPlayed?.Invoke(contactedPart, annoyanceStrength);
+        }
+
+        private void SubscribeController()
+        {
+            if (controller == null) return;
+            controller.OnCharacterKO += HandleKnockout;
+            controller.OnCharacterDied += HandleDeath;
+            controller.OnCharacterRevived += HandleRevived;
+            controller.OnLimbBroken += HandleLimbBroken;
+        }
+
+        private void UnsubscribeController()
+        {
+            if (controller == null) return;
+            controller.OnCharacterKO -= HandleKnockout;
+            controller.OnCharacterDied -= HandleDeath;
+            controller.OnCharacterRevived -= HandleRevived;
+            controller.OnLimbBroken -= HandleLimbBroken;
         }
 
         private void BindInput()
         {
-            if (inputBound) return;
-            if (inputManager == null) inputManager = GetComponent<RagdollInputManager>();
-            if (inputManager == null) return;
-
+            if (inputBound || inputManager == null) return;
             inputManager.DragStarted += HandleDragStarted;
             inputManager.DragUpdated += HandleDragUpdated;
             inputManager.DragEnded += HandleDragEnded;
@@ -248,112 +276,19 @@ namespace KickTheBuddy.Physics
             if (state == next) return;
             state = next;
             lastTintBlend = -1f;
-
-            if (animator != null)
-            {
-                animator.SetBool(IdleParameter, state == RagdollAnimationState.Idle);
-                animator.SetBool(DraggingParameter, state == RagdollAnimationState.Dragged);
-                animator.SetBool(DeadParameter, state == RagdollAnimationState.Dead);
-                animator.SetBool(KnockedOutParameter, state == RagdollAnimationState.KnockedOut);
-            }
-
-            if (state == RagdollAnimationState.Idle)
-            {
-                SelectNextIdleExpression();
-                StartAuthoredIdleFace();
-                IdleAnimationStarted?.Invoke();
-            }
-            else
-            {
-                StopAuthoredIdleFace();
-            }
+            ApplyAnimatorState();
+            if (state == RagdollAnimationState.Idle) IdleAnimationStarted?.Invoke();
             StateChanged?.Invoke(state);
         }
 
-        private void StartAuthoredIdleFace()
+        private void ApplyAnimatorState()
         {
-            if (!HasAuthoredIdleFaceAnimation) return;
-
-            authoredIdleFacePlaying = true;
-            if (face != null) face.gameObject.SetActive(false);
-            ApplyAuthoredIdleFaceLayout();
-            idleFaceRenderer.enabled = true;
-            SelectNextAuthoredIdleSequence();
+            if (animator == null) return;
+            animator.SetBool(IdleParameter, state == RagdollAnimationState.Idle);
+            animator.SetBool(DraggingParameter, state == RagdollAnimationState.Dragged);
+            animator.SetBool(DeadParameter, state == RagdollAnimationState.Dead);
+            animator.SetBool(KnockedOutParameter, state == RagdollAnimationState.KnockedOut);
         }
-
-        private void ApplyAuthoredIdleFaceLayout()
-        {
-            if (idleFaceRenderer == null) return;
-            Transform overlay = idleFaceRenderer.transform;
-            overlay.localPosition = new Vector3(facePositionOffset.x, facePositionOffset.y, -.02f);
-            overlay.localScale = new Vector3(
-                Mathf.Max(.01f, faceScale.x),
-                Mathf.Max(.01f, faceScale.y),
-                1f);
-        }
-
-        private void StopAuthoredIdleFace()
-        {
-            if (!authoredIdleFacePlaying && (idleFaceRenderer == null || !idleFaceRenderer.enabled)) return;
-
-            authoredIdleFacePlaying = false;
-            activeIdleFaceSequence = Array.Empty<Sprite>();
-            idleFaceFrameIndex = -1;
-            if (idleFaceRenderer != null) idleFaceRenderer.enabled = false;
-            if (face != null) face.gameObject.SetActive(true);
-            nextFaceUpdateTime = 0f;
-        }
-
-        private void UpdateAuthoredIdleFace()
-        {
-            if (!authoredIdleFacePlaying || idleFaceRenderer == null || state != RagdollAnimationState.Idle) return;
-            if (Time.time < nextIdleFaceFrameTime) return;
-
-            idleFaceFrameIndex++;
-            if (activeIdleFaceSequence == null || idleFaceFrameIndex >= activeIdleFaceSequence.Length)
-            {
-                SelectNextAuthoredIdleSequence();
-                return;
-            }
-
-            ShowCurrentAuthoredIdleFrame();
-        }
-
-        private void SelectNextAuthoredIdleSequence()
-        {
-            bool hasOne = HasFrames(idleFaceSequenceOne);
-            bool hasTwo = HasFrames(idleFaceSequenceTwo);
-            if (!hasOne && !hasTwo)
-            {
-                StopAuthoredIdleFace();
-                return;
-            }
-
-            // Alternate when both sets exist so every idle period showcases both supplied expressions.
-            if (hasOne && hasTwo)
-                activeIdleFaceSequenceIndex = activeIdleFaceSequenceIndex == 0 ? 1 : activeIdleFaceSequenceIndex == 1 ? 0 : UnityEngine.Random.Range(0, 2);
-            else
-                activeIdleFaceSequenceIndex = hasOne ? 0 : 1;
-
-            activeIdleFaceSequence = activeIdleFaceSequenceIndex == 0 ? idleFaceSequenceOne : idleFaceSequenceTwo;
-            idleFaceFrameIndex = 0;
-            ShowCurrentAuthoredIdleFrame();
-        }
-
-        private void ShowCurrentAuthoredIdleFrame()
-        {
-            if (activeIdleFaceSequence == null || activeIdleFaceSequence.Length == 0 || idleFaceRenderer == null) return;
-
-            // Skip null authoring slots without allocating or scanning during normal playback.
-            int attempts = activeIdleFaceSequence.Length;
-            while (attempts-- > 0 && activeIdleFaceSequence[idleFaceFrameIndex] == null)
-                idleFaceFrameIndex = (idleFaceFrameIndex + 1) % activeIdleFaceSequence.Length;
-
-            idleFaceRenderer.sprite = activeIdleFaceSequence[idleFaceFrameIndex];
-            nextIdleFaceFrameTime = Time.time + 1f / Mathf.Max(1f, idleFaceFramesPerSecond);
-        }
-
-        private static bool HasFrames(Sprite[] frames) => frames != null && frames.Length > 0;
 
         private void HandleDamage(
             Rigidbody2D body,
@@ -363,10 +298,30 @@ namespace KickTheBuddy.Physics
             float impactSpeed,
             Vector2 point)
         {
-            reactionStrength = Mathf.Clamp01((damage / 25f) * (part != null ? part.DamageReactionStrength : 1f));
-            hurtUntil = Time.time + damageReactionDuration * Mathf.Lerp(.75f, 1.5f, reactionStrength);
+            float partReaction = part != null ? part.DamageReactionStrength : 1f;
+            reactionStrength = Mathf.Clamp01((damage / Mathf.Max(.01f, maximumDamageThreshold)) * partReaction);
+            hurtUntil = Time.time + damageReactionDuration * Mathf.Lerp(.8f, 1.45f, reactionStrength);
             lastInteractionTime = Time.time;
             lastTintBlend = -1f;
+
+            bool depleted = part != null && part.IsDepleted;
+            bool comboHit = controller != null && controller.CurrentCombo >= comboCryThreshold;
+            bool maximumHit = damage >= maximumDamageThreshold ||
+                              (part != null && damage >= part.MaximumHealth * maximumDamageHealthRatio);
+
+            if (depleted)
+            {
+                RequestTemporaryExpression(RagdollFaceExpression.Cry, limbBreakCryDuration, PriorityLimbBreak);
+            }
+            else if (comboHit || maximumHit)
+            {
+                float duration = maximumHit ? maximumDamageCryDuration : comboCryDuration;
+                RequestTemporaryExpression(RagdollFaceExpression.Cry, duration, PriorityComboOrMaximum);
+            }
+            else
+            {
+                RequestTemporaryExpression(RagdollFaceExpression.Shock, normalHitShockDuration, PriorityNormalHit);
+            }
 
             if (animator != null)
             {
@@ -377,46 +332,29 @@ namespace KickTheBuddy.Physics
             DamageReactionPlayed?.Invoke(part, reactionStrength);
         }
 
-        /// <summary>
-        /// Plays a visual-only nuisance reaction. This deliberately does not enter the damage,
-        /// combo, tint, knockout, or physics paths used by real attacks.
-        /// </summary>
-        public void PlayAnnoyedReaction(
-            Rigidbody2D contactedPart,
-            Vector2 contactPoint,
-            float intensity,
-            float duration)
-        {
-            if (controller == null || controller.CurrentHealth <= 0f ||
-                controller.CurrentState == RagdollState.KnockedOut) return;
-
-            annoyanceStrength = Mathf.Clamp01(intensity);
-            annoyedPoint = contactPoint;
-            annoyedSide = DirectionToLocalPoint(contactPoint).x < 0f ? -1f : 1f;
-            annoyedUntil = Mathf.Max(annoyedUntil, Time.time + Mathf.Max(.15f, duration));
-            lastInteractionTime = Time.time;
-            AnnoyedReactionPlayed?.Invoke(contactedPart, annoyanceStrength);
-        }
-
         private void HandleDragStarted(DamageReceiver2D receiver, Vector2 point)
         {
             dragging = true;
-            dragPoint = point;
             lastInteractionTime = Time.time;
+            RefreshFaceExpression(true);
             DragReactionStarted?.Invoke(receiver);
         }
 
-        private void HandleDragUpdated(DamageReceiver2D receiver, Vector2 point)
-        {
-            dragPoint = point;
+        private void HandleDragUpdated(DamageReceiver2D receiver, Vector2 point) =>
             lastInteractionTime = Time.time;
-        }
 
         private void HandleDragEnded(DamageReceiver2D receiver, Vector2 point)
         {
             dragging = false;
-            dragPoint = point;
             lastInteractionTime = Time.time;
+            RefreshFaceExpression(true);
+        }
+
+        private void HandleLimbBroken(Rigidbody2D body, Vector2 point)
+        {
+            hasBrokenLimb = true;
+            lastInteractionTime = Time.time;
+            RequestTemporaryExpression(RagdollFaceExpression.Cry, limbBreakCryDuration, PriorityLimbBreak);
         }
 
         private void HandleKnockout()
@@ -424,6 +362,17 @@ namespace KickTheBuddy.Physics
             dragging = false;
             annoyedUntil = 0f;
             lastInteractionTime = Time.time;
+            RequestPersistentExpression(RagdollFaceExpression.Depressed, PriorityKnockout);
+        }
+
+        private void HandleDeath(Vector2 point)
+        {
+            dragging = false;
+            annoyedUntil = 0f;
+            lastInteractionTime = Time.time;
+            // Death VFX owns the final presentation. Hidden is also resolved every Update, so event
+            // subscription order can never re-enable the face over the glass/candy explosion.
+            RequestPersistentExpression(RagdollFaceExpression.Hidden, PriorityDeath);
         }
 
         private void HandleRevived()
@@ -432,273 +381,208 @@ namespace KickTheBuddy.Physics
             hurtUntil = 0f;
             annoyanceStrength = 0f;
             annoyedUntil = 0f;
+            hasBrokenLimb = false;
+            dragging = false;
+            ClearExpressionLock();
             lastInteractionTime = Time.time;
             RestoreBodyColors();
+            RefreshFaceExpression(true);
         }
 
-        private struct FacePose
+        private void RequestTemporaryExpression(RagdollFaceExpression expression, float duration, int priority)
         {
-            public float LeftEyeHeight;
-            public float RightEyeHeight;
-            public float LeftEyeAngle;
-            public float RightEyeAngle;
-            public float MouthHeight;
-            public float MouthWidthMultiplier;
-            public float MouthAngle;
-            public float FaceAngle;
-            public Vector2 Gaze;
-            public Vector2 FaceMotion;
-        }
+            float now = Time.time;
+            float expiry = now + Mathf.Max(.05f, duration);
+            if (lockedPriority > priority && now < lockedUntil) return;
 
-        private void UpdateFace(float deltaTime)
-        {
-            if (face == null || leftEye == null || rightEye == null ||
-                leftPupil == null || rightPupil == null || mouth == null) return;
-
-            FacePose pose = EvaluateFacePose();
-            if ((state == RagdollAnimationState.Idle || state == RagdollAnimationState.Relaxed) && blinking)
+            if (lockedPriority == priority && lockedExpression == expression && now < lockedUntil)
             {
-                pose.LeftEyeHeight = .05f;
-                pose.RightEyeHeight = .05f;
+                lockedUntil = Mathf.Max(lockedUntil, expiry);
+                return;
             }
 
-            float blend = expressionBlendSpeed <= 0f
-                ? 1f
-                : 1f - Mathf.Exp(-expressionBlendSpeed * deltaTime);
+            lockedExpression = expression;
+            lockedPriority = priority;
+            lockedUntil = expiry;
+            SetFaceExpression(expression, true);
+            FaceReactionStarted?.Invoke(expression, duration);
+        }
 
-            Vector3 targetFacePosition = new Vector3(
-                facePositionOffset.x + pose.FaceMotion.x,
-                facePositionOffset.y + pose.FaceMotion.y,
-                0f);
-            Vector3 targetFaceScale = new Vector3(
+        private void RequestPersistentExpression(RagdollFaceExpression expression, int priority)
+        {
+            if (lockedPriority > priority && Time.time < lockedUntil) return;
+            bool changed = lockedPriority != priority || lockedExpression != expression ||
+                           !float.IsPositiveInfinity(lockedUntil);
+            lockedExpression = expression;
+            lockedPriority = priority;
+            lockedUntil = float.PositiveInfinity;
+            SetFaceExpression(expression, changed);
+            if (changed) FaceReactionStarted?.Invoke(expression, float.PositiveInfinity);
+        }
+
+        private void ClearExpressionLock()
+        {
+            lockedExpression = RagdollFaceExpression.Smile;
+            lockedPriority = PriorityNone;
+            lockedUntil = 0f;
+        }
+
+        private void RefreshFaceExpression(bool restart)
+        {
+            if (lockedPriority != PriorityNone && Time.time >= lockedUntil) ClearExpressionLock();
+            RagdollFaceExpression desired = ResolveDesiredExpression();
+
+            // Let the rare authored laugh finish instead of cutting back to Smile every Update.
+            if (!restart && currentExpression == RagdollFaceExpression.Laugh && !sequenceComplete &&
+                desired == RagdollFaceExpression.Smile) return;
+
+            SetFaceExpression(desired, restart);
+        }
+
+        private RagdollFaceExpression ResolveDesiredExpression()
+        {
+            if (controller != null && controller.CurrentHealth <= 0f) return RagdollFaceExpression.Hidden;
+            if (controller != null && controller.CurrentState == RagdollState.KnockedOut)
+                return RagdollFaceExpression.Depressed;
+            if (lockedPriority != PriorityNone && Time.time < lockedUntil) return lockedExpression;
+            if (dragging) return RagdollFaceExpression.Shock;
+            if (Time.time < annoyedUntil) return RagdollFaceExpression.Depressed;
+            if (hasBrokenLimb || IsLowHealth()) return RagdollFaceExpression.Depressed;
+            return RagdollFaceExpression.Smile;
+        }
+
+        private bool IsLowHealth()
+        {
+            if (controller == null || controller.MaximumHealth <= 0f) return false;
+            return controller.CurrentHealth / controller.MaximumHealth <= depressedHealthThreshold;
+        }
+
+        private void SetFaceExpression(RagdollFaceExpression expression, bool restart)
+        {
+            if (expression == RagdollFaceExpression.Hidden)
+            {
+                bool changedToHidden = currentExpression != RagdollFaceExpression.Hidden;
+                currentExpression = RagdollFaceExpression.Hidden;
+                activeFrames = Array.Empty<Sprite>();
+                frameIndex = 0;
+                sequenceComplete = true;
+                facePlaying = false;
+                if (faceRenderer != null) faceRenderer.enabled = false;
+                if (changedToHidden) FaceExpressionChanged?.Invoke(currentExpression);
+                return;
+            }
+
+            Sprite[] frames = ResolveFrames(expression);
+            if (!HasFrames(frames) && expression != RagdollFaceExpression.Smile)
+            {
+                expression = RagdollFaceExpression.Smile;
+                frames = smileFrames;
+            }
+
+            if (faceRenderer == null || !HasFrames(frames))
+            {
+                facePlaying = false;
+                currentExpression = RagdollFaceExpression.Hidden;
+                activeFrames = Array.Empty<Sprite>();
+                if (faceRenderer != null) faceRenderer.enabled = false;
+                return;
+            }
+
+            if (!restart && currentExpression == expression && activeFrames == frames && facePlaying) return;
+
+            bool expressionChanged = currentExpression != expression;
+            currentExpression = expression;
+            activeFrames = frames;
+            frameIndex = 0;
+            sequenceComplete = false;
+            facePlaying = true;
+            ApplyFaceLayout();
+            faceRenderer.enabled = true;
+            faceRenderer.sprite = activeFrames[0];
+            nextFrameTime = Time.time + 1f / Mathf.Max(1f, faceFramesPerSecond);
+            if (expressionChanged) FaceExpressionChanged?.Invoke(currentExpression);
+        }
+
+        private void AdvanceFaceAnimation()
+        {
+            if (!facePlaying || faceRenderer == null || !faceRenderer.enabled ||
+                !HasFrames(activeFrames) || sequenceComplete || Time.time < nextFrameTime) return;
+
+            if (frameIndex + 1 < activeFrames.Length)
+            {
+                frameIndex++;
+                faceRenderer.sprite = activeFrames[frameIndex];
+                ScheduleNextFaceFrame();
+                return;
+            }
+
+            FaceSequenceCompleted?.Invoke(currentExpression);
+            if (currentExpression == RagdollFaceExpression.Laugh)
+            {
+                sequenceComplete = true;
+                SetFaceExpression(ResolveDesiredExpression(), true);
+                return;
+            }
+
+            if (IsLooping(currentExpression))
+            {
+                if (currentExpression == RagdollFaceExpression.Smile &&
+                    state == RagdollAnimationState.Idle && HasFrames(laughFrames) &&
+                    UnityEngine.Random.value < idleLaughChancePerSmileLoop)
+                {
+                    SetFaceExpression(RagdollFaceExpression.Laugh, true);
+                    return;
+                }
+
+                frameIndex = 0;
+                faceRenderer.sprite = activeFrames[0];
+                ScheduleNextFaceFrame();
+            }
+            else
+            {
+                // Shock holds its final authored frame until the timed request or drag ends.
+                sequenceComplete = true;
+            }
+        }
+
+        private Sprite[] ResolveFrames(RagdollFaceExpression expression)
+        {
+            switch (expression)
+            {
+                case RagdollFaceExpression.Laugh: return laughFrames;
+                case RagdollFaceExpression.Shock: return shockFrames;
+                case RagdollFaceExpression.Cry: return cryFrames;
+                case RagdollFaceExpression.Depressed: return depressedFrames;
+                case RagdollFaceExpression.Smile: return smileFrames;
+                default: return Array.Empty<Sprite>();
+            }
+        }
+
+        private static bool IsLooping(RagdollFaceExpression expression) =>
+            expression == RagdollFaceExpression.Smile ||
+            expression == RagdollFaceExpression.Cry ||
+            expression == RagdollFaceExpression.Depressed;
+
+        private static bool HasFrames(Sprite[] frames) => frames != null && frames.Length > 0;
+
+        private void ScheduleNextFaceFrame()
+        {
+            float interval = 1f / Mathf.Max(1f, faceFramesPerSecond);
+            // Increment the scheduled timestamp instead of using now+interval. This preserves an
+            // average 24 FPS on both 30 Hz and 60 Hz displays instead of quantizing to 15/20 FPS.
+            nextFrameTime += interval;
+            if (Time.time - nextFrameTime > interval * 3f) nextFrameTime = Time.time + interval;
+        }
+
+        private void ApplyFaceLayout()
+        {
+            if (faceRenderer == null) return;
+            Transform overlay = faceRenderer.transform;
+            overlay.localPosition = new Vector3(facePositionOffset.x, facePositionOffset.y, -.02f);
+            overlay.localScale = new Vector3(
                 Mathf.Max(.01f, faceScale.x),
                 Mathf.Max(.01f, faceScale.y),
                 1f);
-            face.localPosition = Vector3.Lerp(face.localPosition, targetFacePosition, blend);
-            face.localScale = Vector3.Lerp(face.localScale, targetFaceScale, blend);
-            face.localRotation = Quaternion.Lerp(
-                face.localRotation,
-                Quaternion.Euler(0f, 0f, pose.FaceAngle),
-                blend);
-
-            leftEye.localPosition = Vector3.Lerp(
-                leftEye.localPosition,
-                new Vector3(-eyeSpacing, eyeVerticalOffset, -.01f),
-                blend);
-            rightEye.localPosition = Vector3.Lerp(
-                rightEye.localPosition,
-                new Vector3(eyeSpacing, eyeVerticalOffset, -.01f),
-                blend);
-            leftEye.localScale = Vector3.Lerp(
-                leftEye.localScale,
-                new Vector3(eyeWidth, pose.LeftEyeHeight, 1f),
-                blend);
-            rightEye.localScale = Vector3.Lerp(
-                rightEye.localScale,
-                new Vector3(eyeWidth, pose.RightEyeHeight, 1f),
-                blend);
-            leftEye.localRotation = Quaternion.Lerp(
-                leftEye.localRotation,
-                Quaternion.Euler(0f, 0f, pose.LeftEyeAngle),
-                blend);
-            rightEye.localRotation = Quaternion.Lerp(
-                rightEye.localRotation,
-                Quaternion.Euler(0f, 0f, pose.RightEyeAngle),
-                blend);
-
-            Vector3 targetGaze = new Vector3(
-                pose.Gaze.x + pupilPositionOffset.x,
-                pose.Gaze.y + pupilPositionOffset.y,
-                0f);
-            Vector3 targetPupilScale = new Vector3(
-                Mathf.Max(.01f, pupilScale.x),
-                Mathf.Max(.01f, pupilScale.y),
-                1f);
-            leftPupil.localPosition = Vector3.Lerp(leftPupil.localPosition, targetGaze, blend);
-            rightPupil.localPosition = Vector3.Lerp(rightPupil.localPosition, targetGaze, blend);
-            leftPupil.localScale = Vector3.Lerp(leftPupil.localScale, targetPupilScale, blend);
-            rightPupil.localScale = Vector3.Lerp(rightPupil.localScale, targetPupilScale, blend);
-
-            mouth.localPosition = Vector3.Lerp(
-                mouth.localPosition,
-                new Vector3(mouthPositionOffset.x, mouthPositionOffset.y, -.01f),
-                blend);
-            mouth.localScale = Vector3.Lerp(
-                mouth.localScale,
-                new Vector3(mouthWidth * pose.MouthWidthMultiplier, pose.MouthHeight, 1f),
-                blend);
-            mouth.localRotation = Quaternion.Lerp(
-                mouth.localRotation,
-                Quaternion.Euler(0f, 0f, pose.MouthAngle),
-                blend);
-        }
-
-        private FacePose EvaluateFacePose()
-        {
-            FacePose pose = new FacePose
-            {
-                LeftEyeHeight = .25f,
-                RightEyeHeight = .25f,
-                MouthHeight = .05f,
-                MouthWidthMultiplier = 1f
-            };
-
-            switch (state)
-            {
-                case RagdollAnimationState.Idle:
-                    UpdateBlink();
-                    UpdateIdleExpression();
-                    EvaluateIdleExpression(ref pose);
-                    break;
-
-                case RagdollAnimationState.Dragged:
-                    pose.LeftEyeHeight = .32f;
-                    pose.RightEyeHeight = .32f;
-                    pose.Gaze = DirectionToLocalPoint(dragPoint) * .065f;
-                    pose.MouthHeight = .1f;
-                    pose.MouthWidthMultiplier = .8f;
-                    break;
-
-                case RagdollAnimationState.Hurt:
-                    pose.LeftEyeHeight = Mathf.Lerp(.16f, .06f, reactionStrength);
-                    pose.RightEyeHeight = pose.LeftEyeHeight;
-                    pose.Gaze = new Vector2(0f, -.025f);
-                    pose.MouthHeight = .035f;
-                    pose.MouthAngle = 8f;
-                    break;
-
-                case RagdollAnimationState.Annoyed:
-                    pose.LeftEyeHeight = Mathf.Lerp(.15f, .1f, annoyanceStrength);
-                    pose.RightEyeHeight = Mathf.Lerp(.13f, .08f, annoyanceStrength);
-                    pose.LeftEyeAngle = -12f;
-                    pose.RightEyeAngle = 12f;
-                    pose.Gaze = DirectionToLocalPoint(annoyedPoint) * .06f;
-                    pose.MouthHeight = .025f;
-                    pose.MouthWidthMultiplier = 1.15f;
-                    pose.MouthAngle = -8f * annoyedSide;
-                    pose.FaceAngle = 3f * annoyedSide;
-                    break;
-
-                case RagdollAnimationState.KnockedOut:
-                    pose.LeftEyeHeight = .045f;
-                    pose.RightEyeHeight = .045f;
-                    pose.MouthHeight = .025f;
-                    pose.FaceAngle = 5f;
-                    break;
-
-                case RagdollAnimationState.Dead:
-                    pose.LeftEyeHeight = .025f;
-                    pose.RightEyeHeight = .025f;
-                    pose.MouthHeight = .02f;
-                    pose.MouthAngle = -6f;
-                    break;
-
-                default:
-                    UpdateBlink();
-                    pose.Gaze = DirectionToPointer() * idleGazeDistance;
-                    break;
-            }
-
-            return pose;
-        }
-
-        private void EvaluateIdleExpression(ref FacePose pose)
-        {
-            float time = Time.time;
-            float slowWave = Mathf.Sin(time * 1.5f);
-            pose.FaceMotion.y = slowWave * idleFaceBob;
-
-            switch (idleExpression)
-            {
-                case IdleFaceExpression.Happy:
-                    pose.LeftEyeHeight = .17f;
-                    pose.RightEyeHeight = .17f;
-                    pose.Gaze = new Vector2(Mathf.Sin(time * .7f), .015f) * idleGazeDistance;
-                    pose.MouthHeight = .085f + slowWave * .01f;
-                    pose.MouthWidthMultiplier = 1.2f;
-                    break;
-
-                case IdleFaceExpression.Curious:
-                    pose.LeftEyeHeight = curiousDirection < 0f ? .31f : .21f;
-                    pose.RightEyeHeight = curiousDirection > 0f ? .31f : .21f;
-                    pose.Gaze = new Vector2(curiousDirection * idleGazeDistance, .015f);
-                    pose.MouthHeight = .04f;
-                    pose.MouthWidthMultiplier = .75f;
-                    pose.FaceAngle = curiousDirection * -4f;
-                    break;
-
-                case IdleFaceExpression.Sleepy:
-                    pose.LeftEyeHeight = .085f;
-                    pose.RightEyeHeight = .085f;
-                    pose.Gaze = new Vector2(0f, -.02f);
-                    pose.MouthHeight = .032f + Mathf.Max(0f, slowWave) * .015f;
-                    pose.MouthWidthMultiplier = .85f;
-                    break;
-
-                case IdleFaceExpression.Surprised:
-                    pose.LeftEyeHeight = .34f;
-                    pose.RightEyeHeight = .34f;
-                    pose.Gaze = Vector2.zero;
-                    pose.MouthHeight = .14f;
-                    pose.MouthWidthMultiplier = .7f;
-                    pose.FaceMotion.y += .012f;
-                    break;
-
-                case IdleFaceExpression.Grumpy:
-                    pose.LeftEyeHeight = .14f;
-                    pose.RightEyeHeight = .14f;
-                    pose.LeftEyeAngle = -10f;
-                    pose.RightEyeAngle = 10f;
-                    pose.Gaze = new Vector2(0f, -.018f);
-                    pose.MouthHeight = .035f;
-                    pose.MouthAngle = -5f;
-                    pose.MouthWidthMultiplier = 1.15f;
-                    break;
-
-                default:
-                    pose.LeftEyeHeight = .24f;
-                    pose.RightEyeHeight = .24f;
-                    pose.Gaze = new Vector2(Mathf.Sin(time * .8f), Mathf.Sin(time * .43f)) * idleGazeDistance;
-                    pose.MouthHeight = .045f + slowWave * .008f;
-                    break;
-            }
-        }
-
-        private void UpdateIdleExpression()
-        {
-            if (Time.time >= nextIdleExpressionTime) SelectNextIdleExpression();
-        }
-
-        private void SelectNextIdleExpression()
-        {
-            const int expressionCount = 6;
-            int current = (int)idleExpression;
-            int next = (current + 1 + UnityEngine.Random.Range(0, expressionCount - 1)) % expressionCount;
-            idleExpression = (IdleFaceExpression)next;
-            curiousDirection = UnityEngine.Random.value < .5f ? -1f : 1f;
-            ScheduleIdleExpression();
-            IdleExpressionChanged?.Invoke(idleExpression);
-        }
-
-        private void ScheduleIdleExpression()
-        {
-            nextIdleExpressionTime = Time.time + UnityEngine.Random.Range(
-                minimumExpressionDuration,
-                maximumExpressionDuration);
-        }
-        private void UpdateBlink()
-        {
-            if (!blinking && Time.time >= nextBlinkTime)
-            {
-                blinking = true;
-                blinkEndTime = Time.time + blinkDuration;
-            }
-
-            if (blinking && Time.time >= blinkEndTime)
-            {
-                blinking = false;
-                ScheduleBlink();
-            }
         }
 
         private void UpdateBodyTint()
@@ -709,7 +593,7 @@ namespace KickTheBuddy.Physics
             if (state == RagdollAnimationState.Hurt)
             {
                 target = damageFlashColor;
-                blend = tintStrength * reactionStrength;
+                blend = tintStrength * Mathf.Max(.15f, reactionStrength);
             }
             else if (state == RagdollAnimationState.Dead)
             {
@@ -721,124 +605,38 @@ namespace KickTheBuddy.Physics
             lastTintBlend = blend;
             lastTintColor = target;
 
-            for (int i = 0; i < bodyRenderers.Length; i++)
+            int count = Mathf.Min(bodyRenderers.Length, baseColors.Length);
+            for (int i = 0; i < count; i++)
             {
                 SpriteRenderer renderer = bodyRenderers[i];
-                if (renderer == null) continue;
+                if (renderer == null || renderer == faceRenderer) continue;
                 renderer.color = Color.Lerp(baseColors[i], target, blend);
             }
         }
 
-        private Vector2 DirectionToPointer()
-        {
-            if (inputCamera == null || head == null) return Vector2.zero;
-            Vector3 world = inputCamera.ScreenToWorldPoint(Input.mousePosition);
-            return head.InverseTransformDirection(world - head.position).normalized;
-        }
-
-        private Vector2 DirectionToLocalPoint(Vector2 worldPoint)
-        {
-            if (head == null) return Vector2.zero;
-            return head.InverseTransformDirection(worldPoint - (Vector2)head.position).normalized;
-        }
-
-        private void SetEyeHeight(float height)
-        {
-            leftEye.localScale = new Vector3(.18f, height, 1f);
-            rightEye.localScale = new Vector3(.18f, height, 1f);
-        }
-
         private void RestoreBodyColors()
         {
-            for (int i = 0; i < bodyRenderers.Length; i++)
-                if (bodyRenderers[i] != null) bodyRenderers[i].color = baseColors[i];
+            int count = Mathf.Min(bodyRenderers.Length, baseColors.Length);
+            for (int i = 0; i < count; i++)
+                if (bodyRenderers[i] != null && bodyRenderers[i] != faceRenderer)
+                    bodyRenderers[i].color = baseColors[i];
             lastTintBlend = -1f;
-        }
-
-        private void ScheduleBlink()
-        {
-            nextBlinkTime = Time.time + UnityEngine.Random.Range(minimumBlinkInterval, maximumBlinkInterval);
-        }
-
-        private void CreateFaceIfNeeded()
-        {
-            face = head.Find("Life Face");
-            if (face != null)
-            {
-                leftEye = face.Find("Left Eye");
-                rightEye = face.Find("Right Eye");
-                if (leftEye != null) leftPupil = leftEye.Find("Pupil");
-                if (rightEye != null) rightPupil = rightEye.Find("Pupil");
-                mouth = face.Find("Mouth");
-            }
-
-            SpriteRenderer headRenderer = head.GetComponent<SpriteRenderer>();
-            if (headRenderer == null || headRenderer.sprite == null) return;
-
-            if (face == null)
-            {
-                face = new GameObject("Life Face").transform;
-                face.SetParent(head, false);
-            }
-
-            if (leftEye == null)
-                leftEye = CreateFeature(face, "Left Eye", new Vector3(-.18f, .1f, -.01f), new Vector3(.18f, .25f, 1f), Color.white, headRenderer.sprite, 20);
-            if (rightEye == null)
-                rightEye = CreateFeature(face, "Right Eye", new Vector3(.18f, .1f, -.01f), new Vector3(.18f, .25f, 1f), Color.white, headRenderer.sprite, 20);
-            if (leftPupil == null)
-                leftPupil = CreateFeature(leftEye, "Pupil", Vector3.zero, new Vector3(.38f, .45f, 1f), new Color(.05f, .07f, .1f), headRenderer.sprite, 21);
-            if (rightPupil == null)
-                rightPupil = CreateFeature(rightEye, "Pupil", Vector3.zero, new Vector3(.38f, .45f, 1f), new Color(.05f, .07f, .1f), headRenderer.sprite, 21);
-            if (mouth == null)
-                mouth = CreateFeature(face, "Mouth", new Vector3(0f, -.2f, -.01f), new Vector3(.22f, .05f, 1f), new Color(.25f, .04f, .04f), headRenderer.sprite, 20);
-        }
-
-        private static Transform CreateFeature(
-            Transform parent,
-            string name,
-            Vector3 position,
-            Vector3 scale,
-            Color color,
-            Sprite sprite,
-            int sortingOrder)
-        {
-            GameObject feature = new GameObject(name, typeof(SpriteRenderer));
-            feature.transform.SetParent(parent, false);
-            feature.transform.localPosition = position;
-            feature.transform.localScale = scale;
-            SpriteRenderer renderer = feature.GetComponent<SpriteRenderer>();
-            renderer.sprite = sprite;
-            renderer.color = color;
-            renderer.sortingOrder = sortingOrder;
-            return feature.transform;
-        }
-
-        private static Transform FindChildContaining(Transform root, string value)
-        {
-            Transform[] children = root.GetComponentsInChildren<Transform>(true);
-            for (int i = 0; i < children.Length; i++)
-                if (children[i].name.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0)
-                    return children[i];
-            return null;
         }
 
         private void OnValidate()
         {
             idleDelay = Mathf.Max(0f, idleDelay);
-            minimumBlinkInterval = Mathf.Max(.5f, minimumBlinkInterval);
-            maximumBlinkInterval = Mathf.Max(minimumBlinkInterval, maximumBlinkInterval);
-            blinkDuration = Mathf.Max(.03f, blinkDuration);
+            faceFramesPerSecond = Mathf.Clamp(faceFramesPerSecond, 1f, 30f);
+            normalHitShockDuration = Mathf.Max(.1f, normalHitShockDuration);
+            comboCryDuration = Mathf.Max(.1f, comboCryDuration);
+            maximumDamageCryDuration = Mathf.Max(.1f, maximumDamageCryDuration);
+            limbBreakCryDuration = Mathf.Max(.1f, limbBreakCryDuration);
+            comboCryThreshold = Mathf.Max(2, comboCryThreshold);
+            maximumDamageThreshold = Mathf.Max(.01f, maximumDamageThreshold);
             damageReactionDuration = Mathf.Max(.05f, damageReactionDuration);
-            minimumExpressionDuration = Mathf.Max(.25f, minimumExpressionDuration);
-            maximumExpressionDuration = Mathf.Max(minimumExpressionDuration, maximumExpressionDuration);
-            expressionBlendSpeed = Mathf.Max(0f, expressionBlendSpeed);
-            faceUpdateRate = Mathf.Clamp(faceUpdateRate, 15f, 60f);
-            idleFaceFramesPerSecond = Mathf.Clamp(idleFaceFramesPerSecond, 1f, 30f);
             faceScale.x = Mathf.Max(.01f, faceScale.x);
             faceScale.y = Mathf.Max(.01f, faceScale.y);
-            pupilScale.x = Mathf.Max(.01f, pupilScale.x);
-            pupilScale.y = Mathf.Max(.01f, pupilScale.y);
-            ApplyAuthoredIdleFaceLayout();
+            ApplyFaceLayout();
         }
     }
 }

@@ -236,9 +236,22 @@ namespace KickTheBuddy.Editor
             var renderers = new List<SpriteRenderer>(controller.Parts.Count);
             for (int i = 0; i < controller.Parts.Count; i++)
                 if (controller.Parts[i].Visual != null) renderers.Add(controller.Parts[i].Visual);
+            // Parts can be runtime-only until the rig initializes. Never erase authored tint
+            // references when this editor tool opens a scene outside Play Mode.
+            if (renderers.Count == 0)
+            {
+                RagdollPartHealth[] authoredParts = controller.GetComponentsInChildren<RagdollPartHealth>(true);
+                for (int i = 0; i < authoredParts.Length; i++)
+                {
+                    SpriteRenderer visual = authoredParts[i].GetComponent<SpriteRenderer>();
+                    if (visual != null && !renderers.Contains(visual)) renderers.Add(visual);
+                }
+            }
             SerializedObject data = new SerializedObject(animation);
-            AssignObjectArray(data.FindProperty("bodyRenderers"), renderers.Cast<UnityEngine.Object>().ToArray());
-            data.FindProperty("faceUpdateRate").floatValue = 30f;
+            if (renderers.Count > 0)
+                AssignObjectArray(data.FindProperty("bodyRenderers"), renderers.Cast<UnityEngine.Object>().ToArray());
+            SerializedProperty faceFrameRate = data.FindProperty("faceFramesPerSecond");
+            if (faceFrameRate != null) faceFrameRate.floatValue = 24f;
             data.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(animation);
         }

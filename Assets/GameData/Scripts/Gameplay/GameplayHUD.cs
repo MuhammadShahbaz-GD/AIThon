@@ -118,6 +118,11 @@ namespace KickTheBuddy.Gameplay
             if (pausePanel != null) pausePanel.SetActive(current == GameplayState.Paused && !settingsOpen);
             if (settingsPanel != null) settingsPanel.SetActive(current == GameplayState.Paused && settingsOpen);
             if (resultPanel != null) resultPanel.SetActive(current == GameplayState.LevelComplete || current == GameplayState.LevelFailed);
+            if (nextButton != null) nextButton.interactable = current == GameplayState.LevelComplete;
+            if (restartButton != null)
+                restartButton.interactable = current == GameplayState.Paused ||
+                                             current == GameplayState.LevelComplete ||
+                                             current == GameplayState.LevelFailed;
         }
 
         private void HandleObjective(float value, float target)

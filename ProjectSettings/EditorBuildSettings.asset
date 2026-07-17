@@ -14,7 +14,4 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/GameData/Scene/RagdollSandbox.unity
     guid: 19f92faaaa603c441bffc798208d611e
-  - enabled: 1
-    path: Assets/GameData/Scene/CandyLab.unity
-    guid: 4240ef30c904eaa42a005ffbb39aa2ae
   m_configObjects: {}

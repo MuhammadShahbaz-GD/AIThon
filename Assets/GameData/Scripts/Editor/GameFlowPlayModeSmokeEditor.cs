@@ -28,9 +28,10 @@ namespace KickTheBuddy.Editor
         private const int StageIdleFace = 2;
         private const int StagePausedTimer = 3;
         private const int StageResumedTimer = 4;
-        private const int StageNextLevel = 5;
-        private const int StageReturnMenu = 6;
-        private const int StageSucceeded = 7;
+        private const int StageRetryReload = 5;
+        private const int StageNextLevel = 6;
+        private const int StageReturnMenu = 7;
+        private const int StageSucceeded = 8;
         private const int StageFailed = -1;
 
         static GameFlowPlayModeSmokeEditor()
@@ -97,6 +98,10 @@ namespace KickTheBuddy.Editor
                             throw new InvalidOperationException("Continue selection was not persisted before gameplay.");
                         if (UnityEngine.Object.FindObjectOfType<KickTheBuddy.Physics.RagdollController>() == null)
                             throw new InvalidOperationException("Gameplay started without a bound ragdoll.");
+                        GameplayLevelSceneController initialLevels = GameplayLevelSceneController.Active;
+                        if (initialLevels == null || initialLevels.ActiveLevelId != "level_01")
+                            throw new InvalidOperationException("Initial gameplay did not activate Level 01 content.");
+                        ValidateSharedRoom(initialLevels, 5f, 16f, "Initial Level 01");
                         float configuredTime = root.Levels.CurrentLevel.TimeLimit;
                         if (configuredTime < LevelDefinition.MinimumPlayTimeSeconds || Mathf.Abs(root.Gameplay.RemainingTime - configuredTime) > 0.1f)
                             throw new InvalidOperationException($"Gameplay timer did not begin at the configured minimum-safe duration ({configuredTime:F1}s). Actual: {root.Gameplay.RemainingTime:F1}s.");
@@ -108,19 +113,56 @@ namespace KickTheBuddy.Editor
                         KickTheBuddy.Physics.RagdollAnimationController[] animations =
                             UnityEngine.Object.FindObjectsOfType<KickTheBuddy.Physics.RagdollAnimationController>();
                         bool idleFacePlaying = false;
+                        KickTheBuddy.Physics.RagdollAnimationController idleAnimation = null;
                         string idleFaceDiagnostics = string.Empty;
                         for (int i = 0; i < animations.Length; i++)
                         {
-                            idleFaceDiagnostics += $" [{animations[i].name}: state={animations[i].CurrentState}, authored={animations[i].HasAuthoredIdleFaceAnimation}, playing={animations[i].IsAuthoredIdleFacePlaying}]";
+                            idleFaceDiagnostics += $" [{animations[i].name}: state={animations[i].CurrentState}, expression={animations[i].CurrentFaceExpression}, authored={animations[i].HasAuthoredFaceAnimation}, playing={animations[i].IsAuthoredFacePlaying}]";
+                            bool validIdleExpression =
+                                animations[i].CurrentFaceExpression == KickTheBuddy.Physics.RagdollFaceExpression.Smile ||
+                                animations[i].CurrentFaceExpression == KickTheBuddy.Physics.RagdollFaceExpression.Laugh;
                             if (animations[i].CurrentState == KickTheBuddy.Physics.RagdollAnimationState.Idle &&
-                                animations[i].HasAuthoredIdleFaceAnimation && animations[i].IsAuthoredIdleFacePlaying)
+                                validIdleExpression &&
+                                animations[i].HasAuthoredFaceAnimation && animations[i].IsAuthoredFacePlaying)
                             {
                                 idleFacePlaying = true;
+                                idleAnimation = animations[i];
                                 break;
                             }
                         }
                         if (!idleFacePlaying)
-                            throw new InvalidOperationException("The authored face sequence did not begin after the non-interacting idle delay." + idleFaceDiagnostics);
+                            throw new InvalidOperationException("The authored Smile sequence did not begin after the non-interacting idle delay." + idleFaceDiagnostics);
+
+                        // Verify real damage routing, not presentation-only helper methods: one small hit must
+                        // shock the face, while the third hit in the same combo must promote it to Cry.
+                        KickTheBuddy.Physics.RagdollController faceRagdoll =
+                            idleAnimation.GetComponent<KickTheBuddy.Physics.RagdollController>();
+                        KickTheBuddy.Physics.RagdollDamageManager faceDamage =
+                            idleAnimation.GetComponent<KickTheBuddy.Physics.RagdollDamageManager>();
+                        KickTheBuddy.Physics.RagdollController.RagdollPart faceTarget = null;
+                        float strongestSafeHealth = 3f;
+                        for (int i = 0; i < faceRagdoll.Parts.Count; i++)
+                        {
+                            KickTheBuddy.Physics.RagdollController.RagdollPart candidate = faceRagdoll.Parts[i];
+                            if (candidate != null && candidate.Body != null && candidate.Health != null &&
+                                !candidate.Health.IsCritical && !candidate.Health.IsDepleted &&
+                                candidate.Health.CurrentHealth > strongestSafeHealth)
+                            {
+                                faceTarget = candidate;
+                                strongestSafeHealth = candidate.Health.CurrentHealth;
+                            }
+                        }
+                        if (faceDamage == null || faceTarget == null)
+                            throw new InvalidOperationException("Could not find a safe non-critical part for the face reaction smoke.");
+                        Vector2 facePoint = faceTarget.Body.worldCenterOfMass;
+                        if (!faceDamage.ApplyDirectDamage(faceTarget.Body, 1f, 1f, Vector2.zero, facePoint) ||
+                            idleAnimation.CurrentFaceExpression != KickTheBuddy.Physics.RagdollFaceExpression.Shock)
+                            throw new InvalidOperationException("A normal resolved hit did not play the authored Shock expression.");
+                        if (!faceDamage.ApplyDirectDamage(faceTarget.Body, 1f, 1f, Vector2.zero, facePoint) ||
+                            !faceDamage.ApplyDirectDamage(faceTarget.Body, 1f, 1f, Vector2.zero, facePoint) ||
+                            faceRagdoll.CurrentCombo < 3 ||
+                            idleAnimation.CurrentFaceExpression != KickTheBuddy.Physics.RagdollFaceExpression.Cry)
+                            throw new InvalidOperationException("The third resolved combo hit did not promote the face to authored Cry.");
                         root.Gameplay.Pause();
                         SetTimerSample(root.Gameplay.RemainingTime);
                         BeginTimedStage(StagePausedTimer);
@@ -138,8 +180,20 @@ namespace KickTheBuddy.Editor
                         if (root.Gameplay.RemainingTime >= GetTimerSample() - 0.05f)
                             throw new InvalidOperationException("Gameplay timer did not continue after resume.");
                         root.Gameplay.Restart();
-                        if (Mathf.Abs(root.Gameplay.RemainingTime - root.Levels.CurrentLevel.TimeLimit) > 0.1f)
-                            throw new InvalidOperationException("Restart did not reset the gameplay timer to the full level duration.");
+                        if (!root.Flow.IsTransitioning || root.Gameplay.State != GameplayState.Loading)
+                            throw new InvalidOperationException("Retry did not enter the guarded gameplay-scene reload flow.");
+                        SessionState.SetInt(StageKey, StageRetryReload);
+                        break;
+                    case StageRetryReload:
+                        if (scene.name != "RagdollSandbox" || root == null || root.Gameplay.State != GameplayState.Playing)
+                            return;
+                        GameplayLevelSceneController retryLevels = GameplayLevelSceneController.Active;
+                        if (root.Levels.CurrentLevelIndex != 0 || retryLevels == null ||
+                            retryLevels.ActiveLevelId != "level_01" || retryLevels.ActiveLevelIndex != 0)
+                            throw new InvalidOperationException("Retry did not reactivate the saved Level 01 content.");
+                        ValidateSharedRoom(retryLevels, 5f, 16f, "Level 01");
+                        if (Mathf.Abs(root.Gameplay.RemainingTime - root.Levels.CurrentLevel.TimeLimit) > 0.15f)
+                            throw new InvalidOperationException("Retry reload did not restore the full configured timer.");
                         root.Gameplay.CompleteLevel();
                         if (root.Gameplay.State != GameplayState.LevelComplete)
                             throw new InvalidOperationException("The completed level did not enter LevelComplete before Next was requested.");
@@ -149,9 +203,15 @@ namespace KickTheBuddy.Editor
                         SessionState.SetInt(StageKey, StageNextLevel);
                         break;
                     case StageNextLevel:
-                        if (scene.name != "CandyLab" || root == null || root.Gameplay.State != GameplayState.Playing) return;
+                        if (scene.name != "RagdollSandbox" || root == null || root.Gameplay.State != GameplayState.Playing) return;
                         if (root.Levels.CurrentLevelIndex != 1 || root.Saves.Data.selectedLevel != 1)
-                            throw new InvalidOperationException("Next scene loaded without selecting and persisting Level 2.");
+                            throw new InvalidOperationException("Next reload did not select and persist Level 02.");
+                        GameplayLevelSceneController nextLevels = GameplayLevelSceneController.Active;
+                        if (nextLevels == null || nextLevels.ActiveLevelId != "level_02" ||
+                            nextLevels.ActiveLevelIndex != 1 || nextLevels.ActiveSandboxToolInput == null ||
+                            !nextLevels.ActiveLevelRoot.activeInHierarchy)
+                            throw new InvalidOperationException("Next reload did not activate the Level 02 content and tools.");
+                        ValidateSharedRoom(nextLevels, 2.975f, 9f, "Level 02");
                         if (Mathf.Abs(root.Gameplay.RemainingTime - root.Levels.CurrentLevel.TimeLimit) > .15f)
                             throw new InvalidOperationException("Level 2 did not start with its full configured play time.");
                         root.Flow.ShowMainMenu();
@@ -174,6 +234,22 @@ namespace KickTheBuddy.Editor
         {
             if (root == null || root.Flow == null || root.Saves == null || root.Levels == null || root.Gameplay == null)
                 throw new InvalidOperationException("Persistent Game Systems composition root was not available in MainMenu.");
+        }
+
+        private static void ValidateSharedRoom(GameplayLevelSceneController sceneLevels,
+            float expectedDamageAtSpeedEight, float expectedDamageCap, string label)
+        {
+            if (sceneLevels.SharedRoom == null || !sceneLevels.SharedRoom.activeInHierarchy ||
+                sceneLevels.SharedRoomAttacks.Count == 0)
+                throw new InvalidOperationException(label + " did not keep the shared Levels/Room active.");
+            for (int i = 0; i < sceneLevels.SharedRoomAttacks.Count; i++)
+            {
+                KickTheBuddy.Physics.RagdollAttackManager2D attack = sceneLevels.SharedRoomAttacks[i];
+                if (attack == null || !Mathf.Approximately(
+                        attack.CalculateDamage(8f), expectedDamageAtSpeedEight) ||
+                    !Mathf.Approximately(attack.CalculateDamage(1000f), expectedDamageCap))
+                    throw new InvalidOperationException(label + " did not apply its damage profile to the shared Room.");
+            }
         }
 
         private static double ElapsedSeconds()
@@ -223,7 +299,7 @@ namespace KickTheBuddy.Editor
             DeleteSmokeSave();
             EditorSceneManager.OpenScene(SplashPath, OpenSceneMode.Single);
 
-            if (success) Debug.Log("FULL_GAME_FLOW_PLAYMODE_SMOKE_OK: Splash opened MainMenu, idle face and timer checks passed, Next performed one guarded Level 2 scene load, Level 2 started, and Main Menu return completed.");
+            if (success) Debug.Log("FULL_GAME_FLOW_PLAYMODE_SMOKE_OK: Splash opened MainMenu, Retry reloaded Level 01, Next reloaded the same gameplay scene with Level 02 active, and Main Menu return completed.");
             else Debug.LogError("FULL_GAME_FLOW_PLAYMODE_SMOKE_FAILED: " + failure);
             if (batch) EditorApplication.Exit(success ? 0 : 1);
         }

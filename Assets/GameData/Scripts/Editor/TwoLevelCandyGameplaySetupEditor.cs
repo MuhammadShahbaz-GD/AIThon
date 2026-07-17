@@ -35,14 +35,14 @@ namespace KickTheBuddy.Editor
         private const float LevelTwoPlayTime = LongFunBalanceSetupEditor.LevelPlayTime;
 
         [MenuItem("Tools/Game/Build Level 1 And Level 2 Candy Gameplay")]
-        public static void BuildFromMenu() => Build(false);
+        public static void BuildFromMenu() => SingleSceneLevelsSetupEditor.BuildFromMenu();
 
-        public static void BuildBatch() => Build(true);
+        public static void BuildBatch() => SingleSceneLevelsSetupEditor.BuildBatch();
 
         [MenuItem("Tools/Game/Validate Level 1 And Level 2 Candy Gameplay")]
-        public static void ValidateFromMenu() => Validate(false);
+        public static void ValidateFromMenu() => SingleSceneLevelsSetupEditor.ValidateFromMenu();
 
-        public static void ValidateBatch() => Validate(true);
+        public static void ValidateBatch() => SingleSceneLevelsSetupEditor.ValidateBatch();
 
         [MenuItem("Tools/Game/Apply Per-Level Play Times")]
         public static void ApplyPlayTimesFromMenu() => ApplyPlayTimes(false);
@@ -149,53 +149,7 @@ namespace KickTheBuddy.Editor
 
         private static void ValidateInternal()
         {
-            LevelCatalog catalog = AssetDatabase.LoadAssetAtPath<LevelCatalog>(CatalogPath);
-            if (catalog == null || catalog.Count != 2) throw new InvalidOperationException("Level Catalog must contain exactly Level 1 and Level 2.");
-            LevelDefinition levelOne = catalog.Get(0);
-            LevelDefinition levelTwo = catalog.Get(1);
-            if (levelOne == null || levelOne.CompletionRule != LevelCompletionRule.CharacterDestroyed || levelOne.ScenePath != LevelOneScenePath)
-                throw new InvalidOperationException("Level 1 must require character destruction and use RagdollSandbox.");
-            if (levelTwo == null || levelTwo.CompletionRule != LevelCompletionRule.CharacterDestroyed || levelTwo.ScenePath != LevelTwoScenePath)
-                throw new InvalidOperationException("Level 2 must require character destruction and use CandyLab.");
-            if (!Mathf.Approximately(levelOne.TimeLimit, LevelOnePlayTime) || !Mathf.Approximately(levelTwo.TimeLimit, LevelTwoPlayTime))
-                throw new InvalidOperationException($"Level play times must be {LevelOnePlayTime:F0}s and {LevelTwoPlayTime:F0}s.");
-
-            EditorBuildSettingsScene[] buildScenes = EditorBuildSettings.scenes;
-            if (buildScenes.Length != 4 || buildScenes[0].path != SplashPath || buildScenes[1].path != MenuPath ||
-                buildScenes[2].path != LevelOneScenePath || buildScenes[3].path != LevelTwoScenePath)
-                throw new InvalidOperationException("Build order must be Splash, MainMenu, Level 1, then Level 2.");
-
-            Scene levelOneScene = EditorSceneManager.OpenScene(LevelOneScenePath, OpenSceneMode.Single);
-            if (FindRoot(levelOneScene, ToolsRootName) != null) throw new InvalidOperationException("Level 1 must not contain Level 2 tools.");
-            ValidateWalls(levelOneScene);
-
-            Scene levelTwoScene = EditorSceneManager.OpenScene(LevelTwoScenePath, OpenSceneMode.Single);
-            ValidateWalls(levelTwoScene);
-            SandboxToolInput2D input = FindSceneComponent<SandboxToolInput2D>(levelTwoScene);
-            if (input == null || input.Tools.Count != 2) throw new InvalidOperationException("Level 2 tool input must reference two tools.");
-            SandboxTool2D lollipop = null;
-            SandboxTool2D jelly = null;
-            for (int i = 0; i < input.Tools.Count; i++)
-            {
-                SandboxTool2D tool = input.Tools[i];
-                if (tool == null) continue;
-                if (tool.Kind == SandboxToolKind.Lollipop) lollipop = tool;
-                else if (tool.Kind == SandboxToolKind.Jelly) jelly = tool;
-            }
-            if (lollipop == null || jelly == null || lollipop.Attack == null || jelly.Attack == null)
-                throw new InvalidOperationException("Level 2 requires configured lollipop and jelly attack tools.");
-            float lollipopDamage = lollipop.Attack.CalculateDamage(8f);
-            float jellyDamage = jelly.Attack.CalculateDamage(8f);
-            if (lollipopDamage <= 0f || jellyDamage != 0f ||
-                jelly.Attack.CalculateDamage(0f) != 0f || jelly.Attack.CalculateDamage(100f) != 0f)
-                throw new InvalidOperationException("Jelly must remain presentation-only and deal exactly zero damage at every speed.");
-            SerializedProperty stickyJoint = new SerializedObject(jelly).FindProperty("stickyJoint");
-            if (stickyJoint == null || stickyJoint.objectReferenceValue == null)
-                throw new InvalidOperationException("Jelly must have a pre-authored sticky joint.");
-            if (CountMissingScripts(levelTwoScene) != 0) throw new InvalidOperationException("Level 2 contains missing script references.");
-
-            Debug.Log($"TWO_LEVEL_CANDY_GAMEPLAY_VALIDATION_OK: 2 sequential levels, timers={levelOne.TimeLimit:F0}s/{levelTwo.TimeLimit:F0}s, destruction completion, " +
-                      $"lollipopDamage={lollipopDamage:F1}, jellyDamage=0, stickyJoint=true, missingScripts=0.");
+            SingleSceneLevelsSetupEditor.ValidateOrThrow();
         }
 
         private static void SetLevelPlayTime(string assetPath, float seconds)

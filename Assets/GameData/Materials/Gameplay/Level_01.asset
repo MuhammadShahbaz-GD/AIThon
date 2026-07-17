@@ -24,3 +24,7 @@ MonoBehaviour:
   oneStarScore: 120
   twoStarScore: 220
   threeStarScore: 350
+  wallBaseDamage: 0
+  wallDamagePerSpeed: 1.25
+  wallMinimumImpactSpeed: 4
+  wallMaximumDamage: 16

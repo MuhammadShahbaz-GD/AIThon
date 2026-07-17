@@ -16,7 +16,6 @@ namespace KickTheBuddy.Editor
     public static class LongFunBalanceSetupEditor
     {
         private const string LevelOneScenePath = "Assets/GameData/Scene/RagdollSandbox.unity";
-        private const string LevelTwoScenePath = "Assets/GameData/Scene/CandyLab.unity";
         private const string LevelOneAssetPath = "Assets/GameData/Materials/Gameplay/Level_01.asset";
         private const string LevelTwoAssetPath = "Assets/GameData/Materials/Gameplay/Level_02.asset";
         private const string LollipopPrefabPath = "Assets/GameData/Prefabs/Gameplay/Lollipop.prefab";
@@ -62,12 +61,13 @@ namespace KickTheBuddy.Editor
             try
             {
                 ConfigureScene(LevelOneScenePath, 0f, 1.25f, 4f, MaximumRawDamagePerHit);
-                ConfigureScene(LevelTwoScenePath, 0f, .85f, 4.5f, 9f);
                 ConfigureLollipop();
                 ConfigureLevel(LevelOneAssetPath, LevelPlayTime, HeadHealth,
-                    "Repeatedly throw the character into the walls until the glass finally breaks.");
+                    "Repeatedly throw the character into the walls until the glass finally breaks.",
+                    1.25f, 4f, MaximumRawDamagePerHit);
                 ConfigureLevel(LevelTwoAssetPath, LevelPlayTime, HeadHealth,
-                    "Use repeated hard lollipop hits to break the character; sticky jelly only annoys it.");
+                    "Use repeated hard lollipop hits to break the character; sticky jelly only annoys it.",
+                    .85f, 4.5f, 9f);
 
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
@@ -183,7 +183,7 @@ namespace KickTheBuddy.Editor
         private static void ConfigureWalls(Scene scene, float baseDamage, float speedDamage,
             float minimumSpeed, float damageCap)
         {
-            GameObject room = FindRoot(scene, "Room");
+            GameObject room = FindLevelRoom(scene);
             if (room == null) throw new InvalidOperationException(scene.name + " is missing Room.");
             Collider2D[] boundaries = room.GetComponentsInChildren<Collider2D>(true);
             if (boundaries.Length == 0) throw new InvalidOperationException(scene.name + " has no room boundaries.");
@@ -208,7 +208,8 @@ namespace KickTheBuddy.Editor
             EditorUtility.SetDirty(prefab);
         }
 
-        private static void ConfigureLevel(string assetPath, float timeLimit, float targetDamage, string objective)
+        private static void ConfigureLevel(string assetPath, float timeLimit, float targetDamage, string objective,
+            float wallDamagePerSpeed, float wallMinimumSpeed, float wallMaximumDamage)
         {
             LevelDefinition level = AssetDatabase.LoadAssetAtPath<LevelDefinition>(assetPath);
             if (level == null) throw new InvalidOperationException("Missing level definition: " + assetPath);
@@ -217,16 +218,19 @@ namespace KickTheBuddy.Editor
             Set(data, "targetDamage", targetDamage);
             SerializedProperty text = data.FindProperty("objectiveText");
             if (text != null) text.stringValue = objective;
+            Set(data, "wallBaseDamage", 0f);
+            Set(data, "wallDamagePerSpeed", wallDamagePerSpeed);
+            Set(data, "wallMinimumImpactSpeed", wallMinimumSpeed);
+            Set(data, "wallMaximumDamage", wallMaximumDamage);
             data.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(level);
         }
 
         private static void ValidateInternal()
         {
-            ValidateLevel(LevelOneAssetPath);
-            ValidateLevel(LevelTwoAssetPath);
+            ValidateLevel(LevelOneAssetPath, 1.25f, 4f, MaximumRawDamagePerHit);
+            ValidateLevel(LevelTwoAssetPath, .85f, 4.5f, 9f);
             ValidateScene(LevelOneScenePath, 0f, 1.25f, 4f, MaximumRawDamagePerHit);
-            ValidateScene(LevelTwoScenePath, 0f, .85f, 4.5f, 9f);
 
             GameObject lollipopPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(LollipopPrefabPath);
             RagdollAttackManager2D lollipop = lollipopPrefab != null
@@ -253,7 +257,8 @@ namespace KickTheBuddy.Editor
                       $"head={HeadHealth:F0}hp, cappedCriticalDamage={appliedCriticalDamage:F0}, minimumHits={requiredHits}, jellyDamage=0.");
         }
 
-        private static void ValidateLevel(string assetPath)
+        private static void ValidateLevel(string assetPath, float wallDamagePerSpeed,
+            float wallMinimumSpeed, float wallMaximumDamage)
         {
             LevelDefinition level = AssetDatabase.LoadAssetAtPath<LevelDefinition>(assetPath);
             if (level == null || !Mathf.Approximately(level.TimeLimit, LevelPlayTime))
@@ -261,6 +266,11 @@ namespace KickTheBuddy.Editor
             SerializedObject data = new SerializedObject(level);
             if (!Mathf.Approximately(ReadFloat(data, "targetDamage"), HeadHealth))
                 throw new InvalidOperationException(assetPath + " target damage must match critical-head health.");
+            if (!Mathf.Approximately(level.WallBaseDamage, 0f) ||
+                !Mathf.Approximately(level.WallDamagePerSpeed, wallDamagePerSpeed) ||
+                !Mathf.Approximately(level.WallMinimumImpactSpeed, wallMinimumSpeed) ||
+                !Mathf.Approximately(level.WallMaximumDamage, wallMaximumDamage))
+                throw new InvalidOperationException(assetPath + " shared Room profile does not match its level balance.");
         }
 
         private static void ValidateScene(string scenePath, float baseDamage, float speedDamage,
@@ -315,7 +325,7 @@ namespace KickTheBuddy.Editor
                 !Mathf.Approximately(pose.OneLegHeadStrength, OneLegHeadStrength))
                 throw new InvalidOperationException(scene.name + " broken-leg recovery is not authored.");
 
-            GameObject room = FindRoot(scene, "Room");
+            GameObject room = FindLevelRoom(scene);
             Collider2D[] walls = room != null ? room.GetComponentsInChildren<Collider2D>(true) : Array.Empty<Collider2D>();
             if (walls.Length == 0) throw new InvalidOperationException(scene.name + " has no walls.");
             for (int i = 0; i < walls.Length; i++)
@@ -406,6 +416,16 @@ namespace KickTheBuddy.Editor
             for (int i = 0; i < roots.Length; i++)
                 if (roots[i].name == name) return roots[i];
             return null;
+        }
+
+        private static GameObject FindLevelRoom(Scene scene)
+        {
+            GameObject topLevelRoom = FindRoot(scene, "Room");
+            if (topLevelRoom != null) return topLevelRoom;
+            GameObject levels = FindRoot(scene, SingleSceneLevelsSetupEditor.LevelsRootName);
+            if (levels == null) return null;
+            Transform room = levels.transform.Find("Room");
+            return room != null ? room.gameObject : null;
         }
 
         private static void Set(SerializedObject target, string property, float value)

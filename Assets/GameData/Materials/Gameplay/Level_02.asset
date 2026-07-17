@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   levelId: level_02
   displayName: Level 2 - Candy Lab
-  scenePath: Assets/GameData/Scene/CandyLab.unity
+  scenePath: Assets/GameData/Scene/RagdollSandbox.unity
   objectiveText: Use repeated hard lollipop hits to break the character; sticky jelly
     only annoys it.
   completionRule: 1
@@ -24,3 +24,7 @@ MonoBehaviour:
   oneStarScore: 180
   twoStarScore: 320
   threeStarScore: 520
+  wallBaseDamage: 0
+  wallDamagePerSpeed: 0.85
+  wallMinimumImpactSpeed: 4.5
+  wallMaximumDamage: 9

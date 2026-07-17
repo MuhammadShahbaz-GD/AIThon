@@ -16,7 +16,7 @@ namespace KickTheBuddy.Editor
     [InitializeOnLoad]
     public static class TwoLevelCandyGameplayPlayModeSmokeEditor
     {
-        private const string ScenePath = "Assets/GameData/Scene/CandyLab.unity";
+        private const string ScenePath = SingleSceneLevelsSetupEditor.GameplayScenePath;
         private const string DefaultSaveFile = "player-progress.json";
         private const string SmokeSaveFile = "player-progress-candy-tools-smoke.json";
         private const string ActiveKey = "KickTheBuddy.CandyToolSmoke.Active";
@@ -47,6 +47,7 @@ namespace KickTheBuddy.Editor
                 throw new InvalidOperationException("Exit Play Mode before running the Level 2 tool smoke.");
             ConfigureSaveFile(SmokeSaveFile);
             DeleteSmokeSave();
+            CreateLevelTwoSmokeSave();
             SessionState.SetBool(ActiveKey, true);
             SessionState.SetBool(ActiveKey + ".Batch", batch);
             SessionState.SetInt(StageKey, StageExercise);
@@ -89,7 +90,12 @@ namespace KickTheBuddy.Editor
 
         private static void ExerciseTools()
         {
-            if (SceneManager.GetActiveScene().name != "CandyLab") return;
+            if (SceneManager.GetActiveScene().name != "RagdollSandbox") return;
+            GameplayLevelSceneController sceneLevels = GameplayLevelSceneController.Active;
+            if (sceneLevels == null || sceneLevels.ActiveLevelId != "level_02" ||
+                sceneLevels.ActiveLevelIndex != 1 || sceneLevels.ActiveLevelRoot == null ||
+                !sceneLevels.ActiveLevelRoot.activeInHierarchy)
+                return;
             SandboxToolInput2D input = UnityEngine.Object.FindObjectOfType<SandboxToolInput2D>();
             RagdollController ragdoll = UnityEngine.Object.FindObjectOfType<RagdollController>();
             if (input == null || ragdoll == null || input.Tools.Count != 2) return;
@@ -209,7 +215,7 @@ namespace KickTheBuddy.Editor
         {
             Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             GameSaveManager saves = UnityEngine.Object.FindObjectOfType<GameSaveManager>(true);
-            if (saves == null) throw new InvalidOperationException("CandyLab GameSaveManager is missing.");
+            if (saves == null) throw new InvalidOperationException("The gameplay scene GameSaveManager is missing.");
             SerializedObject data = new SerializedObject(saves);
             data.FindProperty("fileName").stringValue = fileName;
             data.ApplyModifiedPropertiesWithoutUndo();
@@ -225,6 +231,19 @@ namespace KickTheBuddy.Editor
             string path = Path.Combine(Application.persistentDataPath, SmokeSaveFile);
             if (File.Exists(path)) File.Delete(path);
             if (File.Exists(path + ".tmp")) File.Delete(path + ".tmp");
+        }
+
+        private static void CreateLevelTwoSmokeSave()
+        {
+            PlayerProgressData progress = new PlayerProgressData
+            {
+                version = 2,
+                highestUnlockedLevel = 1,
+                selectedLevel = 1,
+                hasStartedGame = true
+            };
+            File.WriteAllText(Path.Combine(Application.persistentDataPath, SmokeSaveFile),
+                JsonUtility.ToJson(progress, true));
         }
 
         private static string Now() => EditorApplication.timeSinceStartup.ToString("R", CultureInfo.InvariantCulture);

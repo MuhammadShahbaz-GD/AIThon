@@ -32,6 +32,7 @@ namespace KickTheBuddy.Gameplay
             sounds = soundManager;
             gameplay = gameplayManager;
             gameplay.NextLevelRequested += PlayNextLevel;
+            gameplay.RetryLevelRequested += ReloadCurrentLevel;
             initialized = true;
         }
 
@@ -97,6 +98,13 @@ namespace KickTheBuddy.Gameplay
             ShowMainMenu();
         }
 
+        /// <summary>Reloads the one gameplay scene so retry starts from pristine authored physics state.</summary>
+        public void ReloadCurrentLevel()
+        {
+            if (!initialized || transitionInProgress) return;
+            PlayLevel(levels.CurrentLevelIndex);
+        }
+
         public void ShowMainMenu()
         {
             if (!initialized || transitionInProgress) return;
@@ -127,6 +135,7 @@ namespace KickTheBuddy.Gameplay
         {
             if (!initialized) return;
             gameplay.NextLevelRequested -= PlayNextLevel;
+            gameplay.RetryLevelRequested -= ReloadCurrentLevel;
             initialized = false;
         }
 
