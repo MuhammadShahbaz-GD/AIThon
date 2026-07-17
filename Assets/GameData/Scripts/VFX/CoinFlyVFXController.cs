@@ -21,6 +21,7 @@ namespace KickTheBuddy.VFX
         private GameplayManager gameplay;
         private Flight[] flights = Array.Empty<Flight>();
         private int cursor;
+        private int activeFlights;
 
         private struct Flight
         {
@@ -41,6 +42,7 @@ namespace KickTheBuddy.VFX
             gameplay = bootstrap != null ? bootstrap.Gameplay : null;
             if (gameplay != null) gameplay.ScoreAwarded += HandleScoreAwarded;
             ResetPool();
+            enabled = false;
         }
 
         private void OnDestroy()
@@ -50,8 +52,7 @@ namespace KickTheBuddy.VFX
 
         private void Update()
         {
-            if (vfxLayer == null || scoreTarget == null) return;
-            Vector2 end = WorldUIToLocal(scoreTarget.position);
+            if (vfxLayer == null || activeFlights <= 0) { enabled = false; return; }
             for (int i = 0; i < flights.Length; i++)
             {
                 Flight flight = flights[i];
@@ -67,7 +68,7 @@ namespace KickTheBuddy.VFX
                 float inverse = 1f - t;
                 Vector2 point = inverse * inverse * flight.Start +
                                 2f * inverse * t * flight.Control +
-                                t * t * end;
+                                t * t * flight.End;
                 RectTransform rect = coinPool[i].rectTransform;
                 rect.anchoredPosition = point;
                 rect.localEulerAngles = new Vector3(0f, 0f, t * 360f);
@@ -78,9 +79,11 @@ namespace KickTheBuddy.VFX
                 {
                     flight.Active = false;
                     coinPool[i].gameObject.SetActive(false);
+                    activeFlights = Mathf.Max(0, activeFlights - 1);
                 }
                 flights[i] = flight;
             }
+            if (activeFlights == 0) enabled = false;
         }
 
         private void HandleScoreAwarded(int gained, int total, Vector2 worldPoint, int combo)
@@ -89,6 +92,7 @@ namespace KickTheBuddy.VFX
             int count = Mathf.Clamp(1 + gained / 12, 1, maximumCoinsPerAward);
             Vector2 start = ScreenToLayer(worldCamera.WorldToScreenPoint(worldPoint));
             Vector2 end = WorldUIToLocal(scoreTarget.position);
+            enabled = true;
             for (int i = 0; i < count; i++) StartFlight(start, end, i);
             GameBootstrapper.Instance?.Sounds?.Play(GameSound.Coin);
         }
@@ -99,6 +103,8 @@ namespace KickTheBuddy.VFX
             int index = cursor++ % coinPool.Length;
             Image coin = coinPool[index];
             if (coin == null) return;
+
+            if (!flights[index].Active) activeFlights++;
 
             float side = ((index * 37) % 101) / 100f;
             Vector2 control = Vector2.Lerp(start, end, .45f) +
@@ -137,8 +143,12 @@ namespace KickTheBuddy.VFX
 
         private void ResetPool()
         {
+            activeFlights = 0;
             for (int i = 0; i < coinPool.Length; i++)
+            {
+                flights[i].Active = false;
                 if (coinPool[i] != null) coinPool[i].gameObject.SetActive(false);
+            }
         }
 
         private void OnValidate()

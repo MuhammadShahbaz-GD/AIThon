@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using KickTheBuddy.Physics;
 using KickTheBuddy.Physics.VFX;
 using UnityEngine;
@@ -21,7 +22,9 @@ namespace KickTheBuddy.VFX
         [SerializeField] private SpriteRenderer[] candyDebrisRenderers = Array.Empty<SpriteRenderer>();
         [SerializeField] private Rigidbody2D[] glassShardBodies = Array.Empty<Rigidbody2D>();
         [SerializeField] private SpriteRenderer[] glassShardRenderers = Array.Empty<SpriteRenderer>();
-        [Min(.1f)] [SerializeField] private float debrisLifetime = 6f;
+        [Range(4, 24)] [SerializeField] private int maximumActiveCandyDebris = 24;
+        [Range(4, 20)] [SerializeField] private int maximumActiveGlassShards = 16;
+        [Min(1f)] [SerializeField] private float debrisLifetime = 10f;
 
         [Header("Impact")]
         [SerializeField] private Color lightHitColor = new Color(1f, .85f, .25f);
@@ -34,9 +37,10 @@ namespace KickTheBuddy.VFX
         private ParticleSystem comboParticle;
         private ParticleSystem knockoutParticle;
         private ParticleSystem deathParticle;
+        private ParticleSystem collisionFumeParticle;
         private Color profileColor = Color.white;
         private bool deathPlayed;
-        private float debrisDisableAt = float.PositiveInfinity;
+        private Coroutine debrisCleanup;
         private bool[] authoredRendererEnabled = Array.Empty<bool>();
 
         public event Action<Vector2, float> ImpactEffectPlayed;
@@ -50,6 +54,7 @@ namespace KickTheBuddy.VFX
             comboParticle = CreateShared(profile != null ? profile.ComboPrefab : null, "Shared Combo");
             knockoutParticle = CreateShared(profile != null ? profile.KnockoutPrefab : null, "Shared Knockout");
             deathParticle = CreateShared(profile != null ? profile.DeathPrefab : null, "Shared Death");
+            collisionFumeParticle = CreateShared(profile != null ? profile.CollisionFumePrefab : null, "Shared Collision Fumes");
             authoredRendererEnabled = new bool[characterRenderers.Length];
             for (int i = 0; i < characterRenderers.Length; i++)
                 authoredRendererEnabled[i] = characterRenderers[i] != null && characterRenderers[i].enabled;
@@ -81,13 +86,6 @@ namespace KickTheBuddy.VFX
             StopParticles();
         }
 
-        private void Update()
-        {
-            if (Time.unscaledTime < debrisDisableAt) return;
-            debrisDisableAt = float.PositiveInfinity;
-            ResetDebris();
-        }
-
         private ParticleSystem CreateShared(ParticleSystem prefab, string objectName)
         {
             if (prefab == null) return null;
@@ -103,11 +101,15 @@ namespace KickTheBuddy.VFX
 
         private void HandleImpact(float damage, float impactSpeed, Vector2 point)
         {
-            if (hitParticle == null || deathPlayed) return;
+            if (deathPlayed) return;
             float strength = Mathf.Clamp01(impactSpeed / speedForMaximumStrength);
             int count = Mathf.RoundToInt(Mathf.Lerp(minimumHitParticles, maximumHitParticles, strength));
-            Emit(hitParticle, point, Color.Lerp(Color.Lerp(lightHitColor, heavyHitColor, strength), profileColor, .25f),
-                Mathf.Lerp(.04f, .09f, strength), count);
+            if (hitParticle != null)
+                Emit(hitParticle, point, Color.Lerp(Color.Lerp(lightHitColor, heavyHitColor, strength), profileColor, .25f),
+                    Mathf.Lerp(.04f, .09f, strength), count);
+            if (collisionFumeParticle != null)
+                Emit(collisionFumeParticle, point, new Color(1f, 1f, 1f, Mathf.Lerp(.35f, .68f, strength)),
+                    Mathf.Lerp(.12f, .24f, strength), Mathf.RoundToInt(Mathf.Lerp(3f, 7f, strength)));
             ImpactEffectPlayed?.Invoke(point, strength);
         }
 
@@ -136,14 +138,16 @@ namespace KickTheBuddy.VFX
             ReleaseCandyDebris(point);
             ReleaseGlassShards(point);
             SetCharacterRenderers(false);
-            debrisDisableAt = Time.unscaledTime + debrisLifetime;
+            if (debrisCleanup != null) StopCoroutine(debrisCleanup);
+            debrisCleanup = StartCoroutine(ResetDebrisAfterDelay());
             DeathEffectPlayed?.Invoke(point);
         }
 
         private void HandleRevived()
         {
             deathPlayed = false;
-            debrisDisableAt = float.PositiveInfinity;
+            if (debrisCleanup != null) StopCoroutine(debrisCleanup);
+            debrisCleanup = null;
             ResetDebris();
             SetCharacterRenderers(true);
             for (int i = 0; i < candyFills.Length; i++)
@@ -153,39 +157,42 @@ namespace KickTheBuddy.VFX
 
         private void ReleaseCandyDebris(Vector2 origin)
         {
-            int poolIndex = 0;
+            int candyLimit = Mathf.Min(maximumActiveCandyDebris, candyDebrisBodies.Length);
+            int partCount = controller != null ? controller.Parts.Count : 0;
+            for (int index = 0; index < candyLimit; index++)
+            {
+                Rigidbody2D partBody = partCount > 0 ? controller.Parts[index % partCount].Body : null;
+                Vector2 center = partBody != null ? partBody.worldCenterOfMass : origin;
+                ActivateDebris(candyDebrisBodies[index],
+                    index < candyDebrisRenderers.Length ? candyDebrisRenderers[index] : null,
+                    null, center + UnityEngine.Random.insideUnitCircle * .16f,
+                    Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(0f, 360f)),
+                    origin, 3f, 7f, 1.8f);
+            }
+
+            // Authored fill visuals are presentation-only. Hide them even when an optimized scene
+            // intentionally removed their individual serialized candy references.
             for (int fillIndex = 0; fillIndex < candyFills.Length; fillIndex++)
             {
                 RagdollCandyFill2D fill = candyFills[fillIndex];
                 if (fill == null) continue;
-                GameObject[] visuals = fill.CandyVisuals;
-                for (int i = 0; i < visuals.Length && poolIndex < candyDebrisBodies.Length; i++)
-                {
-                    SpriteRenderer source = visuals[i] != null ? visuals[i].GetComponent<SpriteRenderer>() : null;
-                    if (source == null) continue;
-                    ActivateDebris(candyDebrisBodies[poolIndex],
-                        poolIndex < candyDebrisRenderers.Length ? candyDebrisRenderers[poolIndex] : null,
-                        source.sprite, source.transform.position, source.transform.rotation,
-                        origin, 2.5f, 5.5f, 1.5f);
-                    poolIndex++;
-                }
                 fill.SetCandyVisible(false);
             }
         }
 
         private void ReleaseGlassShards(Vector2 origin)
         {
-            int index = 0;
-            for (int partIndex = 0; partIndex < controller.Parts.Count && index < glassShardBodies.Length; partIndex++)
+            int shardLimit = Mathf.Min(maximumActiveGlassShards, glassShardBodies.Length);
+            int partCount = controller != null ? controller.Parts.Count : 0;
+            for (int index = 0; index < shardLimit; index++)
             {
-                Rigidbody2D partBody = controller.Parts[partIndex].Body;
+                Rigidbody2D partBody = partCount > 0 ? controller.Parts[index % partCount].Body : null;
                 Vector2 center = partBody != null ? partBody.worldCenterOfMass : origin;
-                for (int local = 0; local < 2 && index < glassShardBodies.Length; local++, index++)
-                    ActivateDebris(glassShardBodies[index],
-                        index < glassShardRenderers.Length ? glassShardRenderers[index] : null,
-                        null, center + UnityEngine.Random.insideUnitCircle * .12f,
-                        Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(0f, 360f)),
-                        origin, 3.5f, 6.5f, 2f);
+                ActivateDebris(glassShardBodies[index],
+                    index < glassShardRenderers.Length ? glassShardRenderers[index] : null,
+                    null, center + UnityEngine.Random.insideUnitCircle * .14f,
+                    Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(0f, 360f)),
+                    origin, 5f, 9f, 2.8f);
             }
         }
 
@@ -217,6 +224,13 @@ namespace KickTheBuddy.VFX
         {
             ResetPool(candyDebrisBodies);
             ResetPool(glassShardBodies);
+        }
+
+        private IEnumerator ResetDebrisAfterDelay()
+        {
+            yield return new WaitForSecondsRealtime(debrisLifetime);
+            debrisCleanup = null;
+            ResetDebris();
         }
 
         private static void ResetPool(Rigidbody2D[] pool)
@@ -270,6 +284,7 @@ namespace KickTheBuddy.VFX
             StopParticle(comboParticle);
             StopParticle(knockoutParticle);
             StopParticle(deathParticle);
+            StopParticle(collisionFumeParticle);
         }
 
         private static void StopParticle(ParticleSystem system)
@@ -281,7 +296,9 @@ namespace KickTheBuddy.VFX
         {
             speedForMaximumStrength = Mathf.Max(.01f, speedForMaximumStrength);
             maximumHitParticles = Mathf.Max(minimumHitParticles, maximumHitParticles);
-            debrisLifetime = Mathf.Max(.1f, debrisLifetime);
+            debrisLifetime = Mathf.Max(1f, debrisLifetime);
+            maximumActiveCandyDebris = Mathf.Clamp(maximumActiveCandyDebris, 4, 24);
+            maximumActiveGlassShards = Mathf.Clamp(maximumActiveGlassShards, 4, 20);
         }
     }
 }

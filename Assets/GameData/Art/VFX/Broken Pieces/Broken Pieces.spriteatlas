@@ -1,0 +1,100 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!687078895 &4343727234628468602
+SpriteAtlas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Broken Pieces
+  m_EditorData:
+    serializedVersion: 2
+    textureSettings:
+      serializedVersion: 2
+      anisoLevel: 0
+      compressionQuality: 0
+      maxTextureSize: 0
+      textureCompression: 0
+      filterMode: 1
+      generateMipMaps: 0
+      readable: 0
+      crunchedCompression: 0
+      sRGB: 1
+    platformSettings:
+    - serializedVersion: 3
+      m_BuildTarget: Android
+      m_MaxTextureSize: 512
+      m_ResizeAlgorithm: 0
+      m_TextureFormat: 47
+      m_TextureCompression: 1
+      m_CompressionQuality: 50
+      m_CrunchedCompression: 0
+      m_AllowsAlphaSplitting: 0
+      m_Overridden: 1
+      m_IgnorePlatformSupport: 0
+      m_AndroidETC2FallbackOverride: 0
+      m_ForceMaximumCompressionQuality_BC6H_BC7: 0
+    packingSettings:
+      serializedVersion: 2
+      padding: 2
+      blockOffset: 0
+      allowAlphaSplitting: 0
+      enableRotation: 0
+      enableTightPacking: 1
+      enableAlphaDilation: 0
+    secondaryTextureSettings: {}
+    variantMultiplier: 1
+    packables:
+    - {fileID: 102900000, guid: 55ce7d7f908db354b8dd8ab91f26279f, type: 3}
+    bindAsDefault: 1
+    isAtlasV2: 0
+    cachedData: {fileID: 0}
+    packedSpriteRenderDataKeys:
+    - b8169db0f9b5e1b4cb2c5a0acf44c9d7: 21300000
+    - 7592b1136b9533e43b8c5bb0c0840b60: 21300000
+    - 330e4f240f43ee744899156346ad28e8: 21300000
+    - a6452ee47b33ac841a46b80aa3c66fb5: 21300000
+    - 622d3ec6e11d6ed45b825ea74b919785: 21300000
+    - 49a46817b6dbbe64b8b639e3546c1164: 21300000
+    - fcd32ac71bd8d06468001ca3a15cb294: 21300000
+    - 4ec831293718b8244b0b070c68240baa: 21300000
+    - 57c7c3e9121f8374c90dec556cc3b526: 21300000
+    - 38dfa6e9e8ead5849a2b4e1474466f0f: 21300000
+    - 878ff8fa62eb73b499c0a1bab8ba3930: 21300000
+    - ddca0d4b7f5781b4cb4b1393bcc5294d: 21300000
+    - e5749a0c98f96ce4caf99d17407bad03: 21300000
+    - 6086c78da8a65fa4594ceb697b189c34: 21300000
+  m_MasterAtlas: {fileID: 0}
+  m_PackedSprites:
+  - {fileID: 21300000, guid: b8169db0f9b5e1b4cb2c5a0acf44c9d7, type: 3}
+  - {fileID: 21300000, guid: 7592b1136b9533e43b8c5bb0c0840b60, type: 3}
+  - {fileID: 21300000, guid: 330e4f240f43ee744899156346ad28e8, type: 3}
+  - {fileID: 21300000, guid: a6452ee47b33ac841a46b80aa3c66fb5, type: 3}
+  - {fileID: 21300000, guid: 622d3ec6e11d6ed45b825ea74b919785, type: 3}
+  - {fileID: 21300000, guid: 49a46817b6dbbe64b8b639e3546c1164, type: 3}
+  - {fileID: 21300000, guid: fcd32ac71bd8d06468001ca3a15cb294, type: 3}
+  - {fileID: 21300000, guid: 4ec831293718b8244b0b070c68240baa, type: 3}
+  - {fileID: 21300000, guid: 57c7c3e9121f8374c90dec556cc3b526, type: 3}
+  - {fileID: 21300000, guid: 38dfa6e9e8ead5849a2b4e1474466f0f, type: 3}
+  - {fileID: 21300000, guid: 878ff8fa62eb73b499c0a1bab8ba3930, type: 3}
+  - {fileID: 21300000, guid: ddca0d4b7f5781b4cb4b1393bcc5294d, type: 3}
+  - {fileID: 21300000, guid: e5749a0c98f96ce4caf99d17407bad03, type: 3}
+  - {fileID: 21300000, guid: 6086c78da8a65fa4594ceb697b189c34, type: 3}
+  m_PackedSpriteNamesToIndex:
+  - Brocken Piece 4
+  - Brocken Piece 1
+  - Brocken Piece 5
+  - Brocken Piece 9
+  - Brocken Piece 3
+  - Brocken Piece 8
+  - Brocken Piece 11
+  - Brocken Piece 10
+  - Brocken Piece 12
+  - Brocken Piece 6
+  - Brocken Piece 2
+  - Brocken Piece 19
+  - Brocken Piece 21
+  - Brocken Piece 7
+  m_RenderDataMap: {}
+  m_Tag: Broken Pieces
+  m_IsVariant: 0

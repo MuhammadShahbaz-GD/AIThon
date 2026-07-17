@@ -64,7 +64,13 @@ namespace KickTheBuddy.Physics
         }
 
         /// <summary>Prevents two pose controllers from writing the same motor in one physics tick.</summary>
-        internal void SetExternallyDriven(bool value) { externallyDriven = value; }
+        internal void SetExternallyDriven(bool value)
+        {
+            externallyDriven = value;
+            // The character-wide pose controller owns this motor in production. Disabling this
+            // behaviour removes one empty FixedUpdate callback per limb while preserving its API.
+            enabled = !value;
+        }
 
         private void OnValidate()
         {

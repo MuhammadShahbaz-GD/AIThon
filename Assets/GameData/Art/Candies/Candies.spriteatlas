@@ -1,0 +1,130 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!687078895 &4343727234628468602
+SpriteAtlas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Candies
+  m_EditorData:
+    serializedVersion: 2
+    textureSettings:
+      serializedVersion: 2
+      anisoLevel: 0
+      compressionQuality: 0
+      maxTextureSize: 0
+      textureCompression: 0
+      filterMode: 1
+      generateMipMaps: 0
+      readable: 0
+      crunchedCompression: 0
+      sRGB: 1
+    platformSettings:
+    - serializedVersion: 3
+      m_BuildTarget: Android
+      m_MaxTextureSize: 1024
+      m_ResizeAlgorithm: 0
+      m_TextureFormat: 47
+      m_TextureCompression: 1
+      m_CompressionQuality: 50
+      m_CrunchedCompression: 0
+      m_AllowsAlphaSplitting: 0
+      m_Overridden: 1
+      m_IgnorePlatformSupport: 0
+      m_AndroidETC2FallbackOverride: 0
+      m_ForceMaximumCompressionQuality_BC6H_BC7: 0
+    packingSettings:
+      serializedVersion: 2
+      padding: 2
+      blockOffset: 0
+      allowAlphaSplitting: 0
+      enableRotation: 0
+      enableTightPacking: 1
+      enableAlphaDilation: 0
+    secondaryTextureSettings: {}
+    variantMultiplier: 1
+    packables:
+    - {fileID: 102900000, guid: 8d6bf41de8eaac148a4a6cecc4f2e851, type: 3}
+    bindAsDefault: 1
+    isAtlasV2: 0
+    cachedData: {fileID: 0}
+    packedSpriteRenderDataKeys:
+    - 1547a7c0fa0723b4e8ca5d90962eb646: 21300000
+    - ba3f2571f1670cf43aa8f2653558d5ad: 21300000
+    - 2b957fb1543302e4ca7c2ee85d9941ac: 21300000
+    - 2d651772babe12247ae8b7ee48b145c5: 21300000
+    - bfde82c276abe9e4185ec21cee0e51e1: 21300000
+    - ada89d759a9301043916d99b73e5088a: 21300000
+    - b65876a59324418429e549314c04c799: 21300000
+    - 21c285462431d6640a69385a0a299e4e: 21300000
+    - 9ab58ef6d5a310645a8c8bc21d48c2dd: 21300000
+    - d049b1f7ef55c8a408166e092371d428: 21300000
+    - 4a5ffbf73c5600048833752b759c1b3d: 21300000
+    - c6c9f5186d40eda4e84992bb1df4a6e2: 21300000
+    - 53fc4058de03a844bb2d2a3033ecad57: 21300000
+    - 2a69181958905c24dab82c11f63b88f3: 21300000
+    - d387a91968d3f6f4cadbacfe5cb93516: 21300000
+    - 5eccc23a2ff307344ab69cd3851c9978: 21300000
+    - 5740f74b9200bcd4da072fcdbeede9b9: 21300000
+    - 2b2b06db698e25a42a04da4cd43627b5: 21300000
+    - cacf277cfe2e63b4681f7c0606c02a5c: 21300000
+    - 9867e78d502055541b8fe76781f2c3c9: 21300000
+    - 5844c2ad248ec054ba4f89937297d19f: 21300000
+    - eba0d59f189d322479f32fd8dec03c08: 21300000
+    - 4a0eb9cf6be4d2f489aad9590b588e04: 21300000
+    - 666b1aef045bd4e49961c6993564d6b1: 21300000
+  m_MasterAtlas: {fileID: 0}
+  m_PackedSprites:
+  - {fileID: 21300000, guid: 1547a7c0fa0723b4e8ca5d90962eb646, type: 3}
+  - {fileID: 21300000, guid: ba3f2571f1670cf43aa8f2653558d5ad, type: 3}
+  - {fileID: 21300000, guid: 2b957fb1543302e4ca7c2ee85d9941ac, type: 3}
+  - {fileID: 21300000, guid: 2d651772babe12247ae8b7ee48b145c5, type: 3}
+  - {fileID: 21300000, guid: bfde82c276abe9e4185ec21cee0e51e1, type: 3}
+  - {fileID: 21300000, guid: ada89d759a9301043916d99b73e5088a, type: 3}
+  - {fileID: 21300000, guid: b65876a59324418429e549314c04c799, type: 3}
+  - {fileID: 21300000, guid: 21c285462431d6640a69385a0a299e4e, type: 3}
+  - {fileID: 21300000, guid: 9ab58ef6d5a310645a8c8bc21d48c2dd, type: 3}
+  - {fileID: 21300000, guid: d049b1f7ef55c8a408166e092371d428, type: 3}
+  - {fileID: 21300000, guid: 4a5ffbf73c5600048833752b759c1b3d, type: 3}
+  - {fileID: 21300000, guid: c6c9f5186d40eda4e84992bb1df4a6e2, type: 3}
+  - {fileID: 21300000, guid: 53fc4058de03a844bb2d2a3033ecad57, type: 3}
+  - {fileID: 21300000, guid: 2a69181958905c24dab82c11f63b88f3, type: 3}
+  - {fileID: 21300000, guid: d387a91968d3f6f4cadbacfe5cb93516, type: 3}
+  - {fileID: 21300000, guid: 5eccc23a2ff307344ab69cd3851c9978, type: 3}
+  - {fileID: 21300000, guid: 5740f74b9200bcd4da072fcdbeede9b9, type: 3}
+  - {fileID: 21300000, guid: 2b2b06db698e25a42a04da4cd43627b5, type: 3}
+  - {fileID: 21300000, guid: cacf277cfe2e63b4681f7c0606c02a5c, type: 3}
+  - {fileID: 21300000, guid: 9867e78d502055541b8fe76781f2c3c9, type: 3}
+  - {fileID: 21300000, guid: 5844c2ad248ec054ba4f89937297d19f, type: 3}
+  - {fileID: 21300000, guid: eba0d59f189d322479f32fd8dec03c08, type: 3}
+  - {fileID: 21300000, guid: 4a0eb9cf6be4d2f489aad9590b588e04, type: 3}
+  - {fileID: 21300000, guid: 666b1aef045bd4e49961c6993564d6b1, type: 3}
+  m_PackedSpriteNamesToIndex:
+  - Candy 19
+  - Candy 8
+  - Candy 11
+  - Candy 18
+  - Candy 24
+  - Candy 21
+  - Candy 3
+  - Candy 12
+  - Candy 23
+  - Candy 20
+  - Candy 10
+  - Candy 9
+  - Candy 6
+  - Candy 15
+  - Candy 13
+  - Candy 4
+  - Candy 7
+  - Candy 17
+  - Candy 1
+  - Candy 2
+  - Candy 16
+  - Candy 22
+  - Candy 14
+  - Candy 5
+  m_RenderDataMap: {}
+  m_Tag: Candies
+  m_IsVariant: 0

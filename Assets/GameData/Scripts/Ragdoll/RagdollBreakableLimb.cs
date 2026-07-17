@@ -19,6 +19,9 @@ namespace KickTheBuddy.Physics
         private float stressDamageRate;
         private float currentHealth;
         private bool broken;
+        private float nextStressSampleTime;
+
+        private const float StressSampleInterval = .04f;
 
         public Rigidbody2D Body => body;
         public float CurrentHealth => currentHealth;
@@ -43,6 +46,8 @@ namespace KickTheBuddy.Physics
         private void FixedUpdate()
         {
             if (broken || owner == null) return;
+            if (Time.time < nextStressSampleTime) return;
+            nextStressSampleTime = Time.time + StressSampleInterval;
             float strongestForce = 0f;
             for (int i = 0; i < joints.Length; i++)
             {
@@ -50,7 +55,7 @@ namespace KickTheBuddy.Physics
                 if (joint != null && joint.enabled) strongestForce = Mathf.Max(strongestForce, joint.reactionForce.magnitude);
             }
             if (strongestForce <= stressThreshold) return;
-            float damage = (strongestForce - stressThreshold) * stressDamageRate * Time.fixedDeltaTime;
+            float damage = (strongestForce - stressThreshold) * stressDamageRate * StressSampleInterval;
             ApplyDamage(damage, body != null ? body.worldCenterOfMass : (Vector2)transform.position);
         }
 

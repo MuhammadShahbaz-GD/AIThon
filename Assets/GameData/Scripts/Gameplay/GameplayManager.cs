@@ -20,6 +20,7 @@ namespace KickTheBuddy.Gameplay
         private int score;
         private bool subscribed;
         private Coroutine deathCompletion;
+        private int lastReportedSecond = -1;
 
         public GameplayState State { get; private set; } = GameplayState.Booting;
         public float Damage => damage;
@@ -53,18 +54,25 @@ namespace KickTheBuddy.Gameplay
             damage = 0f;
             score = 0;
             remainingTime = level.TimeLimit;
+            lastReportedSecond = Mathf.CeilToInt(remainingTime);
             Time.timeScale = 1f;
             sounds.PlayMusic(true);
             ChangeState(GameplayState.Playing);
             ObjectiveProgressChanged?.Invoke(0f, level.TargetDamage);
             ScoreChanged?.Invoke(0);
+            TimeChanged?.Invoke(remainingTime);
         }
 
         private void Update()
         {
             if (State != GameplayState.Playing) return;
             remainingTime = Mathf.Max(0f, remainingTime - Time.deltaTime);
-            TimeChanged?.Invoke(remainingTime);
+            int displayedSecond = Mathf.CeilToInt(remainingTime);
+            if (displayedSecond != lastReportedSecond)
+            {
+                lastReportedSecond = displayedSecond;
+                TimeChanged?.Invoke(remainingTime);
+            }
             if (remainingTime <= 0f) FailLevel();
         }
 

@@ -16,3 +16,4 @@ MonoBehaviour:
   comboPrefab: {fileID: 8036275858632670077, guid: e5d59133ab5a95a4c9ffc697d50d1065, type: 3}
   knockoutPrefab: {fileID: 6288183675038766984, guid: 4f3264aac6658d748bb48a6f78818304, type: 3}
   deathPrefab: {fileID: 8331888208089472100, guid: 97dcfb53643de4942a1957199f820ba6, type: 3}
+  collisionFumePrefab: {fileID: 2636748305354124092, guid: 200a857c1623af9499c717b3671efc68, type: 3}

@@ -8,9 +8,11 @@ using KickTheBuddy.Physics.VFX;
 using KickTheBuddy.VFX;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEditor.U2D;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.U2D;
 
 namespace KickTheBuddy.Editor
 {
@@ -22,7 +24,21 @@ namespace KickTheBuddy.Editor
         private const string ArtRoot = "Assets/GameData/Art/VFX";
         private const string CoinPath = ArtRoot + "/Coin.png";
         private const string ShardPath = ArtRoot + "/GlassShard.png";
+        private const string BrokenPiecesRoot = ArtRoot + "/Broken Pieces";
+        private const string CandyArtRoot = "Assets/GameData/Art/Candies";
         private const string MaterialPath = "Assets/GameData/Materials/VFX/VFX_Particle_Additive.mat";
+        private const string FumeMaterialPath = "Assets/GameData/Materials/VFX/MAT_CollisionFume.mat";
+        private const string DebrisMaterialPath = "Assets/GameData/Materials/VFX/PMAT_GlassDebris.physicsMaterial2D";
+        private const string FumePrefabPath = PrefabRoot + "/VFX_Ragdoll_CollisionFume.prefab";
+        private const string BrokenPiecesAtlasPath = BrokenPiecesRoot + "/Broken Pieces.spriteatlas";
+
+        private static readonly string[] BrokenPieceNames =
+        {
+            "Brocken Piece 1.png", "Brocken Piece 2.png", "Brocken Piece 3.png", "Brocken Piece 4.png",
+            "Brocken Piece 5.png", "Brocken Piece 6.png", "Brocken Piece 7.png", "Brocken Piece 8.png",
+            "Brocken Piece 9.png", "Brocken Piece 10.png", "Brocken Piece 11.png", "Brocken Piece 12.png",
+            "Brocken Piece 19.png", "Brocken Piece 21.png"
+        };
 
         [MenuItem("Tools/Ragdoll/VFX/Setup Complete Gameplay VFX")]
         public static void SetupActiveScene()
@@ -35,6 +51,39 @@ namespace KickTheBuddy.Editor
             SetupScene(EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single));
         }
 
+        [MenuItem("Tools/Ragdoll/VFX/Preview Death Explosion _F8")]
+        public static void PreviewDeathExplosion()
+        {
+            RagdollController ragdoll = UnityEngine.Object.FindObjectOfType<RagdollController>();
+            if (!Application.isPlaying || ragdoll == null) return;
+            RagdollDamageManager damage = ragdoll.GetComponent<RagdollDamageManager>();
+            if (damage == null) return;
+            for (int i = 0; i < ragdoll.Parts.Count; i++)
+            {
+                RagdollController.RagdollPart part = ragdoll.Parts[i];
+                if (part?.Health == null || !part.Health.IsCritical || part.Body == null) continue;
+                float ratio = Mathf.Max(.01f, part.Health.DamageRatio);
+                Vector2 point = part.Body.worldCenterOfMass;
+                bool applied = damage.ApplyDirectDamage(part.Body, part.Health.CurrentHealth / ratio + 1f,
+                    25f, new Vector2(2f, 9f), point);
+                Transform pool = ragdoll.transform.Find("VFX Death Debris Pool");
+                Rigidbody2D[] debris = pool != null ? pool.GetComponentsInChildren<Rigidbody2D>(true) : Array.Empty<Rigidbody2D>();
+                int activeDebris = 0;
+                for (int debrisIndex = 0; debrisIndex < debris.Length; debrisIndex++)
+                    if (debris[debrisIndex] != null && debris[debrisIndex].gameObject.activeSelf && debris[debrisIndex].simulated)
+                        activeDebris++;
+                if (!applied || activeDebris != 40)
+                    Debug.LogError($"Death VFX preview failed: damageApplied={applied}, activeDebris={activeDebris}/40.", ragdoll);
+                else
+                    Debug.Log("Death VFX preview passed: 24 candies + 16 glass/spring pieces are physically active. Restart the level to reset.", ragdoll);
+                return;
+            }
+            Debug.LogWarning("No active critical ragdoll part was found for the death preview.", ragdoll);
+        }
+
+        [MenuItem("Tools/Ragdoll/VFX/Preview Death Explosion _F8", true)]
+        private static bool CanPreviewDeathExplosion() => Application.isPlaying;
+
         public static void ValidateSandboxBatch()
         {
             EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
@@ -44,13 +93,27 @@ namespace KickTheBuddy.Editor
             if (vfx == null || coins == null) throw new InvalidOperationException("Gameplay VFX controllers are missing.");
             SerializedObject data = new SerializedObject(vfx);
             if (data.FindProperty("candyDebrisBodies").arraySize != 24 ||
-                data.FindProperty("glassShardBodies").arraySize != 12 ||
-                data.FindProperty("candyFills").arraySize != 6)
+                data.FindProperty("glassShardBodies").arraySize != 16 ||
+                data.FindProperty("candyFills").arraySize != 6 ||
+                data.FindProperty("maximumActiveCandyDebris").intValue != 24)
                 throw new InvalidOperationException("Death VFX pools are not correctly authored.");
+            RagdollVFXProfile configuredProfile = data.FindProperty("profile").objectReferenceValue as RagdollVFXProfile;
+            if (configuredProfile == null || configuredProfile.CollisionFumePrefab == null)
+                throw new InvalidOperationException("The shared collision fume prefab is not assigned.");
+            ParticleSystem.VelocityOverLifetimeModule velocity = configuredProfile.CollisionFumePrefab.velocityOverLifetime;
+            if (velocity.x.mode != velocity.y.mode || velocity.x.mode != velocity.z.mode)
+                throw new InvalidOperationException("Collision fume velocity curves do not share the same mode.");
+            if (AssetDatabase.LoadAssetAtPath<SpriteAtlas>(BrokenPiecesAtlasPath) == null)
+                throw new InvalidOperationException("The broken-piece sprite atlas is missing.");
+            CameraShake2D shake = UnityEngine.Object.FindObjectOfType<CameraShake2D>();
+            if (shake == null) throw new InvalidOperationException("CameraShake2D is missing from the main camera.");
+            GameplayManager gameplay = UnityEngine.Object.FindObjectOfType<GameplayManager>();
+            if (gameplay == null || new SerializedObject(gameplay).FindProperty("deathCompletionDelay").floatValue < 1.5f)
+                throw new InvalidOperationException("Death presentation delay is too short to show the floor burst.");
             SerializedObject coinData = new SerializedObject(coins);
             if (coinData.FindProperty("coinPool").arraySize != 12)
                 throw new InvalidOperationException("Coin UI pool is not correctly authored.");
-            Debug.Log("Complete gameplay VFX validation passed: hit/combo/KO/death, 24 candy debris, 12 shards, 12 UI coins.");
+            Debug.Log("Complete gameplay VFX validation passed: shared hit/fume emitters, damage/death shake, 24 candy debris, 16 authored glass/spring pieces, 12 UI coins.");
         }
 
         private static void SetupScene(Scene scene)
@@ -58,8 +121,13 @@ namespace KickTheBuddy.Editor
             EnsureFolder("Assets/GameData/Art", "VFX");
             EnsureFolder("Assets/GameData/Materials", "VFX");
             Sprite coinSprite = CreateSprite(CoinPath, true);
-            Sprite shardSprite = CreateSprite(ShardPath, false);
+            CreateSprite(ShardPath, false);
+            Sprite[] brokenPieceSprites = ImportBrokenPieceSprites();
+            Sprite[] candySprites = LoadCandySprites();
+            CreateBrokenPiecesAtlas();
             Material particleMaterial = CreateParticleMaterial();
+            Material fumeMaterial = CreateFumeMaterial();
+            PhysicsMaterial2D debrisMaterial = CreateDebrisMaterial();
 
             RagdollVFXProfile profile = AssetDatabase.LoadAssetAtPath<RagdollVFXProfile>(ProfilePath);
             if (profile == null)
@@ -71,12 +139,14 @@ namespace KickTheBuddy.Editor
             ParticleSystem hit = ConfigureParticle(PrefabRoot + "/VFX_Ragdoll_Hit.prefab", particleMaterial, 13, 0);
             ParticleSystem combo = ConfigureParticle(PrefabRoot + "/VFX_Ragdoll_Break.prefab", particleMaterial, 16, 16);
             ParticleSystem knockout = ConfigureParticle(PrefabRoot + "/VFX_Ragdoll_Damage.prefab", particleMaterial, 14, 14);
-            ParticleSystem death = ConfigureParticle(PrefabRoot + "/VFX_Ragdoll_DeathExplosion.prefab", particleMaterial, 20, 18);
+            ParticleSystem death = ConfigureParticle(PrefabRoot + "/VFX_Ragdoll_DeathExplosion.prefab", particleMaterial, 24, 22);
+            ParticleSystem fumes = ConfigureFumeParticle(fumeMaterial);
             SerializedObject profileData = new SerializedObject(profile);
             profileData.FindProperty("hitPrefab").objectReferenceValue = hit;
             profileData.FindProperty("comboPrefab").objectReferenceValue = combo;
             profileData.FindProperty("knockoutPrefab").objectReferenceValue = knockout;
             profileData.FindProperty("deathPrefab").objectReferenceValue = death;
+            profileData.FindProperty("collisionFumePrefab").objectReferenceValue = fumes;
             profileData.ApplyModifiedPropertiesWithoutUndo();
 
             RagdollController ragdoll = UnityEngine.Object.FindObjectOfType<RagdollController>();
@@ -93,12 +163,17 @@ namespace KickTheBuddy.Editor
             Rigidbody2D[] candyBodies = new Rigidbody2D[24];
             SpriteRenderer[] candyRenderers = new SpriteRenderer[24];
             for (int i = 0; i < candyBodies.Length; i++)
-                CreateCandyDebris(poolRoot.transform, i, out candyBodies[i], out candyRenderers[i]);
+                CreateCandyDebris(poolRoot.transform, candySprites[i % candySprites.Length], i,
+                    out candyBodies[i], out candyRenderers[i]);
 
-            Rigidbody2D[] shardBodies = new Rigidbody2D[12];
-            SpriteRenderer[] shardRenderers = new SpriteRenderer[12];
+            Rigidbody2D[] shardBodies = new Rigidbody2D[16];
+            SpriteRenderer[] shardRenderers = new SpriteRenderer[16];
             for (int i = 0; i < shardBodies.Length; i++)
-                CreateShardDebris(poolRoot.transform, shardSprite, i, out shardBodies[i], out shardRenderers[i]);
+            {
+                // Every supplied piece is used once; the spring is repeated to visibly eject the suspension hardware.
+                Sprite sprite = brokenPieceSprites[Mathf.Min(i, brokenPieceSprites.Length - 1)];
+                CreateShardDebris(poolRoot.transform, sprite, debrisMaterial, i, out shardBodies[i], out shardRenderers[i]);
+            }
 
             RagdollCandyFill2D[] fills = ragdoll.GetComponentsInChildren<RagdollCandyFill2D>(true);
             SpriteRenderer[] allRenderers = ragdoll.GetComponentsInChildren<SpriteRenderer>(true);
@@ -116,13 +191,19 @@ namespace KickTheBuddy.Editor
             AssignArray(vfxData.FindProperty("candyDebrisRenderers"), candyRenderers);
             AssignArray(vfxData.FindProperty("glassShardBodies"), shardBodies);
             AssignArray(vfxData.FindProperty("glassShardRenderers"), shardRenderers);
+            vfxData.FindProperty("maximumActiveCandyDebris").intValue = 24;
+            vfxData.FindProperty("maximumActiveGlassShards").intValue = 16;
+            vfxData.FindProperty("debrisLifetime").floatValue = 10f;
             vfxData.ApplyModifiedPropertiesWithoutUndo();
+
+            SetupCameraShake(ragdoll);
+            SetupDeathPresentationDelay();
 
             SetupCoinUI(coinSprite);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
-            Debug.Log("Complete gameplay VFX installed: pooled impacts, coins, combo/KO, death candy blast and glass shards.");
+            Debug.Log("Complete gameplay VFX installed: pooled impacts/fumes, camera shake, coins, combo/KO, candy blast, authored glass and spring debris.");
         }
 
         private static void SetupCoinUI(Sprite coinSprite)
@@ -134,7 +215,7 @@ namespace KickTheBuddy.Editor
 
             Transform previous = canvas.transform.Find("UI VFX Layer");
             if (previous != null) Undo.DestroyObjectImmediate(previous.gameObject);
-            GameObject layerObject = new GameObject("UI VFX Layer", typeof(RectTransform), typeof(CoinFlyVFXController));
+            GameObject layerObject = new GameObject("UI VFX Layer", typeof(RectTransform), typeof(Canvas), typeof(CoinFlyVFXController));
             Undo.RegisterCreatedObjectUndo(layerObject, "Create UI VFX Layer");
             layerObject.transform.SetParent(canvas.transform, false);
             layerObject.transform.SetAsLastSibling();
@@ -142,6 +223,10 @@ namespace KickTheBuddy.Editor
             layer.anchorMin = Vector2.zero;
             layer.anchorMax = Vector2.one;
             layer.offsetMin = layer.offsetMax = Vector2.zero;
+            Canvas isolatedCanvas = layerObject.GetComponent<Canvas>();
+            isolatedCanvas.overrideSorting = true;
+            isolatedCanvas.sortingOrder = 50;
+            isolatedCanvas.additionalShaderChannels = AdditionalCanvasShaderChannels.None;
 
             Image[] images = new Image[12];
             for (int i = 0; i < images.Length; i++)
@@ -168,7 +253,7 @@ namespace KickTheBuddy.Editor
             coinData.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void CreateCandyDebris(Transform parent, int index,
+        private static void CreateCandyDebris(Transform parent, Sprite sprite, int index,
             out Rigidbody2D body, out SpriteRenderer renderer)
         {
             GameObject go = new GameObject("Candy Debris " + (index + 1).ToString("00"),
@@ -176,6 +261,7 @@ namespace KickTheBuddy.Editor
             go.transform.SetParent(parent, false);
             go.transform.localScale = Vector3.one * .42f;
             renderer = go.GetComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
             renderer.sortingOrder = 105;
             body = go.GetComponent<Rigidbody2D>();
             body.mass = .08f;
@@ -189,25 +275,34 @@ namespace KickTheBuddy.Editor
             go.SetActive(false);
         }
 
-        private static void CreateShardDebris(Transform parent, Sprite sprite, int index,
+        private static void CreateShardDebris(Transform parent, Sprite sprite, PhysicsMaterial2D material, int index,
             out Rigidbody2D body, out SpriteRenderer renderer)
         {
-            GameObject go = new GameObject("Glass Shard " + (index + 1).ToString("00"),
+            bool spring = sprite != null && sprite.name.Contains("21");
+            GameObject go = new GameObject((spring ? "Spring Debris " : "Glass Debris ") + (index + 1).ToString("00"),
                 typeof(SpriteRenderer), typeof(Rigidbody2D), typeof(BoxCollider2D));
             go.transform.SetParent(parent, false);
-            go.transform.localScale = new Vector3(.22f, .38f, 1f);
+            int debrisLayer = LayerMask.NameToLayer("DeathDebris");
+            if (debrisLayer >= 0) go.layer = debrisLayer;
             renderer = go.GetComponent<SpriteRenderer>();
             renderer.sprite = sprite;
-            renderer.color = new Color(.72f, .94f, 1f, .82f);
+            renderer.color = Color.white;
             renderer.sortingOrder = 106;
+            float longestSide = sprite != null ? Mathf.Max(sprite.bounds.size.x, sprite.bounds.size.y) : 1f;
+            float desiredSize = spring ? .62f : sprite != null && sprite.name.Contains("19")
+                ? 1.1f
+                : Mathf.Lerp(.44f, .70f, (index % 5) / 4f);
+            go.transform.localScale = Vector3.one * (desiredSize / Mathf.Max(.01f, longestSide));
             body = go.GetComponent<Rigidbody2D>();
-            body.mass = .05f;
-            body.gravityScale = 1.35f;
-            body.drag = .1f;
-            body.angularDrag = .15f;
+            body.mass = spring ? .13f : Mathf.Lerp(.055f, .09f, (index % 4) / 3f);
+            body.gravityScale = spring ? 1.7f : 1.5f;
+            body.drag = .14f;
+            body.angularDrag = spring ? .32f : .16f;
             body.interpolation = RigidbodyInterpolation2D.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Discrete;
             BoxCollider2D collider = go.GetComponent<BoxCollider2D>();
-            collider.size = new Vector2(.8f, .35f);
+            collider.size = sprite != null ? sprite.bounds.size * .72f : new Vector2(.6f, .3f);
+            collider.sharedMaterial = material;
             body.simulated = false;
             go.SetActive(false);
         }
@@ -246,6 +341,217 @@ namespace KickTheBuddy.Editor
             material = new Material(shader) { name = "VFX Particle Additive" };
             AssetDatabase.CreateAsset(material, MaterialPath);
             return material;
+        }
+
+        private static Material CreateFumeMaterial()
+        {
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(FumeMaterialPath);
+            if (material != null) return material;
+            Shader shader = Shader.Find("Sprites/Default");
+            if (shader == null) throw new InvalidOperationException("Sprites/Default shader is unavailable.");
+            material = new Material(shader) { name = "MAT_CollisionFume" };
+            AssetDatabase.CreateAsset(material, FumeMaterialPath);
+            return material;
+        }
+
+        private static PhysicsMaterial2D CreateDebrisMaterial()
+        {
+            PhysicsMaterial2D material = AssetDatabase.LoadAssetAtPath<PhysicsMaterial2D>(DebrisMaterialPath);
+            if (material != null) return material;
+            material = new PhysicsMaterial2D("PMAT_GlassDebris")
+            {
+                friction = .42f,
+                bounciness = .22f
+            };
+            AssetDatabase.CreateAsset(material, DebrisMaterialPath);
+            return material;
+        }
+
+        private static ParticleSystem ConfigureFumeParticle(Material material)
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(FumePrefabPath) == null)
+            {
+                GameObject source = new GameObject("VFX_Ragdoll_CollisionFume", typeof(ParticleSystem));
+                PrefabUtility.SaveAsPrefabAsset(source, FumePrefabPath);
+                UnityEngine.Object.DestroyImmediate(source);
+            }
+
+            GameObject root = PrefabUtility.LoadPrefabContents(FumePrefabPath);
+            ParticleSystem system = root.GetComponent<ParticleSystem>();
+            ParticleSystem.MainModule main = system.main;
+            main.duration = .8f;
+            main.loop = false;
+            main.playOnAwake = false;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 18;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(.38f, .62f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(.18f, .48f);
+            main.startSize = new ParticleSystem.MinMaxCurve(.12f, .24f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(-Mathf.PI, Mathf.PI);
+            main.startColor = new ParticleSystem.MinMaxGradient(
+                new Color(1f, 1f, 1f, .42f), new Color(1f, 1f, 1f, .68f));
+
+            ParticleSystem.EmissionModule emission = system.emission;
+            emission.enabled = false;
+            ParticleSystem.ShapeModule shape = system.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = .035f;
+
+            ParticleSystem.VelocityOverLifetimeModule velocity = system.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.World;
+            velocity.x = new ParticleSystem.MinMaxCurve(-.14f, .14f);
+            velocity.y = new ParticleSystem.MinMaxCurve(.35f, .72f);
+            // Unity requires X/Y/Z velocity curves to share the same MinMaxCurve mode.
+            velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+
+            Gradient fade = new Gradient();
+            fade.SetKeys(
+                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(.86f, .92f, 1f), 1f) },
+                new[] { new GradientAlphaKey(.62f, 0f), new GradientAlphaKey(.34f, .45f), new GradientAlphaKey(0f, 1f) });
+            ParticleSystem.ColorOverLifetimeModule color = system.colorOverLifetime;
+            color.enabled = true;
+            color.color = new ParticleSystem.MinMaxGradient(fade);
+
+            ParticleSystem.SizeOverLifetimeModule size = system.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f,
+                new AnimationCurve(new Keyframe(0f, .62f), new Keyframe(1f, 1.45f)));
+
+            ParticleSystem.NoiseModule noise = system.noise;
+            noise.enabled = true;
+            noise.quality = ParticleSystemNoiseQuality.Low;
+            noise.strength = .08f;
+            noise.frequency = 1.2f;
+            noise.scrollSpeed = .22f;
+            noise.octaveCount = 1;
+            noise.damping = true;
+
+            ParticleSystemRenderer renderer = root.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.sharedMaterial = material;
+            renderer.sortingOrder = 109;
+            PrefabUtility.SaveAsPrefabAsset(root, FumePrefabPath);
+            PrefabUtility.UnloadPrefabContents(root);
+            return AssetDatabase.LoadAssetAtPath<ParticleSystem>(FumePrefabPath);
+        }
+
+        private static Sprite[] ImportBrokenPieceSprites()
+        {
+            if (!AssetDatabase.IsValidFolder(BrokenPiecesRoot))
+                throw new DirectoryNotFoundException("Missing supplied broken-piece art folder: " + BrokenPiecesRoot);
+            Sprite[] sprites = new Sprite[BrokenPieceNames.Length];
+            for (int i = 0; i < BrokenPieceNames.Length; i++)
+            {
+                string path = BrokenPiecesRoot + "/" + BrokenPieceNames[i];
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+                TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                if (importer == null) throw new InvalidOperationException("Unable to import broken-piece sprite: " + path);
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.spritePixelsPerUnit = 100f;
+                importer.mipmapEnabled = false;
+                importer.alphaIsTransparency = true;
+                importer.wrapMode = TextureWrapMode.Clamp;
+                importer.filterMode = FilterMode.Bilinear;
+                importer.textureCompression = TextureImporterCompression.Compressed;
+                importer.maxTextureSize = 256;
+                TextureImporterPlatformSettings android = importer.GetPlatformTextureSettings("Android");
+                android.name = "Android";
+                android.overridden = true;
+                android.maxTextureSize = 256;
+                android.format = TextureImporterFormat.ASTC_4x4;
+                android.compressionQuality = 50;
+                importer.SetPlatformTextureSettings(android);
+                importer.SaveAndReimport();
+                sprites[i] = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+                if (sprites[i] == null) throw new InvalidOperationException("Broken-piece sprite failed to load: " + path);
+            }
+            return sprites;
+        }
+
+        private static Sprite[] LoadCandySprites()
+        {
+            Sprite[] sprites = new Sprite[24];
+            for (int i = 0; i < sprites.Length; i++)
+            {
+                string path = CandyArtRoot + "/Candy " + (i + 1) + ".png";
+                sprites[i] = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+                if (sprites[i] == null)
+                {
+                    AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+                    sprites[i] = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+                }
+                if (sprites[i] == null) throw new InvalidOperationException("Missing candy debris sprite: " + path);
+            }
+            return sprites;
+        }
+
+        private static void CreateBrokenPiecesAtlas()
+        {
+            SpriteAtlas atlas = AssetDatabase.LoadAssetAtPath<SpriteAtlas>(BrokenPiecesAtlasPath);
+            if (atlas == null)
+            {
+                atlas = new SpriteAtlas { name = "Broken Pieces" };
+                AssetDatabase.CreateAsset(atlas, BrokenPiecesAtlasPath);
+            }
+            UnityEngine.Object[] oldPackables = atlas.GetPackables();
+            if (oldPackables.Length > 0) atlas.Remove(oldPackables);
+            UnityEngine.Object folder = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(BrokenPiecesRoot);
+            atlas.Add(new[] { folder });
+            atlas.SetIncludeInBuild(true);
+            atlas.SetPackingSettings(new SpriteAtlasPackingSettings
+            {
+                enableRotation = false,
+                enableTightPacking = true,
+                padding = 2
+            });
+            atlas.SetTextureSettings(new SpriteAtlasTextureSettings
+            {
+                readable = false,
+                generateMipMaps = false,
+                filterMode = FilterMode.Bilinear,
+                sRGB = true
+            });
+            atlas.SetPlatformSettings(new TextureImporterPlatformSettings
+            {
+                name = "Android",
+                overridden = true,
+                maxTextureSize = 512,
+                format = TextureImporterFormat.ETC2_RGBA8,
+                compressionQuality = 50
+            });
+            SpriteAtlasUtility.PackAtlases(new[] { atlas }, BuildTarget.Android);
+            EditorUtility.SetDirty(atlas);
+        }
+
+        private static void SetupCameraShake(RagdollController ragdoll)
+        {
+            Camera camera = Camera.main ?? UnityEngine.Object.FindObjectOfType<Camera>();
+            if (camera == null) throw new InvalidOperationException("Main Camera was not found.");
+            CameraShake2D shake = camera.GetComponent<CameraShake2D>();
+            if (shake == null) shake = Undo.AddComponent<CameraShake2D>(camera.gameObject);
+            SerializedObject data = new SerializedObject(shake);
+            data.FindProperty("controller").objectReferenceValue = ragdoll;
+            data.FindProperty("minimumImpactSpeed").floatValue = 4f;
+            data.FindProperty("speedForMaximumShake").floatValue = 18f;
+            data.FindProperty("damageAmplitude").floatValue = .08f;
+            data.FindProperty("damageDuration").floatValue = .14f;
+            data.FindProperty("deathAmplitude").floatValue = .24f;
+            data.FindProperty("deathDuration").floatValue = .55f;
+            data.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(shake);
+        }
+
+        private static void SetupDeathPresentationDelay()
+        {
+            GameplayManager gameplay = UnityEngine.Object.FindObjectOfType<GameplayManager>();
+            if (gameplay == null) return;
+            SerializedObject data = new SerializedObject(gameplay);
+            data.FindProperty("deathCompletionDelay").floatValue = 1.6f;
+            data.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(gameplay);
         }
 
         private static Sprite CreateSprite(string path, bool coin)

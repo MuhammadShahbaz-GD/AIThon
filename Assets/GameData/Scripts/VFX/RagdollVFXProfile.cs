@@ -9,10 +9,12 @@ namespace KickTheBuddy.VFX
         [SerializeField] private ParticleSystem comboPrefab;
         [SerializeField] private ParticleSystem knockoutPrefab;
         [SerializeField] private ParticleSystem deathPrefab;
+        [SerializeField] private ParticleSystem collisionFumePrefab;
 
         public ParticleSystem HitPrefab => hitPrefab;
         public ParticleSystem ComboPrefab => comboPrefab;
         public ParticleSystem KnockoutPrefab => knockoutPrefab;
         public ParticleSystem DeathPrefab => deathPrefab;
+        public ParticleSystem CollisionFumePrefab => collisionFumePrefab;
     }
 }

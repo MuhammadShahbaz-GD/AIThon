@@ -71,6 +71,7 @@ namespace KickTheBuddy.Physics
                 dragJoint.enabled = false;
             }
             RefreshPartDragMultipliers();
+            enabled = false;
         }
 
         internal void SetElementalEffects(RagdollElementalEffects value) => elements = value;
@@ -121,6 +122,7 @@ namespace KickTheBuddy.Physics
             if (body == null || dragJoint == null || dragging ||
                 (controller != null && controller.CurrentState == RagdollState.Frozen)) return false;
 
+            enabled = true;
             dragJoint.enabled = false;
             dragJoint.anchor = transform.InverseTransformPoint(worldPoint);
             dragJoint.target = worldPoint;
@@ -151,6 +153,7 @@ namespace KickTheBuddy.Physics
             if (dragJoint != null) dragJoint.enabled = false;
             controller?.NotifyExternalDragEnded(body);
             Released?.Invoke(this, point);
+            enabled = false;
         }
 
         public void ApplyPointForce(Rigidbody2D hitLimb, Vector2 direction, float force)

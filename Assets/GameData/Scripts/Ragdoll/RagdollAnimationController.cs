@@ -32,6 +32,9 @@ namespace KickTheBuddy.Physics
     {
         [Header("Optional Authored Animator")]
         [SerializeField] private Animator animator;
+        [SerializeField] private Camera inputCamera;
+        [Tooltip("Only the main character skin renderers should be tinted; candy and debris renderers are excluded.")]
+        [SerializeField] private SpriteRenderer[] bodyRenderers = Array.Empty<SpriteRenderer>();
 
         [Header("Idle")]
         [Min(0f)] [SerializeField] private float idleDelay = 2.5f;
@@ -43,6 +46,7 @@ namespace KickTheBuddy.Physics
         [Min(.25f)] [SerializeField] private float minimumExpressionDuration = 1.5f;
         [Min(.25f)] [SerializeField] private float maximumExpressionDuration = 3.5f;
         [Min(0f)] [SerializeField] private float expressionBlendSpeed = 10f;
+        [Range(15f, 60f)] [SerializeField] private float faceUpdateRate = 30f;
 
         [Header("Face Layout")]
         [Tooltip("Moves the complete procedural face in the head's local space.")]
@@ -80,7 +84,6 @@ namespace KickTheBuddy.Physics
         private Transform leftPupil;
         private Transform rightPupil;
         private Transform mouth;
-        private SpriteRenderer[] bodyRenderers = Array.Empty<SpriteRenderer>();
         private Color[] baseColors = Array.Empty<Color>();
         private RagdollAnimationState state;
         private Vector2 dragPoint;
@@ -95,6 +98,9 @@ namespace KickTheBuddy.Physics
         private IdleFaceExpression idleExpression;
         private float nextIdleExpressionTime;
         private float curiousDirection = 1f;
+        private float nextFaceUpdateTime;
+        private Color lastTintColor;
+        private float lastTintBlend = -1f;
 
         public event Action<RagdollAnimationState> StateChanged;
         public event Action<RagdollPartHealth, float> DamageReactionPlayed;
@@ -109,6 +115,7 @@ namespace KickTheBuddy.Physics
             controller = GetComponent<RagdollController>();
             damageManager = GetComponent<RagdollDamageManager>();
             inputManager = GetComponent<RagdollInputManager>();
+            if (inputCamera == null) inputCamera = Camera.main;
 
             RagdollLifeVisuals legacyVisuals = GetComponent<RagdollLifeVisuals>();
             if (legacyVisuals != null) legacyVisuals.enabled = false;
@@ -116,7 +123,8 @@ namespace KickTheBuddy.Physics
             head = FindChildContaining(transform, "head");
             if (head != null) CreateFaceIfNeeded();
 
-            bodyRenderers = GetComponentsInChildren<SpriteRenderer>(true);
+            if (bodyRenderers == null || bodyRenderers.Length == 0)
+                bodyRenderers = GetComponentsInChildren<SpriteRenderer>(true);
             baseColors = new Color[bodyRenderers.Length];
             for (int i = 0; i < bodyRenderers.Length; i++)
                 baseColors[i] = bodyRenderers[i] != null ? bodyRenderers[i].color : Color.white;
@@ -163,7 +171,13 @@ namespace KickTheBuddy.Physics
         private void Update()
         {
             UpdateState();
-            UpdateFace();
+            float now = Time.unscaledTime;
+            if (now >= nextFaceUpdateTime)
+            {
+                float interval = 1f / Mathf.Max(1f, faceUpdateRate);
+                nextFaceUpdateTime = now + interval;
+                UpdateFace(interval);
+            }
             UpdateBodyTint();
         }
 
@@ -206,6 +220,7 @@ namespace KickTheBuddy.Physics
         {
             if (state == next) return;
             state = next;
+            lastTintBlend = -1f;
 
             if (animator != null)
             {
@@ -234,6 +249,7 @@ namespace KickTheBuddy.Physics
             reactionStrength = Mathf.Clamp01((damage / 25f) * (part != null ? part.DamageReactionStrength : 1f));
             hurtUntil = Time.time + damageReactionDuration * Mathf.Lerp(.75f, 1.5f, reactionStrength);
             lastInteractionTime = Time.time;
+            lastTintBlend = -1f;
 
             if (animator != null)
             {
@@ -293,7 +309,7 @@ namespace KickTheBuddy.Physics
             public Vector2 FaceMotion;
         }
 
-        private void UpdateFace()
+        private void UpdateFace(float deltaTime)
         {
             if (face == null || leftEye == null || rightEye == null ||
                 leftPupil == null || rightPupil == null || mouth == null) return;
@@ -307,7 +323,7 @@ namespace KickTheBuddy.Physics
 
             float blend = expressionBlendSpeed <= 0f
                 ? 1f
-                : 1f - Mathf.Exp(-expressionBlendSpeed * Time.deltaTime);
+                : 1f - Mathf.Exp(-expressionBlendSpeed * deltaTime);
 
             Vector3 targetFacePosition = new Vector3(
                 facePositionOffset.x + pose.FaceMotion.x,
@@ -548,6 +564,10 @@ namespace KickTheBuddy.Physics
                 blend = tintStrength;
             }
 
+            if (Mathf.Abs(lastTintBlend - blend) < .0001f && lastTintColor == target) return;
+            lastTintBlend = blend;
+            lastTintColor = target;
+
             for (int i = 0; i < bodyRenderers.Length; i++)
             {
                 SpriteRenderer renderer = bodyRenderers[i];
@@ -558,9 +578,8 @@ namespace KickTheBuddy.Physics
 
         private Vector2 DirectionToPointer()
         {
-            Camera camera = Camera.main;
-            if (camera == null || head == null) return Vector2.zero;
-            Vector3 world = camera.ScreenToWorldPoint(Input.mousePosition);
+            if (inputCamera == null || head == null) return Vector2.zero;
+            Vector3 world = inputCamera.ScreenToWorldPoint(Input.mousePosition);
             return head.InverseTransformDirection(world - head.position).normalized;
         }
 
@@ -580,6 +599,7 @@ namespace KickTheBuddy.Physics
         {
             for (int i = 0; i < bodyRenderers.Length; i++)
                 if (bodyRenderers[i] != null) bodyRenderers[i].color = baseColors[i];
+            lastTintBlend = -1f;
         }
 
         private void ScheduleBlink()
@@ -659,6 +679,7 @@ namespace KickTheBuddy.Physics
             minimumExpressionDuration = Mathf.Max(.25f, minimumExpressionDuration);
             maximumExpressionDuration = Mathf.Max(minimumExpressionDuration, maximumExpressionDuration);
             expressionBlendSpeed = Mathf.Max(0f, expressionBlendSpeed);
+            faceUpdateRate = Mathf.Clamp(faceUpdateRate, 15f, 60f);
             faceScale.x = Mathf.Max(.01f, faceScale.x);
             faceScale.y = Mathf.Max(.01f, faceScale.y);
             pupilScale.x = Mathf.Max(.01f, pupilScale.x);
