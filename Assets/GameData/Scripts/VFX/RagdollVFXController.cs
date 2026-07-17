@@ -26,6 +26,18 @@ namespace KickTheBuddy.VFX
         [Range(4, 20)] [SerializeField] private int maximumActiveGlassShards = 16;
         [Min(1f)] [SerializeField] private float debrisLifetime = 10f;
 
+        [Header("Torso-Mapped Death Burst")]
+        [Tooltip("All pooled debris is packed around this body before the death burst.")]
+        [SerializeField] private Rigidbody2D deathDebrisOriginBody;
+        [SerializeField] private Camera gameplayCamera;
+        [SerializeField] private Vector2 torsoPackingSize = new Vector2(1.55f, 1.55f);
+        [SerializeField] private float floorWorldY = -3.95f;
+        [Min(0f)] [SerializeField] private float screenEdgePadding = .55f;
+        [SerializeField] private Vector2 candyFlightTimeRange = new Vector2(1.08f, 1.36f);
+        [SerializeField] private Vector2 glassFlightTimeRange = new Vector2(.92f, 1.22f);
+        [Min(1f)] [SerializeField] private float maximumDebrisSpeed = 12f;
+        [SerializeField] private Vector2 angularVelocityRange = new Vector2(220f, 520f);
+
         [Header("Impact")]
         [SerializeField] private Color lightHitColor = new Color(1f, .85f, .25f);
         [SerializeField] private Color heavyHitColor = new Color(1f, .18f, .12f);
@@ -134,13 +146,14 @@ namespace KickTheBuddy.VFX
         {
             if (deathPlayed) return;
             deathPlayed = true;
-            if (deathParticle != null) PlayBurst(deathParticle, point);
-            ReleaseCandyDebris(point);
-            ReleaseGlassShards(point);
+            Vector2 debrisOrigin = ResolveDebrisOrigin(point);
+            if (deathParticle != null) PlayBurst(deathParticle, debrisOrigin);
+            ReleaseCandyDebris(debrisOrigin);
+            ReleaseGlassShards(debrisOrigin);
             SetCharacterRenderers(false);
             if (debrisCleanup != null) StopCoroutine(debrisCleanup);
             debrisCleanup = StartCoroutine(ResetDebrisAfterDelay());
-            DeathEffectPlayed?.Invoke(point);
+            DeathEffectPlayed?.Invoke(debrisOrigin);
         }
 
         private void HandleRevived()
@@ -158,16 +171,14 @@ namespace KickTheBuddy.VFX
         private void ReleaseCandyDebris(Vector2 origin)
         {
             int candyLimit = Mathf.Min(maximumActiveCandyDebris, candyDebrisBodies.Length);
-            int partCount = controller != null ? controller.Parts.Count : 0;
             for (int index = 0; index < candyLimit; index++)
             {
-                Rigidbody2D partBody = partCount > 0 ? controller.Parts[index % partCount].Body : null;
-                Vector2 center = partBody != null ? partBody.worldCenterOfMass : origin;
+                Vector2 position = ResolvePackedPosition(index, candyLimit, origin, 0f);
+                Vector2 landingPoint = ResolveLandingPoint(index, candyLimit, .11f);
                 ActivateDebris(candyDebrisBodies[index],
                     index < candyDebrisRenderers.Length ? candyDebrisRenderers[index] : null,
-                    null, center + UnityEngine.Random.insideUnitCircle * .16f,
-                    Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(0f, 360f)),
-                    origin, 3f, 7f, 1.8f);
+                    position, Quaternion.Euler(0f, 0f, Hash01(index, .27f) * 360f),
+                    landingPoint, ResolveFlightTime(index, candyFlightTimeRange, .47f), index, .31f);
             }
 
             // Authored fill visuals are presentation-only. Hide them even when an optimized scene
@@ -183,57 +194,59 @@ namespace KickTheBuddy.VFX
         private void ReleaseGlassShards(Vector2 origin)
         {
             int shardLimit = Mathf.Min(maximumActiveGlassShards, glassShardBodies.Length);
-            int partCount = controller != null ? controller.Parts.Count : 0;
             for (int index = 0; index < shardLimit; index++)
             {
-                Rigidbody2D partBody = partCount > 0 ? controller.Parts[index % partCount].Body : null;
-                Vector2 center = partBody != null ? partBody.worldCenterOfMass : origin;
+                Vector2 position = ResolvePackedPosition(index, shardLimit, origin, 74f);
+                Vector2 landingPoint = ResolveLandingPoint(index, shardLimit, .59f);
                 ActivateDebris(glassShardBodies[index],
                     index < glassShardRenderers.Length ? glassShardRenderers[index] : null,
-                    null, center + UnityEngine.Random.insideUnitCircle * .14f,
-                    Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(0f, 360f)),
-                    origin, 5f, 9f, 2.8f);
+                    position, Quaternion.Euler(0f, 0f, Hash01(index, .73f) * 360f),
+                    landingPoint, ResolveFlightTime(index, glassFlightTimeRange, .83f), index, .67f);
             }
         }
 
-        private static void ActivateDebris(Rigidbody2D body, SpriteRenderer renderer, Sprite sprite,
-            Vector2 position, Quaternion rotation, Vector2 origin, float minimumForce, float maximumForce, float lift)
+        private void ActivateDebris(Rigidbody2D body, SpriteRenderer renderer, Vector2 position,
+            Quaternion rotation, Vector2 landingPoint, float flightTime, int index, float spinPhase)
         {
             if (body == null) return;
             body.gameObject.SetActive(true);
             body.transform.SetPositionAndRotation(position, rotation);
             if (renderer != null)
             {
-                if (sprite != null) renderer.sprite = sprite;
                 renderer.enabled = true;
             }
-            Collider2D collider = body.GetComponent<Collider2D>();
-            if (collider != null) collider.enabled = true;
             body.simulated = true;
-            body.velocity = Vector2.zero;
-            body.angularVelocity = 0f;
-            Vector2 direction = position - origin;
-            if (direction.sqrMagnitude < .001f) direction = UnityEngine.Random.insideUnitCircle;
-            direction = (direction.normalized + Vector2.up * .55f).normalized;
-            body.AddForce(direction * UnityEngine.Random.Range(minimumForce, maximumForce) + Vector2.up * lift,
-                ForceMode2D.Impulse);
-            body.AddTorque(UnityEngine.Random.Range(-1.2f, 1.2f), ForceMode2D.Impulse);
+            body.velocity = ResolveBallisticVelocity(body, position, landingPoint, flightTime);
+            float spin = Mathf.Lerp(angularVelocityRange.x, angularVelocityRange.y, Hash01(index, spinPhase));
+            body.angularVelocity = (index & 1) == 0 ? spin : -spin;
         }
 
         private void ResetDebris()
         {
-            ResetPool(candyDebrisBodies);
-            ResetPool(glassShardBodies);
+            ResetPool(candyDebrisBodies, 0f);
+            ResetPool(glassShardBodies, 74f);
         }
 
         private IEnumerator ResetDebrisAfterDelay()
         {
-            yield return new WaitForSecondsRealtime(debrisLifetime);
+            float fastFlightDuration = Mathf.Min(1.75f, debrisLifetime);
+            yield return new WaitForSecondsRealtime(fastFlightDuration);
+            SetCollisionMode(candyDebrisBodies, CollisionDetectionMode2D.Discrete);
+            SetCollisionMode(glassShardBodies, CollisionDetectionMode2D.Discrete);
+            float remainingLifetime = debrisLifetime - fastFlightDuration;
+            if (remainingLifetime > 0f) yield return new WaitForSecondsRealtime(remainingLifetime);
             debrisCleanup = null;
             ResetDebris();
         }
 
-        private static void ResetPool(Rigidbody2D[] pool)
+        private static void SetCollisionMode(Rigidbody2D[] pool, CollisionDetectionMode2D mode)
+        {
+            for (int i = 0; i < pool.Length; i++)
+                if (pool[i] != null && pool[i].simulated)
+                    pool[i].collisionDetectionMode = mode;
+        }
+
+        private void ResetPool(Rigidbody2D[] pool, float phaseDegrees)
         {
             for (int i = 0; i < pool.Length; i++)
             {
@@ -241,9 +254,63 @@ namespace KickTheBuddy.VFX
                 pool[i].velocity = Vector2.zero;
                 pool[i].angularVelocity = 0f;
                 pool[i].simulated = false;
+                pool[i].collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+                Vector2 fallback = deathDebrisOriginBody != null ? deathDebrisOriginBody.worldCenterOfMass : (Vector2)transform.position;
+                pool[i].transform.position = ResolvePackedPosition(i, pool.Length, fallback, phaseDegrees);
                 pool[i].gameObject.SetActive(false);
             }
         }
+
+        private Vector2 ResolveDebrisOrigin(Vector2 fallback) => deathDebrisOriginBody != null
+            ? deathDebrisOriginBody.worldCenterOfMass
+            : fallback;
+
+        private Vector2 ResolvePackedPosition(int index, int count, Vector2 origin, float phaseDegrees)
+        {
+            if (count <= 0) return origin;
+            float radius = Mathf.Sqrt((index + .5f) / count);
+            float angle = (index * 137.50777f + phaseDegrees) * Mathf.Deg2Rad;
+            Vector2 localOffset = new Vector2(
+                Mathf.Cos(angle) * torsoPackingSize.x * .5f * radius,
+                Mathf.Sin(angle) * torsoPackingSize.y * .5f * radius);
+            float bodyAngle = deathDebrisOriginBody != null ? deathDebrisOriginBody.rotation : 0f;
+            return origin + (Vector2)(Quaternion.Euler(0f, 0f, bodyAngle) * localOffset);
+        }
+
+        private Vector2 ResolveLandingPoint(int index, int count, float phase)
+        {
+            float centerX = deathDebrisOriginBody != null ? deathDebrisOriginBody.worldCenterOfMass.x : transform.position.x;
+            float halfWidth = 3.5f;
+            if (gameplayCamera != null && gameplayCamera.orthographic)
+            {
+                centerX = gameplayCamera.transform.position.x;
+                halfWidth = gameplayCamera.orthographicSize * gameplayCamera.aspect;
+            }
+
+            float left = centerX - halfWidth + screenEdgePadding;
+            float right = centerX + halfWidth - screenEdgePadding;
+            if (right < left) right = left;
+            float normalizedX = count > 1 ? Hash01(index, phase) : .5f;
+            // The center offset keeps the Rigidbody center above the floor collider at touchdown.
+            return new Vector2(Mathf.Lerp(left, right, normalizedX), floorWorldY + .14f);
+        }
+
+        private static float ResolveFlightTime(int index, Vector2 range, float phase) =>
+            Mathf.Lerp(range.x, range.y, Hash01(index, phase));
+
+        private Vector2 ResolveBallisticVelocity(Rigidbody2D body, Vector2 position, Vector2 target, float flightTime)
+        {
+            float time = Mathf.Max(.1f, flightTime);
+            Vector2 displacement = target - position;
+            float gravity = Physics2D.gravity.y * body.gravityScale;
+            // s = v*t + 0.5*g*t^2, solved for v so each pooled body lands inside the camera view.
+            Vector2 velocity = new Vector2(
+                displacement.x / time,
+                (displacement.y - .5f * gravity * time * time) / time);
+            return Vector2.ClampMagnitude(velocity, maximumDebrisSpeed);
+        }
+
+        private static float Hash01(int index, float phase) => Mathf.Repeat(index * .61803398875f + phase, 1f);
 
         private void SetCharacterRenderers(bool restore)
         {
@@ -299,6 +366,19 @@ namespace KickTheBuddy.VFX
             debrisLifetime = Mathf.Max(1f, debrisLifetime);
             maximumActiveCandyDebris = Mathf.Clamp(maximumActiveCandyDebris, 4, 24);
             maximumActiveGlassShards = Mathf.Clamp(maximumActiveGlassShards, 4, 20);
+            torsoPackingSize.x = Mathf.Max(.1f, torsoPackingSize.x);
+            torsoPackingSize.y = Mathf.Max(.1f, torsoPackingSize.y);
+            screenEdgePadding = Mathf.Max(0f, screenEdgePadding);
+            candyFlightTimeRange = SortPositiveRange(candyFlightTimeRange);
+            glassFlightTimeRange = SortPositiveRange(glassFlightTimeRange);
+            angularVelocityRange = SortPositiveRange(angularVelocityRange);
+            maximumDebrisSpeed = Mathf.Max(1f, maximumDebrisSpeed);
+        }
+
+        private static Vector2 SortPositiveRange(Vector2 range)
+        {
+            float minimum = Mathf.Max(.1f, Mathf.Min(range.x, range.y));
+            return new Vector2(minimum, Mathf.Max(minimum, Mathf.Max(range.x, range.y)));
         }
     }
 }

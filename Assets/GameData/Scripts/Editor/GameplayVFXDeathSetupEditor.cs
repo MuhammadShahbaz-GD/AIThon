@@ -1,5 +1,6 @@
 ﻿#if UNITY_EDITOR
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using KickTheBuddy.Gameplay;
@@ -51,13 +52,62 @@ namespace KickTheBuddy.Editor
             SetupScene(EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single));
         }
 
+        [MenuItem("Tools/Ragdoll/VFX/Apply Torso Floor Death Burst")]
+        public static void ApplyTorsoFloorBurstActiveScene() => ApplyTorsoFloorBurst(EditorSceneManager.GetActiveScene());
+
+        public static void ApplyTorsoFloorBurstBatch() =>
+            ApplyTorsoFloorBurst(EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single));
+
+        private static void ApplyTorsoFloorBurst(Scene scene)
+        {
+            RagdollController ragdoll = UnityEngine.Object.FindObjectOfType<RagdollController>();
+            RagdollVFXController vfx = ragdoll != null ? ragdoll.GetComponent<RagdollVFXController>() : null;
+            if (ragdoll == null || vfx == null) throw new InvalidOperationException("Active ragdoll VFX controller was not found.");
+
+            Rigidbody2D torsoBody = ResolveTorsoBody(ragdoll);
+            Camera gameplayCamera = Camera.main;
+            Collider2D floorCollider = ResolveSceneCollider("Floor");
+            if (torsoBody == null || gameplayCamera == null || floorCollider == null)
+                throw new InvalidOperationException($"Death debris references missing: torso={torsoBody != null}, camera={gameplayCamera != null}, floor={floorCollider != null}.");
+
+            SerializedObject data = new SerializedObject(vfx);
+            Rigidbody2D[] candyBodies = ReadBodyArray(data.FindProperty("candyDebrisBodies"));
+            Rigidbody2D[] glassBodies = ReadBodyArray(data.FindProperty("glassShardBodies"));
+            if (candyBodies.Length != 24 || glassBodies.Length != 16)
+                throw new InvalidOperationException("Expected the existing 24-candy and 16-glass pooled bodies.");
+
+            Vector2 packingSize = ResolveTorsoPackingSize(torsoBody);
+            ConfigureExistingPool(candyBodies, true);
+            ConfigureExistingPool(glassBodies, false);
+            MapPoolToTorso(candyBodies, torsoBody, packingSize, 0f);
+            MapPoolToTorso(glassBodies, torsoBody, packingSize, 74f);
+
+            data.FindProperty("deathDebrisOriginBody").objectReferenceValue = torsoBody;
+            data.FindProperty("gameplayCamera").objectReferenceValue = gameplayCamera;
+            data.FindProperty("torsoPackingSize").vector2Value = packingSize;
+            data.FindProperty("floorWorldY").floatValue = floorCollider.bounds.max.y;
+            data.FindProperty("screenEdgePadding").floatValue = .55f;
+            data.FindProperty("candyFlightTimeRange").vector2Value = new Vector2(1.08f, 1.36f);
+            data.FindProperty("glassFlightTimeRange").vector2Value = new Vector2(.92f, 1.22f);
+            data.FindProperty("maximumDebrisSpeed").floatValue = 12f;
+            data.FindProperty("angularVelocityRange").vector2Value = new Vector2(220f, 520f);
+            data.ApplyModifiedPropertiesWithoutUndo();
+
+            EditorUtility.SetDirty(vfx);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            Debug.Log("Torso floor death burst applied in place: existing 24 candy and 16 glass/spring bodies preserved and remapped.");
+        }
+
         [MenuItem("Tools/Ragdoll/VFX/Preview Death Explosion _F8")]
         public static void PreviewDeathExplosion()
         {
             RagdollController ragdoll = UnityEngine.Object.FindObjectOfType<RagdollController>();
             if (!Application.isPlaying || ragdoll == null) return;
             RagdollDamageManager damage = ragdoll.GetComponent<RagdollDamageManager>();
-            if (damage == null) return;
+            RagdollVFXController vfx = ragdoll.GetComponent<RagdollVFXController>();
+            if (damage == null || vfx == null) return;
             for (int i = 0; i < ragdoll.Parts.Count; i++)
             {
                 RagdollController.RagdollPart part = ragdoll.Parts[i];
@@ -75,7 +125,10 @@ namespace KickTheBuddy.Editor
                 if (!applied || activeDebris != 40)
                     Debug.LogError($"Death VFX preview failed: damageApplied={applied}, activeDebris={activeDebris}/40.", ragdoll);
                 else
+                {
                     Debug.Log("Death VFX preview passed: 24 candies + 16 glass/spring pieces are physically active. Restart the level to reset.", ragdoll);
+                    vfx.StartCoroutine(ValidateFloorBurstAfterFlight(pool, ragdoll));
+                }
                 return;
             }
             Debug.LogWarning("No active critical ragdoll part was found for the death preview.", ragdoll);
@@ -83,6 +136,46 @@ namespace KickTheBuddy.Editor
 
         [MenuItem("Tools/Ragdoll/VFX/Preview Death Explosion _F8", true)]
         private static bool CanPreviewDeathExplosion() => Application.isPlaying;
+
+        private static IEnumerator ValidateFloorBurstAfterFlight(Transform pool, RagdollController context)
+        {
+            yield return new WaitForSecondsRealtime(1.65f);
+            Camera camera = Camera.main;
+            Collider2D floor = ResolveSceneCollider("Floor");
+            if (pool == null || camera == null || floor == null)
+            {
+                Debug.LogError("Death floor-burst validation is missing its pool, camera, or floor.", context);
+                yield break;
+            }
+
+            Rigidbody2D[] bodies = pool.GetComponentsInChildren<Rigidbody2D>(true);
+            float halfWidth = camera.orthographicSize * camera.aspect;
+            float left = camera.transform.position.x - halfWidth;
+            float right = camera.transform.position.x + halfWidth;
+            float minimumCandyX = float.PositiveInfinity;
+            float maximumCandyX = float.NegativeInfinity;
+            int visibleCandy = 0;
+            int candyInsideView = 0;
+            int candyOnFloor = 0;
+            for (int i = 0; i < bodies.Length; i++)
+            {
+                Rigidbody2D body = bodies[i];
+                if (body == null || !body.name.StartsWith("Candy Debris", StringComparison.Ordinal)) continue;
+                SpriteRenderer renderer = body.GetComponent<SpriteRenderer>();
+                if (body.gameObject.activeSelf && body.simulated && renderer != null && renderer.enabled) visibleCandy++;
+                float x = body.position.x;
+                minimumCandyX = Mathf.Min(minimumCandyX, x);
+                maximumCandyX = Mathf.Max(maximumCandyX, x);
+                if (x >= left && x <= right) candyInsideView++;
+                if (body.position.y <= floor.bounds.max.y + .85f) candyOnFloor++;
+            }
+
+            float spread = maximumCandyX - minimumCandyX;
+            if (visibleCandy != 24 || candyInsideView < 22 || candyOnFloor < 18 || spread < 3.5f)
+                Debug.LogError($"Death floor burst failed: visibleCandy={visibleCandy}/24, insideView={candyInsideView}/24, onFloor={candyOnFloor}/24, spread={spread:F2}.", context);
+            else
+                Debug.Log($"DEATH_FLOOR_BURST_PLAYMODE_OK: 24 candy bodies visible, {candyInsideView} inside camera, {candyOnFloor} on floor, spread={spread:F2}.", context);
+        }
 
         public static void ValidateSandboxBatch()
         {
@@ -97,6 +190,16 @@ namespace KickTheBuddy.Editor
                 data.FindProperty("candyFills").arraySize != 6 ||
                 data.FindProperty("maximumActiveCandyDebris").intValue != 24)
                 throw new InvalidOperationException("Death VFX pools are not correctly authored.");
+            Rigidbody2D torsoBody = data.FindProperty("deathDebrisOriginBody").objectReferenceValue as Rigidbody2D;
+            Camera gameplayCamera = data.FindProperty("gameplayCamera").objectReferenceValue as Camera;
+            Vector2 packingSize = data.FindProperty("torsoPackingSize").vector2Value;
+            if (torsoBody == null || gameplayCamera == null)
+                throw new InvalidOperationException("Torso-mapped death burst references are missing.");
+            ValidatePoolMappedToTorso(data.FindProperty("candyDebrisBodies"), torsoBody, packingSize);
+            ValidatePoolMappedToTorso(data.FindProperty("glassShardBodies"), torsoBody, packingSize);
+            Collider2D floor = ResolveSceneCollider("Floor");
+            if (floor == null || Mathf.Abs(data.FindProperty("floorWorldY").floatValue - floor.bounds.max.y) > .05f)
+                throw new InvalidOperationException("Death debris floor target is not mapped to the authored Floor collider.");
             RagdollVFXProfile configuredProfile = data.FindProperty("profile").objectReferenceValue as RagdollVFXProfile;
             if (configuredProfile == null || configuredProfile.CollisionFumePrefab == null)
                 throw new InvalidOperationException("The shared collision fume prefab is not assigned.");
@@ -113,7 +216,7 @@ namespace KickTheBuddy.Editor
             SerializedObject coinData = new SerializedObject(coins);
             if (coinData.FindProperty("coinPool").arraySize != 12)
                 throw new InvalidOperationException("Coin UI pool is not correctly authored.");
-            Debug.Log("Complete gameplay VFX validation passed: shared hit/fume emitters, damage/death shake, 24 candy debris, 16 authored glass/spring pieces, 12 UI coins.");
+            Debug.Log("Complete gameplay VFX validation passed: torso-mapped pools, camera-contained ballistic floor burst, 24 visible candies, 16 glass/spring pieces, shared impacts/fumes, and 12 UI coins.");
         }
 
         private static void SetupScene(Scene scene)
@@ -153,6 +256,12 @@ namespace KickTheBuddy.Editor
             if (ragdoll == null) throw new InvalidOperationException("RagdollController not found.");
             RagdollVFXController vfx = ragdoll.GetComponent<RagdollVFXController>();
             if (vfx == null) vfx = Undo.AddComponent<RagdollVFXController>(ragdoll.gameObject);
+            Rigidbody2D torsoBody = ResolveTorsoBody(ragdoll);
+            Camera gameplayCamera = Camera.main;
+            Collider2D floorCollider = ResolveSceneCollider("Floor");
+            if (torsoBody == null || gameplayCamera == null || floorCollider == null)
+                throw new InvalidOperationException($"Death debris references missing: torso={torsoBody != null}, camera={gameplayCamera != null}, floor={floorCollider != null}.");
+            Vector2 torsoPackingSize = ResolveTorsoPackingSize(torsoBody);
 
             Transform oldPool = ragdoll.transform.Find("VFX Death Debris Pool");
             if (oldPool != null) Undo.DestroyObjectImmediate(oldPool.gameObject);
@@ -174,6 +283,8 @@ namespace KickTheBuddy.Editor
                 Sprite sprite = brokenPieceSprites[Mathf.Min(i, brokenPieceSprites.Length - 1)];
                 CreateShardDebris(poolRoot.transform, sprite, debrisMaterial, i, out shardBodies[i], out shardRenderers[i]);
             }
+            MapPoolToTorso(candyBodies, torsoBody, torsoPackingSize, 0f);
+            MapPoolToTorso(shardBodies, torsoBody, torsoPackingSize, 74f);
 
             RagdollCandyFill2D[] fills = ragdoll.GetComponentsInChildren<RagdollCandyFill2D>(true);
             SpriteRenderer[] allRenderers = ragdoll.GetComponentsInChildren<SpriteRenderer>(true);
@@ -194,6 +305,15 @@ namespace KickTheBuddy.Editor
             vfxData.FindProperty("maximumActiveCandyDebris").intValue = 24;
             vfxData.FindProperty("maximumActiveGlassShards").intValue = 16;
             vfxData.FindProperty("debrisLifetime").floatValue = 10f;
+            vfxData.FindProperty("deathDebrisOriginBody").objectReferenceValue = torsoBody;
+            vfxData.FindProperty("gameplayCamera").objectReferenceValue = gameplayCamera;
+            vfxData.FindProperty("torsoPackingSize").vector2Value = torsoPackingSize;
+            vfxData.FindProperty("floorWorldY").floatValue = floorCollider.bounds.max.y;
+            vfxData.FindProperty("screenEdgePadding").floatValue = .55f;
+            vfxData.FindProperty("candyFlightTimeRange").vector2Value = new Vector2(1.08f, 1.36f);
+            vfxData.FindProperty("glassFlightTimeRange").vector2Value = new Vector2(.92f, 1.22f);
+            vfxData.FindProperty("maximumDebrisSpeed").floatValue = 12f;
+            vfxData.FindProperty("angularVelocityRange").vector2Value = new Vector2(220f, 520f);
             vfxData.ApplyModifiedPropertiesWithoutUndo();
 
             SetupCameraShake(ragdoll);
@@ -259,10 +379,10 @@ namespace KickTheBuddy.Editor
             GameObject go = new GameObject("Candy Debris " + (index + 1).ToString("00"),
                 typeof(SpriteRenderer), typeof(Rigidbody2D), typeof(CircleCollider2D));
             go.transform.SetParent(parent, false);
-            go.transform.localScale = Vector3.one * .42f;
+            go.transform.localScale = Vector3.one * .55f;
             renderer = go.GetComponent<SpriteRenderer>();
             renderer.sprite = sprite;
-            renderer.sortingOrder = 105;
+            renderer.sortingOrder = 112;
             body = go.GetComponent<Rigidbody2D>();
             body.mass = .08f;
             body.gravityScale = 1.25f;
@@ -287,7 +407,7 @@ namespace KickTheBuddy.Editor
             renderer = go.GetComponent<SpriteRenderer>();
             renderer.sprite = sprite;
             renderer.color = Color.white;
-            renderer.sortingOrder = 106;
+            renderer.sortingOrder = 113;
             float longestSide = sprite != null ? Mathf.Max(sprite.bounds.size.x, sprite.bounds.size.y) : 1f;
             float desiredSize = spring ? .62f : sprite != null && sprite.name.Contains("19")
                 ? 1.1f
@@ -299,7 +419,7 @@ namespace KickTheBuddy.Editor
             body.drag = .14f;
             body.angularDrag = spring ? .32f : .16f;
             body.interpolation = RigidbodyInterpolation2D.Interpolate;
-            body.collisionDetectionMode = CollisionDetectionMode2D.Discrete;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             BoxCollider2D collider = go.GetComponent<BoxCollider2D>();
             collider.size = sprite != null ? sprite.bounds.size * .72f : new Vector2(.6f, .3f);
             collider.sharedMaterial = material;
@@ -552,6 +672,111 @@ namespace KickTheBuddy.Editor
             data.FindProperty("deathCompletionDelay").floatValue = 1.6f;
             data.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(gameplay);
+        }
+
+        private static Rigidbody2D ResolveTorsoBody(RagdollController ragdoll)
+        {
+            for (int i = 0; i < ragdoll.Parts.Count; i++)
+            {
+                RagdollController.RagdollPart part = ragdoll.Parts[i];
+                if (part != null && part.PartType == RagdollPartType.Torso && part.Body != null)
+                    return part.Body;
+            }
+
+            RagdollRigController2D rig = ragdoll.GetComponent<RagdollRigController2D>();
+            if (rig == null) return null;
+            SerializedProperty authoredParts = new SerializedObject(rig).FindProperty("authoredParts");
+            for (int i = 0; i < authoredParts.arraySize; i++)
+            {
+                SerializedProperty part = authoredParts.GetArrayElementAtIndex(i);
+                if (part.FindPropertyRelative("partType").enumValueIndex != (int)RagdollPartType.Torso) continue;
+                return part.FindPropertyRelative("body").objectReferenceValue as Rigidbody2D;
+            }
+            return null;
+        }
+
+        private static void ValidatePoolMappedToTorso(SerializedProperty pool, Rigidbody2D torsoBody, Vector2 packingSize)
+        {
+            Quaternion inverseRotation = Quaternion.Euler(0f, 0f, -torsoBody.rotation);
+            Vector2 origin = torsoBody.worldCenterOfMass;
+            for (int i = 0; i < pool.arraySize; i++)
+            {
+                Rigidbody2D body = pool.GetArrayElementAtIndex(i).objectReferenceValue as Rigidbody2D;
+                if (body == null) throw new InvalidOperationException("Death debris pool contains a missing body.");
+                Vector2 local = inverseRotation * ((Vector2)body.transform.position - origin);
+                if (Mathf.Abs(local.x) > packingSize.x * .55f || Mathf.Abs(local.y) > packingSize.y * .55f)
+                    throw new InvalidOperationException(body.name + " is not authored inside the torso packing area.");
+                if (body.gameObject.activeSelf || body.simulated)
+                    throw new InvalidOperationException(body.name + " must begin inactive and unsimulated in the pool.");
+            }
+        }
+
+        private static Collider2D ResolveSceneCollider(string objectName)
+        {
+            Collider2D[] colliders = UnityEngine.Object.FindObjectsOfType<Collider2D>(true);
+            for (int i = 0; i < colliders.Length; i++)
+                if (colliders[i] != null && colliders[i].name == objectName)
+                    return colliders[i];
+            return null;
+        }
+
+        private static Vector2 ResolveTorsoPackingSize(Rigidbody2D torsoBody)
+        {
+            Collider2D torsoCollider = torsoBody.GetComponent<Collider2D>();
+            Vector2 size = torsoCollider != null ? torsoCollider.bounds.size : new Vector2(2f, 2f);
+            return new Vector2(Mathf.Max(.5f, size.x * .68f), Mathf.Max(.5f, size.y * .68f));
+        }
+
+        private static Rigidbody2D[] ReadBodyArray(SerializedProperty property)
+        {
+            var bodies = new Rigidbody2D[property.arraySize];
+            for (int i = 0; i < bodies.Length; i++)
+                bodies[i] = property.GetArrayElementAtIndex(i).objectReferenceValue as Rigidbody2D;
+            return bodies;
+        }
+
+        private static void ConfigureExistingPool(Rigidbody2D[] pool, bool candy)
+        {
+            for (int i = 0; i < pool.Length; i++)
+            {
+                Rigidbody2D body = pool[i];
+                if (body == null) throw new InvalidOperationException("Death debris pool contains a missing Rigidbody2D.");
+                Undo.RecordObject(body, "Configure Death Debris Physics");
+                Undo.RecordObject(body.transform, "Map Death Debris To Torso");
+                body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+                body.simulated = false;
+                if (candy) body.transform.localScale = Vector3.one * .55f;
+                SpriteRenderer renderer = body.GetComponent<SpriteRenderer>();
+                if (renderer != null)
+                {
+                    Undo.RecordObject(renderer, "Configure Death Debris Visibility");
+                    renderer.sortingOrder = candy ? 112 : 113;
+                    renderer.enabled = true;
+                    EditorUtility.SetDirty(renderer);
+                }
+                body.gameObject.SetActive(false);
+                EditorUtility.SetDirty(body);
+                EditorUtility.SetDirty(body.transform);
+            }
+        }
+
+        private static void MapPoolToTorso(Rigidbody2D[] pool, Rigidbody2D torsoBody, Vector2 packingSize, float phaseDegrees)
+        {
+            Vector2 origin = torsoBody.worldCenterOfMass;
+            Quaternion bodyRotation = Quaternion.Euler(0f, 0f, torsoBody.rotation);
+            for (int i = 0; i < pool.Length; i++)
+            {
+                if (pool[i] == null) continue;
+                float radius = Mathf.Sqrt((i + .5f) / pool.Length);
+                float angle = (i * 137.50777f + phaseDegrees) * Mathf.Deg2Rad;
+                Vector2 localOffset = new Vector2(
+                    Mathf.Cos(angle) * packingSize.x * .5f * radius,
+                    Mathf.Sin(angle) * packingSize.y * .5f * radius);
+                pool[i].transform.position = origin + (Vector2)(bodyRotation * localOffset);
+                pool[i].transform.rotation = Quaternion.Euler(0f, 0f, i * 29f + phaseDegrees);
+                pool[i].simulated = false;
+                pool[i].gameObject.SetActive(false);
+            }
         }
 
         private static Sprite CreateSprite(string path, bool coin)

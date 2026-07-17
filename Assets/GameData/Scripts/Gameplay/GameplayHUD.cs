@@ -37,6 +37,7 @@ namespace KickTheBuddy.Gameplay
         [SerializeField] private Button nextButton;
         [SerializeField] private Button settingsButton;
         [SerializeField] private Button closeSettingsButton;
+        [SerializeField] private Button mainMenuButton;
 
         [Header("Settings")]
         [SerializeField] private Toggle musicToggle;
@@ -197,6 +198,14 @@ namespace KickTheBuddy.Gameplay
             if (nextButton != null) nextButton.onClick.AddListener(gameplay.NextLevel);
             if (settingsButton != null) settingsButton.onClick.AddListener(OpenSettings);
             if (closeSettingsButton != null) closeSettingsButton.onClick.AddListener(CloseSettings);
+            if (mainMenuButton != null) mainMenuButton.onClick.AddListener(ReturnToMainMenu);
+        }
+
+        private void ReturnToMainMenu()
+        {
+            sounds?.Play(GameSound.Button);
+            haptics?.Selection();
+            GameBootstrapper.Instance?.Flow?.ShowMainMenu();
         }
 
         private void AddSettingsListeners()
@@ -228,6 +237,7 @@ namespace KickTheBuddy.Gameplay
             if (vibrationToggle != null) vibrationToggle.onValueChanged.RemoveListener(SetVibrationEnabled);
             if (settingsButton != null) settingsButton.onClick.RemoveListener(OpenSettings);
             if (closeSettingsButton != null) closeSettingsButton.onClick.RemoveListener(CloseSettings);
+            if (mainMenuButton != null) mainMenuButton.onClick.RemoveListener(ReturnToMainMenu);
         }
     }
 }

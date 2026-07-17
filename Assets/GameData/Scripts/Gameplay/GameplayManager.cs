@@ -34,6 +34,7 @@ namespace KickTheBuddy.Gameplay
         public event Action<float> TimeChanged;
         public event Action<int, int> LevelCompleted;
         public event Action LevelFailed;
+        public event Action MainMenuRequested;
 
         public void Initialize(LevelsManager levelsManager, GameSaveManager saveManager, SoundManager soundManager)
         {
@@ -61,6 +62,25 @@ namespace KickTheBuddy.Gameplay
             ObjectiveProgressChanged?.Invoke(0f, level.TargetDamage);
             ScoreChanged?.Invoke(0);
             TimeChanged?.Invoke(remainingTime);
+        }
+
+        public void PrepareForLevelLoad()
+        {
+            StopDeathCompletion();
+            ragdollInput?.SetInputEnabled(false);
+            UnbindRagdoll();
+            Time.timeScale = 1f;
+            ChangeState(GameplayState.Loading);
+        }
+
+        public void EnterMainMenu()
+        {
+            StopDeathCompletion();
+            ragdollInput?.SetInputEnabled(false);
+            UnbindRagdoll();
+            Time.timeScale = 1f;
+            sounds?.PlayMusic(false);
+            ChangeState(GameplayState.MainMenu);
         }
 
         private void Update()
@@ -111,8 +131,13 @@ namespace KickTheBuddy.Gameplay
         public void NextLevel()
         {
             Time.timeScale = 1f;
-            if (levels.SelectNextLevel()) levels.LoadCurrentLevel();
-            else ChangeState(GameplayState.MainMenu);
+            if (levels.SelectNextLevel())
+            {
+                saves.RecordLevelSelection(levels.CurrentLevelIndex, true);
+                PrepareForLevelLoad();
+                levels.LoadCurrentLevel();
+            }
+            else MainMenuRequested?.Invoke();
         }
 
         public void BindRagdoll()
@@ -178,6 +203,13 @@ namespace KickTheBuddy.Gameplay
             subscribed = false;
             ragdoll = null;
             ragdollInput = null;
+        }
+
+        private void StopDeathCompletion()
+        {
+            if (deathCompletion == null) return;
+            StopCoroutine(deathCompletion);
+            deathCompletion = null;
         }
 
         private void OnDestroy()

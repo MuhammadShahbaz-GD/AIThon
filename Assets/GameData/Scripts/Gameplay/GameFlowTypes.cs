@@ -8,11 +8,14 @@ namespace KickTheBuddy.Gameplay
     [Serializable]
     public sealed class PlayerProgressData
     {
-        public int version = 1;
+        public int version = 2;
         public int highestUnlockedLevel;
         public int selectedLevel;
         public int totalCoins;
         public int totalScore;
+        public bool hasStartedGame;
+        public int launchCount;
+        public long lastPlayedUtcTicks;
         public float musicVolume = .8f;
         public float soundVolume = 1f;
         public bool vibrationEnabled = true;

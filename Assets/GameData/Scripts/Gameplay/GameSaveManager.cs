@@ -8,6 +8,7 @@ namespace KickTheBuddy.Gameplay
     [DisallowMultipleComponent]
     public sealed class GameSaveManager : MonoBehaviour
     {
+        private const int CurrentVersion = 2;
         [SerializeField] private string fileName = "player-progress.json";
         private string SavePath => Path.Combine(Application.persistentDataPath, fileName);
         public PlayerProgressData Data { get; private set; }
@@ -26,6 +27,20 @@ namespace KickTheBuddy.Gameplay
             catch (Exception exception) { Debug.LogError("Unable to save player progress: " + exception.Message, this); }
         }
         public void ResetData() { Data = new PlayerProgressData(); Save(); ResetPerformed?.Invoke(); }
+        public void RecordAppLaunch()
+        {
+            if (Data == null) Load();
+            Data.launchCount = Mathf.Max(0, Data.launchCount) + 1;
+            Save();
+        }
+        public void RecordLevelSelection(int levelIndex, bool markStarted)
+        {
+            if (Data == null) Load();
+            Data.selectedLevel = Mathf.Max(0, levelIndex);
+            Data.hasStartedGame |= markStarted;
+            if (markStarted) Data.lastPlayedUtcTicks = DateTime.UtcNow.Ticks;
+            Save();
+        }
         public LevelProgressData GetLevel(string id) { EnsureLevel(id); for (int i = 0; i < Data.levels.Length; i++) if (Data.levels[i].levelId == id) return Data.levels[i]; return default; }
         public void RecordLevel(string id, int score, int stars, int coins, int levelIndex)
         {
@@ -33,7 +48,20 @@ namespace KickTheBuddy.Gameplay
             Data.totalScore += score; Data.highestUnlockedLevel = Mathf.Max(Data.highestUnlockedLevel, levelIndex + 1); Save();
         }
         private void EnsureLevel(string id) { if (Data == null) Load(); for (int i = 0; i < Data.levels.Length; i++) if (Data.levels[i].levelId == id) return; Array.Resize(ref Data.levels, Data.levels.Length + 1); Data.levels[Data.levels.Length - 1] = new LevelProgressData { levelId = id }; }
-        private void Normalize() { Data.highestUnlockedLevel = Mathf.Max(0, Data.highestUnlockedLevel); Data.musicVolume = Mathf.Clamp01(Data.musicVolume); Data.soundVolume = Mathf.Clamp01(Data.soundVolume); if (Data.levels == null) Data.levels = Array.Empty<LevelProgressData>(); }
+        private void Normalize()
+        {
+            Data.highestUnlockedLevel = Mathf.Max(0, Data.highestUnlockedLevel);
+            Data.selectedLevel = Mathf.Max(0, Data.selectedLevel);
+            Data.launchCount = Mathf.Max(0, Data.launchCount);
+            Data.musicVolume = Mathf.Clamp01(Data.musicVolume);
+            Data.soundVolume = Mathf.Clamp01(Data.soundVolume);
+            if (Data.levels == null) Data.levels = Array.Empty<LevelProgressData>();
+            if (Data.version < CurrentVersion)
+            {
+                Data.hasStartedGame |= Data.selectedLevel > 0 || Data.totalScore > 0 || Data.levels.Length > 0;
+                Data.version = CurrentVersion;
+            }
+        }
         private void OnApplicationPause(bool paused) { if (paused) Save(); }
         private void OnApplicationQuit() { Save(); }
     }
