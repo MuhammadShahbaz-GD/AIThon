@@ -19,6 +19,7 @@ namespace KickTheBuddy.Gameplay
         private RagdollInputManager ragdollInput;
         private SandboxToolInput2D sandboxToolInput;
         private CandyCannonController2D candyCannons;
+        private LevelFourPipeController2D levelFourPipes;
         private float damage;
         private int score;
         private bool subscribed;
@@ -29,6 +30,7 @@ namespace KickTheBuddy.Gameplay
         public int Score => score;
 
         public event Action<GameplayState, GameplayState> StateChanged;
+        /// <summary>Reports actual ragdoll health lost and aggregate maximum health for the HUD.</summary>
         public event Action<float, float> ObjectiveProgressChanged;
         public event Action<int> ScoreChanged;
         public event Action<int, int, Vector2, int> ScoreAwarded;
@@ -62,12 +64,14 @@ namespace KickTheBuddy.Gameplay
             sandboxToolInput?.SetInputEnabled(true);
             candyCannons?.ResetCannons();
             candyCannons?.SetInputEnabled(true);
+            levelFourPipes?.ResetController();
+            levelFourPipes?.SetInputEnabled(true);
             damage = 0f;
             score = 0;
             Time.timeScale = 1f;
             sounds.PlayMusic(true);
             ChangeState(GameplayState.Playing);
-            ObjectiveProgressChanged?.Invoke(0f, level.TargetDamage);
+            PublishRagdollDamageProgress();
             ScoreChanged?.Invoke(0);
         }
 
@@ -77,6 +81,7 @@ namespace KickTheBuddy.Gameplay
             ragdollInput?.SetInputEnabled(false);
             sandboxToolInput?.SetInputEnabled(false);
             candyCannons?.SetInputEnabled(false);
+            levelFourPipes?.SetInputEnabled(false);
             UnbindRagdoll();
             Time.timeScale = 1f;
             ChangeState(GameplayState.Loading);
@@ -88,6 +93,7 @@ namespace KickTheBuddy.Gameplay
             ragdollInput?.SetInputEnabled(false);
             sandboxToolInput?.SetInputEnabled(false);
             candyCannons?.SetInputEnabled(false);
+            levelFourPipes?.SetInputEnabled(false);
             UnbindRagdoll();
             Time.timeScale = 1f;
             sounds?.PlayMusic(false);
@@ -111,6 +117,7 @@ namespace KickTheBuddy.Gameplay
             ragdollInput?.SetInputEnabled(false);
             sandboxToolInput?.SetInputEnabled(false);
             candyCannons?.CompleteInteraction();
+            levelFourPipes?.SetInputEnabled(false);
             LevelDefinition level = levels.CurrentLevel;
             int stars = level.GetStars(score);
             saves.RecordLevel(level.LevelId, score, stars, level.CompletionCoins, levels.CurrentLevelIndex);
@@ -124,6 +131,7 @@ namespace KickTheBuddy.Gameplay
             ragdollInput?.SetInputEnabled(false);
             sandboxToolInput?.SetInputEnabled(false);
             candyCannons?.CompleteInteraction();
+            levelFourPipes?.SetInputEnabled(false);
             ChangeState(GameplayState.LevelFailed);
             LevelFailed?.Invoke();
         }
@@ -149,6 +157,7 @@ namespace KickTheBuddy.Gameplay
             ragdollInput = sceneLevels.ActiveRagdollInput;
             sandboxToolInput = sceneLevels.ActiveSandboxToolInput;
             candyCannons = sceneLevels.ActiveCandyCannons;
+            levelFourPipes = sceneLevels.ActiveLevelFourPipes;
             if (candyCannons != null) candyCannons.ConfigureAudio(sounds);
             if (ragdoll == null || ragdollInput == null)
             {
@@ -168,7 +177,7 @@ namespace KickTheBuddy.Gameplay
             int combo = ragdoll != null ? ragdoll.CurrentCombo : 0;
             int gained = Mathf.Max(1, Mathf.RoundToInt(amount * (1f + combo * .1f)));
             score += gained;
-            ObjectiveProgressChanged?.Invoke(damage, levels.CurrentLevel.TargetDamage);
+            PublishRagdollDamageProgress();
             ScoreChanged?.Invoke(score);
             ScoreAwarded?.Invoke(gained, score, point, combo);
             if (levels.CurrentLevel.CompletionRule == LevelCompletionRule.TargetDamage &&
@@ -177,12 +186,22 @@ namespace KickTheBuddy.Gameplay
                 CompleteLevel();
         }
 
+        private void PublishRagdollDamageProgress()
+        {
+            float maximumHealth = ragdoll != null ? Mathf.Max(1f, ragdoll.MaximumHealth) : 1f;
+            float currentHealth = ragdoll != null
+                ? Mathf.Clamp(ragdoll.CurrentHealth, 0f, maximumHealth)
+                : maximumHealth;
+            ObjectiveProgressChanged?.Invoke(maximumHealth - currentHealth, maximumHealth);
+        }
+
         private void HandleCharacterDied(Vector2 point)
         {
             if (State != GameplayState.Playing || deathCompletion != null) return;
             ragdollInput?.SetInputEnabled(false);
             sandboxToolInput?.SetInputEnabled(false);
             candyCannons?.CompleteInteraction();
+            levelFourPipes?.SetInputEnabled(false);
             deathCompletion = StartCoroutine(CompleteAfterDeath());
         }
 
@@ -218,10 +237,12 @@ namespace KickTheBuddy.Gameplay
             subscribed = false;
             sandboxToolInput?.SetInputEnabled(false);
             candyCannons?.SetInputEnabled(false);
+            levelFourPipes?.SetInputEnabled(false);
             ragdoll = null;
             ragdollInput = null;
             sandboxToolInput = null;
             candyCannons = null;
+            levelFourPipes = null;
         }
 
         private void StopDeathCompletion()

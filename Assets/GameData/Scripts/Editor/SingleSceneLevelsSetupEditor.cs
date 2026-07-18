@@ -533,9 +533,15 @@ namespace KickTheBuddy.Editor
             {
                 RagdollAttackManager2D attack = boundaries[i].GetComponent<RagdollAttackManager2D>();
                 if (attack == null) attack = boundaries[i].gameObject.AddComponent<RagdollAttackManager2D>();
-                attack.Configure(RagdollAttackType.Wall, definition.WallBaseDamage,
-                    definition.WallDamagePerSpeed, definition.WallMinimumImpactSpeed,
-                    definition.WallMaximumDamage);
+                if (string.Equals(boundaries[i].name, "Floor", StringComparison.OrdinalIgnoreCase))
+                {
+                    attack.Configure(RagdollAttackType.Wall, 0f, 0f, 0f, 0f);
+                    attack.SetDamageEnabled(false);
+                }
+                else
+                    attack.Configure(RagdollAttackType.Wall, definition.WallBaseDamage,
+                        definition.WallDamagePerSpeed, definition.WallMinimumImpactSpeed,
+                        definition.WallMaximumDamage);
                 if (!attacks.Contains(attack)) attacks.Add(attack);
                 EditorUtility.SetDirty(attack);
             }
@@ -569,6 +575,15 @@ namespace KickTheBuddy.Editor
                 ConfigureEntry(levels.GetArrayElementAtIndex(3), CandyRoomLevelSetupEditor.LevelId,
                     levelTwoNew.gameObject, ragdoll, ragdollInput, newToolInput, null);
             data.FindProperty("sharedRoom").objectReferenceValue = sharedRoom;
+            RagdollAttackManager2D floorAttack = null;
+            for (int i = 0; i < sharedRoomAttacks.Length; i++)
+                if (sharedRoomAttacks[i] != null &&
+                    string.Equals(sharedRoomAttacks[i].name, "Floor", StringComparison.OrdinalIgnoreCase))
+                {
+                    floorAttack = sharedRoomAttacks[i];
+                    break;
+                }
+            data.FindProperty("sharedFloorAttack").objectReferenceValue = floorAttack;
             SerializedProperty roomAttacks = data.FindProperty("sharedRoomAttacks");
             roomAttacks.arraySize = sharedRoomAttacks.Length;
             for (int i = 0; i < sharedRoomAttacks.Length; i++)

@@ -11,10 +11,10 @@ namespace KickTheBuddy.Gameplay
     [DisallowMultipleComponent]
     public sealed class CandyGunController2D : MonoBehaviour
     {
-        private const float CandyBulletBaseDamage = 8f;
-        private const float CandyBulletDamagePerSpeed = 1.6f;
-        private const float CandyBulletMinimumDamageSpeed = 2f;
-        private const float CandyBulletMaximumDamage = 24f;
+        private const float CandyBulletBaseDamage = 85f;
+        private const float CandyBulletDamagePerSpeed = 0f;
+        private const float CandyBulletMinimumDamageSpeed = 0f;
+        private const float CandyBulletMaximumDamage = 85f;
 
         [SerializeField] private SandboxTool2D gunTool;
         [SerializeField] private Transform muzzle;

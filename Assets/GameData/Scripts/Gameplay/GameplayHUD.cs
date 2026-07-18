@@ -84,7 +84,7 @@ namespace KickTheBuddy.Gameplay
             haptics = root.GetComponent<GameplayHapticsAdapter>();
 
             gameplay.StateChanged += HandleState;
-            gameplay.ObjectiveProgressChanged += HandleObjective;
+            gameplay.ObjectiveProgressChanged += HandleDamageProgress;
             gameplay.ScoreChanged += HandleScore;
             gameplay.LevelCompleted += HandleComplete;
             gameplay.LevelFailed += HandleFailed;
@@ -138,9 +138,11 @@ namespace KickTheBuddy.Gameplay
                                              current == GameplayState.LevelFailed;
         }
 
-        private void HandleObjective(float value, float target)
+        private void HandleDamageProgress(float damageTaken, float maximumHealth)
         {
-            float normalized = target > 0f ? Mathf.Clamp01(value / target) : 0f;
+            float normalized = maximumHealth > 0f
+                ? Mathf.Clamp01(damageTaken / maximumHealth)
+                : 0f;
             if (objectiveFillImage != null) objectiveFillImage.fillAmount = normalized;
             if (statusFaceImage != null)
             {
@@ -148,11 +150,12 @@ namespace KickTheBuddy.Gameplay
                     ? brokenStatusSprite
                     : normalized >= .34f ? hitStatusSprite : normalStatusSprite;
             }
-            if (objectiveProgressText != null) objectiveProgressText.text = $"{Mathf.FloorToInt(value)} / {Mathf.CeilToInt(target)}";
+            if (objectiveProgressText != null)
+                objectiveProgressText.text = $"{Mathf.FloorToInt(damageTaken)} / {Mathf.CeilToInt(maximumHealth)}";
             if (objectiveSlider != null)
             {
-                objectiveSlider.maxValue = target;
-                objectiveSlider.value = value;
+                objectiveSlider.maxValue = maximumHealth;
+                objectiveSlider.value = damageTaken;
             }
         }
 
@@ -267,7 +270,7 @@ namespace KickTheBuddy.Gameplay
             if (gameplay != null)
             {
                 gameplay.StateChanged -= HandleState;
-                gameplay.ObjectiveProgressChanged -= HandleObjective;
+                gameplay.ObjectiveProgressChanged -= HandleDamageProgress;
                 gameplay.ScoreChanged -= HandleScore;
                 gameplay.LevelCompleted -= HandleComplete;
                 gameplay.LevelFailed -= HandleFailed;

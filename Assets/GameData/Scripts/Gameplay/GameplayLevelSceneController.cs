@@ -22,6 +22,7 @@ namespace KickTheBuddy.Gameplay
             [SerializeField] private RagdollInputManager ragdollInput;
             [SerializeField] private SandboxToolInput2D sandboxToolInput;
             [SerializeField] private CandyCannonController2D candyCannons;
+            [SerializeField] private LevelFourPipeController2D levelFourPipes;
 
             public string LevelId => levelId;
             public GameObject Root => root;
@@ -29,6 +30,7 @@ namespace KickTheBuddy.Gameplay
             public RagdollInputManager RagdollInput => ragdollInput;
             public SandboxToolInput2D SandboxToolInput => sandboxToolInput;
             public CandyCannonController2D CandyCannons => candyCannons;
+            public LevelFourPipeController2D LevelFourPipes => levelFourPipes;
         }
 
         [Tooltip("Entries must match the Level Catalog order. Their roots must be direct children of this Levels object.")]
@@ -40,6 +42,8 @@ namespace KickTheBuddy.Gameplay
         [Tooltip("Explicit wall attack references under the shared Room; populated by the single-scene authoring tool.")]
         [SerializeField] private RagdollAttackManager2D[] sharedRoomAttacks =
             Array.Empty<RagdollAttackManager2D>();
+        [Tooltip("Shared floor collider. It remains physical but never deals ragdoll damage.")]
+        [SerializeField] private RagdollAttackManager2D sharedFloorAttack;
 
         private int activeLevelIndex = -1;
         private LevelContent activeContent;
@@ -54,6 +58,8 @@ namespace KickTheBuddy.Gameplay
             activeContent != null ? activeContent.SandboxToolInput : null;
         public CandyCannonController2D ActiveCandyCannons =>
             activeContent != null ? activeContent.CandyCannons : null;
+        public LevelFourPipeController2D ActiveLevelFourPipes =>
+            activeContent != null ? activeContent.LevelFourPipes : null;
         public GameObject SharedRoom => sharedRoom;
         public IReadOnlyList<RagdollAttackManager2D> SharedRoomAttacks => sharedRoomAttacks;
         public int LevelCount => levels.Length;
@@ -110,6 +116,7 @@ namespace KickTheBuddy.Gameplay
             selectedContent.RagdollInput.SetInputEnabled(false);
             selectedContent.SandboxToolInput?.SetInputEnabled(false);
             selectedContent.CandyCannons?.SetInputEnabled(false);
+            selectedContent.LevelFourPipes?.SetInputEnabled(false);
             if (!ConfigureSharedRoom(definition))
             {
                 DisableAllLevels();
@@ -133,9 +140,9 @@ namespace KickTheBuddy.Gameplay
         private bool ConfigureSharedRoom(LevelDefinition definition)
         {
             if (definition == null || sharedRoom == null || sharedRoomAttacks == null ||
-                sharedRoomAttacks.Length == 0)
+                sharedRoomAttacks.Length == 0 || sharedFloorAttack == null)
             {
-                Debug.LogError("The selected LevelDefinition or shared Room references are incomplete.", this);
+                Debug.LogError("The selected LevelDefinition, shared Room, or non-damaging floor reference is incomplete.", this);
                 return false;
             }
 
@@ -149,6 +156,12 @@ namespace KickTheBuddy.Gameplay
             sharedRoom.SetActive(true);
             for (int i = 0; i < sharedRoomAttacks.Length; i++)
             {
+                if (sharedRoomAttacks[i] == sharedFloorAttack)
+                {
+                    sharedRoomAttacks[i].Configure(RagdollAttackType.Wall, 0f, 0f, 0f, 0f);
+                    sharedRoomAttacks[i].SetDamageEnabled(false);
+                    continue;
+                }
                 sharedRoomAttacks[i].Configure(
                     RagdollAttackType.Wall,
                     definition.WallBaseDamage,
@@ -185,6 +198,7 @@ namespace KickTheBuddy.Gameplay
                 content.RagdollInput?.SetInputEnabled(false);
                 content.SandboxToolInput?.SetInputEnabled(false);
                 content.CandyCannons?.SetInputEnabled(false);
+                content.LevelFourPipes?.SetInputEnabled(false);
                 if (content.Root != null) content.Root.SetActive(false);
             }
             if (sharedRoom != null) sharedRoom.SetActive(false);

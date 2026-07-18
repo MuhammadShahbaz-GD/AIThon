@@ -17,13 +17,13 @@ MonoBehaviour:
   scenePath: Assets/GameData/Scene/RagdollSandbox.unity
   objectiveText: Alternate the two candy cannons and shatter the glass character.
   completionRule: 1
-  targetDamage: 500
+  targetDamage: 1250
   timeLimit: 90
-  completionCoins: 650
+  completionCoins: 500
   oneStarScore: 220
   twoStarScore: 420
   threeStarScore: 700
-  wallBaseDamage: 0
-  wallDamagePerSpeed: 0.55
-  wallMinimumImpactSpeed: 5
-  wallMaximumDamage: 8
+  wallBaseDamage: 120
+  wallDamagePerSpeed: 0
+  wallMinimumImpactSpeed: 0
+  wallMaximumDamage: 120

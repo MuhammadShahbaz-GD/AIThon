@@ -44,6 +44,7 @@ namespace KickTheBuddy.Physics
         private Rigidbody2D attackBody;
 
         public RagdollAttackType AttackType => attackType;
+        public bool DamageEnabled => enabledForDamage;
 
         private void Awake()
         {
@@ -121,6 +122,12 @@ namespace KickTheBuddy.Physics
         public void ResetAttack()
         {
             enabledForDamage = true;
+        }
+
+        /// <summary>Explicitly enables or disables this authored attack surface.</summary>
+        public void SetDamageEnabled(bool value)
+        {
+            enabledForDamage = value && attackType != RagdollAttackType.Jelly;
         }
 
         private void OnValidate()

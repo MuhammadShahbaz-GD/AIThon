@@ -16,10 +16,10 @@ namespace KickTheBuddy.Gameplay
     public sealed class CandyCannonController2D : MonoBehaviour
     {
         private const float MinimumProjectileThrowVelocity = 6.5f;
-        private const float CannonBulletBaseDamage = 12f;
-        private const float CannonBulletDamagePerSpeed = 2.5f;
-        private const float CannonBulletMinimumDamageSpeed = 2f;
-        private const float CannonBulletMaximumDamage = 38f;
+        private const float CannonBulletBaseDamage = 85f;
+        private const float CannonBulletDamagePerSpeed = 0f;
+        private const float CannonBulletMinimumDamageSpeed = 0f;
+        private const float CannonBulletMaximumDamage = 85f;
 
         [Serializable]
         private sealed class CannonSlot

@@ -18,13 +18,13 @@ MonoBehaviour:
   objectiveText: Use repeated hard lollipop hits to break the character; sticky jelly
     only annoys it.
   completionRule: 1
-  targetDamage: 500
+  targetDamage: 750
   timeLimit: 500
   completionCoins: 500
   oneStarScore: 180
   twoStarScore: 320
   threeStarScore: 520
-  wallBaseDamage: 0
-  wallDamagePerSpeed: 0.85
-  wallMinimumImpactSpeed: 4.5
-  wallMaximumDamage: 9
+  wallBaseDamage: 120
+  wallDamagePerSpeed: 0
+  wallMinimumImpactSpeed: 0
+  wallMaximumDamage: 120

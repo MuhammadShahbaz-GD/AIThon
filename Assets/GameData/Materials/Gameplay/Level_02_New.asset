@@ -18,13 +18,13 @@ MonoBehaviour:
   objectiveText: Pick up the candy gun for rapid fire, beat with sticks, and throw
     every candy toy.
   completionRule: 1
-  targetDamage: 500
+  targetDamage: 1000
   timeLimit: 70
-  completionCoins: 350
+  completionCoins: 500
   oneStarScore: 450
   twoStarScore: 750
   threeStarScore: 1100
-  wallBaseDamage: 0
-  wallDamagePerSpeed: 0.7
-  wallMinimumImpactSpeed: 5
-  wallMaximumDamage: 8
+  wallBaseDamage: 120
+  wallDamagePerSpeed: 0
+  wallMinimumImpactSpeed: 0
+  wallMaximumDamage: 120
