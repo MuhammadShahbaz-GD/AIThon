@@ -20,6 +20,9 @@ namespace KickTheBuddy.Physics
             public float RestAngle;
             public JointRole Role;
             public bool IsUpperLimb;
+            public SpringJoint2D GrabSpring;
+            public DistanceJoint2D GrabLimiter;
+            public bool EnabledBeforeGrab;
         }
 
         public sealed class BodyRuntime
@@ -53,6 +56,20 @@ namespace KickTheBuddy.Physics
         [Header("Grab Spring Flex")]
         [Tooltip("Temporarily widens the neck hinge around its authored center while the head is grabbed.")]
         [Range(0f, 20f)] [SerializeField] private float headGrabAngularFlexibility = 7f;
+        [Tooltip("Allows a small amount of real neck translation while the head is grabbed.")]
+        [SerializeField] private bool useHeadGrabSpring = true;
+        [Tooltip("Maximum distance the head can stretch away from its authored neck anchor.")]
+        [Range(.05f, .75f)] [SerializeField] private float headGrabMaximumStretch = .38f;
+        [Tooltip("Lower values feel softer; higher values pull the head back more quickly.")]
+        [Range(.5f, 12f)] [SerializeField] private float headGrabSpringFrequency = 3.8f;
+        [Tooltip("Lower values add bounce. Values around .45-.6 resemble a soft toy neck.")]
+        [Range(.1f, 1f)] [SerializeField] private float headGrabSpringDamping = .42f;
+        [Tooltip("Maximum translation for grabbed arms and legs. Kept lower than the head for stable recovery.")]
+        [Range(.03f, .5f)] [SerializeField] private float limbGrabMaximumStretch = .26f;
+        [Tooltip("Spring frequency used by arms and legs while grabbed.")]
+        [Range(.5f, 12f)] [SerializeField] private float limbGrabSpringFrequency = 4.4f;
+        [Tooltip("Lower values increase limb rebound after pointer movement.")]
+        [Range(.1f, 1f)] [SerializeField] private float limbGrabSpringDamping = .38f;
 
         private readonly List<RagdollController.RagdollPart> parts = new List<RagdollController.RagdollPart>(6);
         private readonly List<JointRuntime> joints = new List<JointRuntime>(8);
@@ -138,6 +155,7 @@ namespace KickTheBuddy.Physics
 
             if (torso == null) Debug.LogError("Explicit ragdoll parts do not contain a Belly/Torso reference.", this);
             if (head == null) Debug.LogError("Explicit ragdoll parts do not contain a Head reference.", this);
+            ConfigureGrabSprings();
         }
 
         private bool ContainsBody(Rigidbody2D candidate)
@@ -208,6 +226,52 @@ namespace KickTheBuddy.Physics
             }
         }
 
+        private void ConfigureGrabSprings()
+        {
+            for (int i = 0; i < joints.Count; i++)
+            {
+                JointRuntime item = joints[i];
+                HingeJoint2D hinge = item.Joint;
+                if (hinge == null || hinge.connectedBody == null || hinge.attachedRigidbody == torso) continue;
+
+                SpringJoint2D spring = hinge.GetComponent<SpringJoint2D>();
+                if (spring == null) spring = hinge.gameObject.AddComponent<SpringJoint2D>();
+                spring.enabled = false;
+                spring.autoConfigureConnectedAnchor = false;
+                spring.autoConfigureDistance = false;
+                spring.connectedBody = hinge.connectedBody;
+                spring.anchor = hinge.anchor;
+                spring.connectedAnchor = hinge.connectedAnchor;
+                spring.distance = 0f;
+                spring.enableCollision = false;
+                spring.breakForce = Mathf.Infinity;
+
+                DistanceJoint2D limiter = hinge.GetComponent<DistanceJoint2D>();
+                if (limiter == null) limiter = hinge.gameObject.AddComponent<DistanceJoint2D>();
+                limiter.enabled = false;
+                limiter.autoConfigureConnectedAnchor = false;
+                limiter.autoConfigureDistance = false;
+                limiter.connectedBody = hinge.connectedBody;
+                limiter.anchor = hinge.anchor;
+                limiter.connectedAnchor = hinge.connectedAnchor;
+                limiter.maxDistanceOnly = true;
+                limiter.enableCollision = false;
+                limiter.breakForce = Mathf.Infinity;
+
+                item.GrabSpring = spring;
+                item.GrabLimiter = limiter;
+                ApplyGrabSpringSettings(item);
+            }
+        }
+
+        private void ApplyGrabSpringSettings(JointRuntime item)
+        {
+            bool isHead = item.Role == JointRole.Head;
+            item.GrabSpring.frequency = isHead ? headGrabSpringFrequency : limbGrabSpringFrequency;
+            item.GrabSpring.dampingRatio = isHead ? headGrabSpringDamping : limbGrabSpringDamping;
+            item.GrabLimiter.distance = isHead ? headGrabMaximumStretch : limbGrabMaximumStretch;
+        }
+
         public void RestoreAuthoredPhysics()
         {
             for (int i = 0; i < bodies.Count; i++)
@@ -229,6 +293,9 @@ namespace KickTheBuddy.Physics
             {
                 JointRuntime item = joints[i];
                 if (item.Joint == null) continue;
+                if (item.GrabSpring != null) item.GrabSpring.enabled = false;
+                if (item.GrabLimiter != null) item.GrabLimiter.enabled = false;
+                RealignJointAnchors(item.Joint);
                 item.Joint.enabled = item.AuthoredEnabled;
                 item.Joint.limits = item.AuthoredLimits;
                 item.Joint.motor = item.AuthoredMotor;
@@ -257,6 +324,8 @@ namespace KickTheBuddy.Physics
             for (int i = 0; i < joints.Count; i++)
                 if (joints[i].Joint != null)
                 {
+                    if (joints[i].GrabSpring != null) joints[i].GrabSpring.enabled = false;
+                    if (joints[i].GrabLimiter != null) joints[i].GrabLimiter.enabled = false;
                     joints[i].Joint.useMotor = false;
                     joints[i].Joint.enabled = false;
                 }
@@ -305,23 +374,70 @@ namespace KickTheBuddy.Physics
 
         internal void SetGrabFlexibility(Rigidbody2D grabbedBody, bool grabbed)
         {
-            if (grabbedBody != head) return;
+            if (grabbedBody == null) return;
 
             for (int i = 0; i < joints.Count; i++)
             {
                 JointRuntime item = joints[i];
-                if (item.Joint == null || item.Role != JointRole.Head || !item.AuthoredUseLimits) continue;
+                HingeJoint2D hinge = item.Joint;
+                if (hinge == null || hinge.attachedRigidbody != grabbedBody) continue;
 
-                JointAngleLimits2D limits = item.AuthoredLimits;
+                bool canUseSpring = useHeadGrabSpring && item.GrabSpring != null && item.GrabLimiter != null;
                 if (grabbed)
                 {
-                    limits.min = Mathf.Max(-180f, limits.min - headGrabAngularFlexibility);
-                    limits.max = Mathf.Min(180f, limits.max + headGrabAngularFlexibility);
+                    item.EnabledBeforeGrab = hinge.enabled;
+                    if (canUseSpring)
+                    {
+                        ApplyGrabSpringSettings(item);
+                        hinge.enabled = false;
+                        item.GrabSpring.enabled = true;
+                        item.GrabLimiter.enabled = true;
+                    }
+                    else
+                    {
+                        ApplyAngularGrabFlexibility(item, true);
+                    }
                 }
-
-                item.Joint.limits = limits;
-                item.Joint.useLimits = item.AuthoredUseLimits;
+                else
+                {
+                    if (canUseSpring)
+                    {
+                        item.GrabSpring.enabled = false;
+                        item.GrabLimiter.enabled = false;
+                        RealignJointAnchors(hinge);
+                        hinge.limits = item.AuthoredLimits;
+                        hinge.enabled = item.EnabledBeforeGrab;
+                    }
+                    else
+                    {
+                        ApplyAngularGrabFlexibility(item, false);
+                    }
+                }
             }
+        }
+
+        private void ApplyAngularGrabFlexibility(JointRuntime item, bool grabbed)
+        {
+            if (item.Joint == null || !item.AuthoredUseLimits) return;
+            JointAngleLimits2D limits = item.AuthoredLimits;
+            if (grabbed)
+            {
+                limits.min = Mathf.Max(-180f, limits.min - headGrabAngularFlexibility);
+                limits.max = Mathf.Min(180f, limits.max + headGrabAngularFlexibility);
+            }
+            item.Joint.limits = limits;
+            item.Joint.useLimits = item.AuthoredUseLimits;
+        }
+
+        private static void RealignJointAnchors(HingeJoint2D hinge)
+        {
+            Rigidbody2D body = hinge.attachedRigidbody;
+            Rigidbody2D connectedBody = hinge.connectedBody;
+            if (body == null || connectedBody == null) return;
+
+            Vector2 bodyAnchor = body.transform.TransformPoint(hinge.anchor);
+            Vector2 connectedAnchor = connectedBody.transform.TransformPoint(hinge.connectedAnchor);
+            body.position += connectedAnchor - bodyAnchor;
         }
 
         internal void SetDurabilityMultiplier(float multiplier)
@@ -348,6 +464,12 @@ namespace KickTheBuddy.Physics
             jointBreakStress = Mathf.Max(0f, jointBreakStress);
             jointStressDamageRate = Mathf.Max(0f, jointStressDamageRate);
             headGrabAngularFlexibility = Mathf.Clamp(headGrabAngularFlexibility, 0f, 20f);
+            headGrabMaximumStretch = Mathf.Clamp(headGrabMaximumStretch, .05f, .75f);
+            headGrabSpringFrequency = Mathf.Clamp(headGrabSpringFrequency, .5f, 12f);
+            headGrabSpringDamping = Mathf.Clamp(headGrabSpringDamping, .1f, 1f);
+            limbGrabMaximumStretch = Mathf.Clamp(limbGrabMaximumStretch, .03f, .5f);
+            limbGrabSpringFrequency = Mathf.Clamp(limbGrabSpringFrequency, .5f, 12f);
+            limbGrabSpringDamping = Mathf.Clamp(limbGrabSpringDamping, .1f, 1f);
         }
     }
 }

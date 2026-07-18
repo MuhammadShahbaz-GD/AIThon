@@ -5524,7 +5524,7 @@ Transform:
   m_GameObject: {fileID: 48715804}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.254, y: 0.133, z: 0}
+  m_LocalPosition: {x: 0.249, y: 0.189, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -8524,7 +8524,7 @@ Transform:
   m_GameObject: {fileID: 193768709}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.003, y: -0.158, z: 0}
+  m_LocalPosition: {x: 0.003, y: -0.378, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9109,9 +9109,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 205273298}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.85578835, w: -0.5173261}
-  m_LocalPosition: {x: -0.14125335, y: -0.07414061, z: 0}
-  m_LocalScale: {x: 0.25, y: 0.25730407, z: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0.86089206, w: -0.5087877}
+  m_LocalPosition: {x: -0.14293694, y: -0.07869011, z: 0}
+  m_LocalScale: {x: 0.25, y: 0.2631708, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1504544603}
@@ -9137,7 +9137,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 205273301}
   stretchAxis: 1
   widthMultiplier: 0.25
-  lengthMultiplier: 1.15
+  lengthMultiplier: 1.63
   minimumLengthMultiplier: 0.08
   maximumLengthMultiplier: 8
   rotationOffset: 0
@@ -10617,7 +10617,7 @@ Transform:
   m_GameObject: {fileID: 274239585}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.251, y: 0.185, z: 0}
+  m_LocalPosition: {x: -0.232, y: 0.208, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -10649,9 +10649,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 279003703}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.97253966, w: -0.2327373}
-  m_LocalPosition: {x: -0.04638177, y: -0.13935792, z: 0}
-  m_LocalScale: {x: 0.36, y: 0.16525407, z: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0.9753587, w: -0.22062497}
+  m_LocalPosition: {x: -0.05420667, y: -0.16169024, z: 0}
+  m_LocalScale: {x: 0.36, y: 0.20314799, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 805619304}
@@ -10677,7 +10677,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 279003706}
   stretchAxis: 1
   widthMultiplier: 0.36
-  lengthMultiplier: 1.15
+  lengthMultiplier: 1.57
   minimumLengthMultiplier: 0.08
   maximumLengthMultiplier: 8
   rotationOffset: 0
@@ -27293,7 +27293,7 @@ Transform:
   m_GameObject: {fileID: 663572859}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.622, y: 0.188, z: 0}
+  m_LocalPosition: {x: -0.507, y: 0.241, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -27587,7 +27587,7 @@ Transform:
   m_GameObject: {fileID: 679959993}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.581, y: 0.191, z: 0}
+  m_LocalPosition: {x: 0.489, y: 0.256, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -30506,9 +30506,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 789723256}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.007920025, w: 0.99996865}
-  m_LocalPosition: {x: -0.002199919, y: 0.058869958, z: 0}
-  m_LocalScale: {x: 0.34, y: 0.19289953, z: 1}
+  m_LocalRotation: {x: -0, y: -0, z: 0.014030938, w: 0.9999016}
+  m_LocalPosition: {x: -0.0040331944, y: 0.06368244, z: 0}
+  m_LocalScale: {x: 0.34, y: 0.19963776, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1791411338}
@@ -30534,7 +30534,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 789723259}
   stretchAxis: 1
   widthMultiplier: 0.34
-  lengthMultiplier: 0.9
+  lengthMultiplier: 1.65
   minimumLengthMultiplier: 0.08
   maximumLengthMultiplier: 8
   rotationOffset: 0
@@ -67915,9 +67915,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1212410768}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.88244295, w: 0.47041947}
-  m_LocalPosition: {x: 0.124035835, y: -0.08327651, z: 0}
-  m_LocalScale: {x: 0.25, y: 0.24096505, z: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0.8804154, w: 0.47420332}
+  m_LocalPosition: {x: 0.12759554, y: -0.08408618, z: 0}
+  m_LocalScale: {x: 0.25, y: 0.2464687, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 488330943}
@@ -67943,7 +67943,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1212410771}
   stretchAxis: 1
   widthMultiplier: 0.25
-  lengthMultiplier: 1.15
+  lengthMultiplier: 1.6
   minimumLengthMultiplier: 0.08
   maximumLengthMultiplier: 8
   rotationOffset: 0
@@ -79314,6 +79314,13 @@ MonoBehaviour:
   jointBreakStress: 900
   jointStressDamageRate: 0.006
   headGrabAngularFlexibility: 7
+  useHeadGrabSpring: 1
+  headGrabMaximumStretch: 0.38
+  headGrabSpringFrequency: 3.8
+  headGrabSpringDamping: 0.5
+  limbGrabMaximumStretch: 0.26
+  limbGrabSpringFrequency: 4.4
+  limbGrabSpringDamping: 0.38
 --- !u!114 &1251663629
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -122887,6 +122894,13 @@ MonoBehaviour:
   jointBreakStress: 900
   jointStressDamageRate: 0.005
   headGrabAngularFlexibility: 7
+  useHeadGrabSpring: 1
+  headGrabMaximumStretch: 0.38
+  headGrabSpringFrequency: 3.8
+  headGrabSpringDamping: 0.5
+  limbGrabMaximumStretch: 0.26
+  limbGrabSpringFrequency: 4.4
+  limbGrabSpringDamping: 0.38
 --- !u!114 &1789752372
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -133820,9 +133834,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2085206995}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.9831952, w: 0.18255737}
-  m_LocalPosition: {x: 0.03689456, y: -0.14392579, z: 0}
-  m_LocalScale: {x: 0.36, y: 0.1657683, z: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0.9767815, w: 0.21423793}
+  m_LocalPosition: {x: 0.04949826, y: -0.15541124, z: 0}
+  m_LocalScale: {x: 0.36, y: 0.19075447, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1481602779}
@@ -133848,7 +133862,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 2085206998}
   stretchAxis: 1
   widthMultiplier: 0.36
-  lengthMultiplier: 1.15
+  lengthMultiplier: 1.62
   minimumLengthMultiplier: 0.08
   maximumLengthMultiplier: 8
   rotationOffset: 0
