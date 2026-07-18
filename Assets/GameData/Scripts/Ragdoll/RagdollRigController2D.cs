@@ -50,6 +50,10 @@ namespace KickTheBuddy.Physics
         [Min(0f)] [SerializeField] private float jointBreakStress = 450f;
         [Min(0f)] [SerializeField] private float jointStressDamageRate = .02f;
 
+        [Header("Grab Spring Flex")]
+        [Tooltip("Temporarily widens the neck hinge around its authored center while the head is grabbed.")]
+        [Range(0f, 20f)] [SerializeField] private float headGrabAngularFlexibility = 7f;
+
         private readonly List<RagdollController.RagdollPart> parts = new List<RagdollController.RagdollPart>(6);
         private readonly List<JointRuntime> joints = new List<JointRuntime>(8);
         private readonly List<BodyRuntime> bodies = new List<BodyRuntime>(6);
@@ -299,6 +303,27 @@ namespace KickTheBuddy.Physics
                 if (joints[i].Joint != null) joints[i].Joint.useLimits = enabled && joints[i].AuthoredUseLimits;
         }
 
+        internal void SetGrabFlexibility(Rigidbody2D grabbedBody, bool grabbed)
+        {
+            if (grabbedBody != head) return;
+
+            for (int i = 0; i < joints.Count; i++)
+            {
+                JointRuntime item = joints[i];
+                if (item.Joint == null || item.Role != JointRole.Head || !item.AuthoredUseLimits) continue;
+
+                JointAngleLimits2D limits = item.AuthoredLimits;
+                if (grabbed)
+                {
+                    limits.min = Mathf.Max(-180f, limits.min - headGrabAngularFlexibility);
+                    limits.max = Mathf.Min(180f, limits.max + headGrabAngularFlexibility);
+                }
+
+                item.Joint.limits = limits;
+                item.Joint.useLimits = item.AuthoredUseLimits;
+            }
+        }
+
         internal void SetDurabilityMultiplier(float multiplier)
         {
             for (int i = 0; i < breakableLimbs.Count; i++)
@@ -322,6 +347,7 @@ namespace KickTheBuddy.Physics
             fallbackLimbHealth = Mathf.Max(1f, fallbackLimbHealth);
             jointBreakStress = Mathf.Max(0f, jointBreakStress);
             jointStressDamageRate = Mathf.Max(0f, jointStressDamageRate);
+            headGrabAngularFlexibility = Mathf.Clamp(headGrabAngularFlexibility, 0f, 20f);
         }
     }
 }

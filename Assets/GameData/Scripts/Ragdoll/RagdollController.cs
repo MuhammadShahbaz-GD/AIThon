@@ -195,8 +195,17 @@ namespace KickTheBuddy.Physics
             OnLimbBroken?.Invoke(limb.Body, point);
         }
 
-        internal void NotifyExternalDragStarted(Rigidbody2D grabbedBody) => pose?.SetDragging(true);
-        internal void NotifyExternalDragEnded(Rigidbody2D grabbedBody) => pose?.SetDragging(false);
+        internal void NotifyExternalDragStarted(Rigidbody2D grabbedBody)
+        {
+            pose?.SetDragging(true);
+            rig?.SetGrabFlexibility(grabbedBody, true);
+        }
+
+        internal void NotifyExternalDragEnded(Rigidbody2D grabbedBody)
+        {
+            rig?.SetGrabFlexibility(grabbedBody, false);
+            pose?.SetDragging(false);
+        }
         internal void NotifyProfileApplied(RagdollProfile profile) => OnProfileApplied?.Invoke(profile);
         internal void NotifyLimpStateChanged(bool limp) => OnLimpStateChanged?.Invoke(limp);
         internal void NotifyKnockoutStarted(float duration) => OnKnockoutStarted?.Invoke(duration);

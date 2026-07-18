@@ -67,6 +67,42 @@ namespace KickTheBuddy.Editor
         public static void ValidateFromMenu() => Validate(false);
         public static void ValidateBatch() => Validate(true);
 
+        [MenuItem("Tools/Game/Level 03/Apply Cannon Impact Feel")]
+        public static void ApplyImpactFeelFromMenu() => ApplyImpactFeel(false);
+        public static void ApplyImpactFeelBatch() => ApplyImpactFeel(true);
+
+        private static void ApplyImpactFeel(bool exitWhenDone)
+        {
+            try
+            {
+                Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+                GameObject levels = FindRoot(scene, SingleSceneLevelsSetupEditor.LevelsRootName);
+                Transform levelRoot = levels != null ? FindDirectChild(levels.transform, LevelRootName) : null;
+                CandyCannonController2D cannons =
+                    levelRoot != null ? levelRoot.GetComponent<CandyCannonController2D>() : null;
+                if (cannons == null)
+                    throw new InvalidOperationException("Level 03 CandyCannonController2D was not found.");
+
+                SerializedObject data = new SerializedObject(cannons);
+                data.FindProperty("projectileImpactImpulse").floatValue = 3.4f;
+                data.FindProperty("chargedImpactMultiplier").floatValue = 1.35f;
+                data.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(cannons);
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+                AssetDatabase.SaveAssets();
+                ValidateImpactFeel(new SerializedObject(cannons));
+                Debug.Log("LEVEL03_CANNON_IMPACT_FEEL_SETUP_OK: local point impulse and charged-shot multiplier are serialized.");
+                if (exitWhenDone && Application.isBatchMode) EditorApplication.Exit(0);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+                if (exitWhenDone && Application.isBatchMode) EditorApplication.Exit(1);
+                else throw;
+            }
+        }
+
         private static void Build(bool exitWhenDone)
         {
             try
@@ -193,6 +229,7 @@ namespace KickTheBuddy.Editor
                 data.FindProperty("maximumQueuedShots").intValue != ProjectilePoolSize)
                 throw new InvalidOperationException(
                     "Level 03 tap buffering and held automatic fire are not configured.");
+            ValidateImpactFeel(data);
             ValidateCannonSlot(data.FindProperty("leftCannon"), CandyCannonSide.Left);
             ValidateCannonSlot(data.FindProperty("rightCannon"), CandyCannonSide.Right);
             ValidateProjectilePool(data.FindProperty("projectilePool"));
@@ -633,6 +670,8 @@ namespace KickTheBuddy.Editor
             data.FindProperty("holdDelay").floatValue = .28f;
             data.FindProperty("holdFireInterval").floatValue = .11f;
             data.FindProperty("maximumQueuedShots").intValue = ProjectilePoolSize;
+            data.FindProperty("projectileImpactImpulse").floatValue = 3.4f;
+            data.FindProperty("chargedImpactMultiplier").floatValue = 1.35f;
             ConfigureCannonSlot(data.FindProperty("leftCannon"), left);
             ConfigureCannonSlot(data.FindProperty("rightCannon"), right);
             SerializedProperty pool = data.FindProperty("projectilePool");
@@ -648,6 +687,15 @@ namespace KickTheBuddy.Editor
             }
             data.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(controller);
+        }
+
+        private static void ValidateImpactFeel(SerializedObject data)
+        {
+            SerializedProperty impulse = data.FindProperty("projectileImpactImpulse");
+            SerializedProperty charged = data.FindProperty("chargedImpactMultiplier");
+            if (impulse == null || charged == null || impulse.floatValue <= 0f || charged.floatValue < 1f)
+                throw new InvalidOperationException(
+                    "Candy cannon must apply a positive local hit impulse with a valid charged multiplier.");
         }
 
         private static void CreateProjectile(Transform parent, int index, Sprite sprite, Material trailMaterial,

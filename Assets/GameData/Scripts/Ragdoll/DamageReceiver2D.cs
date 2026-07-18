@@ -21,6 +21,7 @@ namespace KickTheBuddy.Physics
         private float stretchedFrequencyMultiplier = .9f;
         private float headForceMultiplier = 1.8f;
         private float headFrequencyMultiplier = 1.3f;
+        private float headDampingMultiplier = .55f;
 
         [Header("Authored References")]
         [SerializeField] private Rigidbody2D body;
@@ -43,6 +44,7 @@ namespace KickTheBuddy.Physics
         private float stretchLimit;
         private float partForceMultiplier = 1f;
         private float partFrequencyMultiplier = 1f;
+        private float partDampingMultiplier = 1f;
 
         public event Action<DamageReceiver2D, Vector2> Grabbed;
         public event Action<DamageReceiver2D, Vector2> Dragged;
@@ -91,6 +93,7 @@ namespace KickTheBuddy.Physics
             stretchedFrequencyMultiplier = settings.StretchedFrequencyMultiplier;
             headForceMultiplier = settings.HeadForceMultiplier;
             headFrequencyMultiplier = settings.HeadFrequencyMultiplier;
+            headDampingMultiplier = settings.HeadDampingMultiplier;
             RefreshPartDragMultipliers();
         }
 
@@ -101,6 +104,7 @@ namespace KickTheBuddy.Physics
                 name.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0;
             partForceMultiplier = isHead ? headForceMultiplier : 1f;
             partFrequencyMultiplier = isHead ? headFrequencyMultiplier : 1f;
+            partDampingMultiplier = isHead ? headDampingMultiplier : 1f;
             if (partHealth != null) partFrequencyMultiplier *= partHealth.Flexibility;
         }
 
@@ -127,7 +131,7 @@ namespace KickTheBuddy.Physics
             dragJoint.anchor = transform.InverseTransformPoint(worldPoint);
             dragJoint.target = worldPoint;
             dragJoint.frequency = dragFrequency * partFrequencyMultiplier;
-            dragJoint.dampingRatio = dragDampingRatio;
+            dragJoint.dampingRatio = dragDampingRatio * partDampingMultiplier;
             dragJoint.maxForce = dragMaxForce * partForceMultiplier;
             dragJoint.enabled = true;
             pendingDragTarget = smoothedDragTarget = worldPoint;

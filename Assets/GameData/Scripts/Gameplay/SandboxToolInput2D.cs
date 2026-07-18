@@ -13,10 +13,15 @@ namespace KickTheBuddy.Gameplay
         [SerializeField] private SandboxTool2D[] tools = Array.Empty<SandboxTool2D>();
         [SerializeField] private LayerMask toolLayers = ~0;
         [SerializeField] private bool ignorePointerOverUI = true;
+        [Header("Tap Recognition")]
+        [Min(.01f)] [SerializeField] private float maximumTapWorldDistance = .18f;
+        [Min(.05f)] [SerializeField] private float maximumTapDuration = .32f;
 
         private SandboxTool2D activeTool;
         private int activeFingerId = -1;
         private bool inputEnabled = true;
+        private Vector2 pressWorldPoint;
+        private float pressTime;
 
         public IReadOnlyList<SandboxTool2D> Tools => tools;
         public bool InputEnabled => inputEnabled;
@@ -66,6 +71,8 @@ namespace KickTheBuddy.Gameplay
             if (selected == null || !selected.BeginDrag(world)) return;
             activeTool = selected;
             activeFingerId = fingerId;
+            pressWorldPoint = world;
+            pressTime = Time.unscaledTime;
             DragStarted?.Invoke(selected, world);
         }
 
@@ -81,9 +88,13 @@ namespace KickTheBuddy.Gameplay
             Vector2 world = ScreenToWorld(screenPoint);
             SandboxTool2D released = activeTool;
             released.EndDrag();
+            bool wasTap = Time.unscaledTime - pressTime <= maximumTapDuration &&
+                          (world - pressWorldPoint).sqrMagnitude <=
+                          maximumTapWorldDistance * maximumTapWorldDistance;
             activeTool = null;
             activeFingerId = -1;
             DragEnded?.Invoke(released, world);
+            if (wasTap) released.NotifyTap(world);
         }
 
         public void SetInputEnabled(bool value)
@@ -123,5 +134,12 @@ namespace KickTheBuddy.Gameplay
         }
 
         private void OnDisable() => ReleaseActive();
+
+        private void OnValidate()
+        {
+            maximumTapWorldDistance = Mathf.Max(.01f, maximumTapWorldDistance);
+            maximumTapDuration = Mathf.Max(.05f, maximumTapDuration);
+            if (tools == null) tools = Array.Empty<SandboxTool2D>();
+        }
     }
 }

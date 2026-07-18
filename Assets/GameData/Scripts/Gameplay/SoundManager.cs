@@ -6,7 +6,60 @@ using UnityEngine.Audio;
 
 namespace KickTheBuddy.Gameplay
 {
-    public enum GameSound { Button, HitLight, HitHeavy, Combo, LevelComplete, LevelFailed, Coin }
+    public enum GameSound
+    {
+        Button,
+        Toggle,
+        Panel,
+        Confirm,
+        Grab,
+        Release,
+        Stretch,
+        SpringRecoil,
+        CandyRattle,
+        HitLight,
+        HitMedium,
+        HitHeavy,
+        CrackNew,
+        CrackSevere,
+        LimbBreak,
+        SpringDetach,
+        LollipopSwing,
+        LollipopHit,
+        JellyThrow,
+        JellySplat,
+        JellyStick,
+        JellySlide,
+        CannonFire,
+        CannonChargedFire,
+        CannonImpact,
+        CannonMiss,
+        Combo,
+        ComboHigh,
+        CharacterSmile,
+        CharacterGasp,
+        CharacterAnnoyed,
+        CharacterCry,
+        CharacterKO,
+        CharacterRelief,
+        LevelStart,
+        LevelComplete,
+        LevelFailed,
+        Coin,
+        ScoreReward,
+        DeathBlast,
+        CandyToolSwing,
+        CandyToolHit,
+        GummyThrow,
+        GummyHit,
+        CandyJarHit,
+        CandyGunFire,
+        CandyGunImpact,
+        CharacterOuch,
+        CharacterOoo,
+        CharacterDontHitMe,
+        CharacterMan
+    }
 
     /// <summary>Core game audio facade. Persistent callers use this API while catalogs, pooling, buses, and fades remain internal.</summary>
     [DefaultExecutionOrder(-400)]
@@ -25,7 +78,7 @@ namespace KickTheBuddy.Gameplay
         [Range(4, 24)] [SerializeField] private int voicePoolSize = 10;
         [SerializeField] private bool persistAcrossScenes;
 
-        private AudioSource musicSource; private AudioSource[] voices; private int cursor, playbackId;
+        private AudioSource musicSource; private AudioSource[] voices; private int[] voicePriorities; private AudioCatalog.Cue[] cueLookup; private int cursor, playbackId;
         private readonly float[] busVolumes = { 1f, 1f, 1f, 1f, 1f };
         private readonly float[] nextCueTimes = new float[Enum.GetValues(typeof(GameSound)).Length];
         private Coroutine musicFade; private float musicVolume = .8f, soundVolume = 1f;
@@ -39,7 +92,12 @@ namespace KickTheBuddy.Gameplay
             if (musicSource != null) return;
             GameObject musicObject = new GameObject("Music Source"); musicObject.transform.SetParent(transform, false); musicSource = musicObject.AddComponent<AudioSource>(); musicSource.loop = true; musicSource.playOnAwake = false; musicSource.outputAudioMixerGroup = musicGroup;
             voices = new AudioSource[Mathf.Max(4, voicePoolSize)];
+            voicePriorities = new int[voices.Length];
             for (int i = 0; i < voices.Length; i++) { GameObject voice = new GameObject("Voice " + (i + 1)); voice.transform.SetParent(transform, false); voices[i] = voice.AddComponent<AudioSource>(); voices[i].playOnAwake = false; }
+            cueLookup = new AudioCatalog.Cue[nextCueTimes.Length];
+            if (catalog != null)
+                for (int i = 0; i < cueLookup.Length; i++)
+                    cueLookup[i] = catalog.Find((GameSound)i);
         }
         public void ApplyVolumes(float music, float sound) { EnsureInitialized(); musicVolume = Mathf.Clamp01(music); soundVolume = Mathf.Clamp01(sound); SetBusVolume(AudioBus.Music, musicVolume); SetBusVolume(AudioBus.Sfx, soundVolume); SetBusVolume(AudioBus.UI, soundVolume); SetBusVolume(AudioBus.Voice, soundVolume); SetBusVolume(AudioBus.Ambient, soundVolume); }
         public void PlayMusic(bool gameplay) { PlayMusic(gameplay, .5f); }
@@ -53,10 +111,10 @@ namespace KickTheBuddy.Gameplay
         public AudioPlaybackHandle PlaySfx(GameSound cue, Vector3 position = default, float intensity = 1f)
         {
             EnsureInitialized(); float now = Time.unscaledTime; if (now < nextCueTimes[(int)cue]) return default;
-            AudioCatalog.Cue entry = catalog != null ? catalog.Find(cue) : null; AudioClip clip; float volume, minPitch, maxPitch, spatial; AudioBus bus; float cooldown; int maxVoices;
-            if (entry != null) { clip = entry.NextClip(); volume = entry.Volume; minPitch = entry.MinimumPitch; maxPitch = entry.MaximumPitch; spatial = entry.SpatialBlend; bus = entry.Bus; cooldown = entry.Cooldown; maxVoices = entry.MaximumVoices; }
-            else { LegacySoundEntry legacy = FindLegacy(cue); if (legacy == null || legacy.clips == null || legacy.clips.Length == 0) return default; clip = legacy.clips[UnityEngine.Random.Range(0, legacy.clips.Length)]; volume = legacy.volume; minPitch = legacy.minimumPitch; maxPitch = legacy.maximumPitch; spatial = 0f; bus = cue == GameSound.Button ? AudioBus.UI : AudioBus.Sfx; cooldown = legacy.cooldown; maxVoices = 3; }
-            if (clip == null || CountPlaying(clip) >= maxVoices) return default; AudioSource source = NextVoice(); ConfigureVoice(source, bus, position, spatial); source.clip = clip; source.volume = volume * Mathf.Clamp01(intensity) * busVolumes[(int)bus]; source.pitch = UnityEngine.Random.Range(minPitch, maxPitch); source.loop = entry != null && entry.Loop; source.Play(); nextCueTimes[(int)cue] = now + cooldown;
+            AudioCatalog.Cue entry = cueLookup != null ? cueLookup[(int)cue] : null; AudioClip clip; float volume, minPitch, maxPitch, spatial; AudioBus bus; float cooldown; int maxVoices, priority;
+            if (entry != null) { clip = entry.NextClip(); volume = entry.Volume; minPitch = entry.MinimumPitch; maxPitch = entry.MaximumPitch; spatial = entry.SpatialBlend; bus = entry.Bus; cooldown = entry.Cooldown; maxVoices = entry.MaximumVoices; priority = entry.Priority; }
+            else { LegacySoundEntry legacy = FindLegacy(cue); if (legacy == null || legacy.clips == null || legacy.clips.Length == 0) return default; clip = legacy.clips[UnityEngine.Random.Range(0, legacy.clips.Length)]; volume = legacy.volume; minPitch = legacy.minimumPitch; maxPitch = legacy.maximumPitch; spatial = 0f; bus = cue == GameSound.Button ? AudioBus.UI : AudioBus.Sfx; cooldown = legacy.cooldown; maxVoices = 3; priority = 50; }
+            if (clip == null || CountPlaying(clip) >= maxVoices) return default; AudioSource source = NextVoice(priority); if (source == null) return default; ConfigureVoice(source, bus, position, spatial); source.clip = clip; source.volume = volume * Mathf.Clamp01(intensity) * busVolumes[(int)bus]; source.pitch = UnityEngine.Random.Range(minPitch, maxPitch); source.loop = entry != null && entry.Loop; source.Play(); nextCueTimes[(int)cue] = now + cooldown;
             AudioPlaybackHandle handle = new AudioPlaybackHandle(++playbackId, source); SoundPlayed?.Invoke(cue); PlaybackStarted?.Invoke(handle, cue); return handle;
         }
         public void SetBusVolume(AudioBus bus, float normalizedVolume) { float value = Mathf.Clamp01(normalizedVolume); busVolumes[(int)bus] = value; if (bus == AudioBus.Music && musicSource != null) musicSource.volume = value; BusVolumeChanged?.Invoke(bus, value); }
@@ -68,7 +126,33 @@ namespace KickTheBuddy.Gameplay
             if (next != null) { musicSource.volume = half > 0f ? 0f : busVolumes[(int)AudioBus.Music]; musicSource.Play(); if (half > 0f) yield return Fade(0f, busVolumes[(int)AudioBus.Music], half); MusicChanged?.Invoke(next); } musicFade = null;
         }
         private IEnumerator Fade(float from, float to, float duration) { float elapsed = 0f; while (elapsed < duration) { elapsed += Time.unscaledDeltaTime; musicSource.volume = Mathf.Lerp(from, to, Mathf.Clamp01(elapsed / duration)); yield return null; } musicSource.volume = to; }
-        private AudioSource NextVoice() { for (int i = 0; i < voices.Length; i++) { AudioSource voice = voices[(cursor + i) % voices.Length]; if (!voice.isPlaying) { cursor = (cursor + i + 1) % voices.Length; return voice; } } AudioSource fallback = voices[cursor]; cursor = (cursor + 1) % voices.Length; fallback.Stop(); return fallback; }
+        private AudioSource NextVoice(int priority)
+        {
+            int lowestPriority = int.MaxValue;
+            int lowestIndex = -1;
+            for (int i = 0; i < voices.Length; i++)
+            {
+                int index = (cursor + i) % voices.Length;
+                AudioSource voice = voices[index];
+                if (!voice.isPlaying)
+                {
+                    voicePriorities[index] = priority;
+                    cursor = (index + 1) % voices.Length;
+                    return voice;
+                }
+                if (voicePriorities[index] < lowestPriority)
+                {
+                    lowestPriority = voicePriorities[index];
+                    lowestIndex = index;
+                }
+            }
+            if (lowestIndex < 0 || lowestPriority > priority) return null;
+            AudioSource fallback = voices[lowestIndex];
+            fallback.Stop();
+            voicePriorities[lowestIndex] = priority;
+            cursor = (lowestIndex + 1) % voices.Length;
+            return fallback;
+        }
         private void ConfigureVoice(AudioSource source, AudioBus bus, Vector3 position, float spatial) { source.transform.position = position; source.spatialBlend = spatial; source.outputAudioMixerGroup = Group(bus); }
         private AudioMixerGroup Group(AudioBus bus) { switch (bus) { case AudioBus.Music: return musicGroup; case AudioBus.UI: return uiGroup; case AudioBus.Voice: return voiceGroup; case AudioBus.Ambient: return ambientGroup; default: return sfxGroup; } }
         private int CountPlaying(AudioClip clip) { int count = 0; for (int i = 0; i < voices.Length; i++) if (voices[i].isPlaying && voices[i].clip == clip) count++; return count; }

@@ -61,6 +61,7 @@ namespace KickTheBuddy.Gameplay
             [NonSerialized] public float RemainingLifetime;
             [NonSerialized] public bool Active;
             [NonSerialized] public bool RecycleRequested;
+            [NonSerialized] public bool Charged;
 
             public Rigidbody2D Body => body;
             public Collider2D Collider => collider;
@@ -101,6 +102,10 @@ namespace KickTheBuddy.Gameplay
         [Range(0f, .6f)] [SerializeField] private float targetLeadTime = .18f;
         [Range(.01f, .5f)] [SerializeField] private float chargedHealthRatio = .12f;
         [Range(1f, 2f)] [SerializeField] private float chargedSpeedMultiplier = 1.18f;
+        [Tooltip("Point impulse applied to the exact living limb after a projectile successfully deals damage.")]
+        [Min(0f)] [SerializeField] private float projectileImpactImpulse = 3.4f;
+        [Tooltip("Extra physical kick for the low-health charged shot.")]
+        [Range(1f, 2f)] [SerializeField] private float chargedImpactMultiplier = 1.35f;
         [SerializeField] private Color leftProjectileColor = new Color(1f, .35f, .62f);
         [SerializeField] private Color rightProjectileColor = new Color(.34f, .75f, 1f);
 
@@ -127,6 +132,7 @@ namespace KickTheBuddy.Gameplay
         public CandyCannonTutorialPhase TutorialPhase => tutorialPhase;
         public int PendingShotCount => pendingLeftShots + pendingRightShots;
         public int CompletedShotCount => completedShotCount;
+        public float LastImpactImpulse { get; private set; }
         public int ActiveProjectileCount
         {
             get
@@ -142,6 +148,7 @@ namespace KickTheBuddy.Gameplay
         public event Action<CandyCannonTutorialPhase> TutorialPhaseChanged;
         public event Action<CandyCannonSide, Vector2, Vector2, bool> CannonFired;
         public event Action<CandyCannonSide, Rigidbody2D, float, Vector2> ProjectileHit;
+        public event Action<CandyCannonSide, Rigidbody2D, Vector2, float, Vector2> ProjectileImpactApplied;
         public event Action<CandyCannonSide> ProjectileMissed;
 
         private void Awake()
@@ -238,6 +245,7 @@ namespace KickTheBuddy.Gameplay
             ClearHeldPointers();
             nextGlobalFireTime = 0f;
             completedShotCount = 0;
+            LastImpactImpulse = 0f;
             ResetCannon(leftCannon);
             ResetCannon(rightCannon);
             RecycleAllProjectiles();
@@ -403,6 +411,7 @@ namespace KickTheBuddy.Gameplay
             projectile.TargetBody = targetBody;
             projectile.Active = true;
             projectile.RecycleRequested = false;
+            projectile.Charged = charged;
             projectile.RemainingLifetime = projectileLifetime;
             projectile.Body.gameObject.SetActive(true);
             projectile.Body.simulated = true;
@@ -444,7 +453,6 @@ namespace KickTheBuddy.Gameplay
             else if (cannon.Side == CandyCannonSide.Right &&
                      tutorialPhase == CandyCannonTutorialPhase.AwaitingRightHit)
                 animationController?.PlayShockReaction(.7f);
-            if (soundManager != null) soundManager.Play(GameSound.Button, origin);
         }
 
         private Rigidbody2D ResolveAimBody()
@@ -466,6 +474,7 @@ namespace KickTheBuddy.Gameplay
         {
             ProjectileSlot projectile = FindProjectile(attack);
             if (projectile == null || !projectile.Active || projectile.RecycleRequested) return;
+            ApplyProjectileImpact(projectile, body, speed, point);
             projectile.RecycleRequested = true;
             completedShotCount++;
             tutorialProjectileInFlight = false;
@@ -476,6 +485,27 @@ namespace KickTheBuddy.Gameplay
             else if (tutorialPhase == CandyCannonTutorialPhase.AwaitingRightHit &&
                      projectile.Side == CandyCannonSide.Right)
                 SetTutorialPhase(CandyCannonTutorialPhase.FreePlay);
+        }
+
+        private void ApplyProjectileImpact(ProjectileSlot projectile, Rigidbody2D hitBody,
+            float relativeSpeed, Vector2 point)
+        {
+            if (hitBody == null || !hitBody.simulated || projectileImpactImpulse <= 0f) return;
+
+            Vector2 direction = projectile.Body != null ? projectile.Body.velocity : Vector2.zero;
+            if (direction.sqrMagnitude <= .0001f)
+                direction = projectile.Side == CandyCannonSide.Left ? Vector2.right : Vector2.left;
+            else
+                direction.Normalize();
+
+            float speedRatio = projectileSpeed > .01f
+                ? Mathf.Clamp(relativeSpeed / projectileSpeed, .65f, 1.5f)
+                : 1f;
+            float impulse = projectileImpactImpulse * speedRatio *
+                            (projectile.Charged ? chargedImpactMultiplier : 1f);
+            hitBody.AddForceAtPosition(direction * impulse, point, ForceMode2D.Impulse);
+            LastImpactImpulse = impulse;
+            ProjectileImpactApplied?.Invoke(projectile.Side, hitBody, direction, impulse, point);
         }
 
         private ProjectileSlot FindAvailableProjectile()
@@ -513,6 +543,7 @@ namespace KickTheBuddy.Gameplay
         {
             ConfigureTargetCollisions(projectile, false);
             projectile.Active = projectile.RecycleRequested = false;
+            projectile.Charged = false;
             projectile.TargetBody = null;
             projectile.RemainingLifetime = 0f;
             if (projectile.Trail != null) { projectile.Trail.Clear(); projectile.Trail.enabled = false; }
@@ -594,6 +625,8 @@ namespace KickTheBuddy.Gameplay
             targetLeadTime = Mathf.Clamp(targetLeadTime, 0f, .6f);
             chargedHealthRatio = Mathf.Clamp(chargedHealthRatio, .01f, .5f);
             chargedSpeedMultiplier = Mathf.Clamp(chargedSpeedMultiplier, 1f, 2f);
+            projectileImpactImpulse = Mathf.Max(0f, projectileImpactImpulse);
+            chargedImpactMultiplier = Mathf.Clamp(chargedImpactMultiplier, 1f, 2f);
             recoilDistance = Mathf.Max(0f, recoilDistance);
             recoilRecoverySpeed = Mathf.Max(.1f, recoilRecoverySpeed);
             tutorialPulseAmount = Mathf.Clamp(tutorialPulseAmount, 0f, .3f);

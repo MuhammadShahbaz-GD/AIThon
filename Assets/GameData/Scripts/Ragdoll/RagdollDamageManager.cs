@@ -16,6 +16,12 @@ namespace KickTheBuddy.Physics
         [Header("Safety")]
         [Min(0f)] [SerializeField] private float repeatHitCooldown = .08f;
 
+        [Header("Physical Hit Reaction")]
+        [Tooltip("Impulse applied to the body part that actually receives damage.")]
+        [Min(0f)] [SerializeField] private float hitImpulsePerSpeed = .32f;
+        [Min(0f)] [SerializeField] private float minimumHitImpulse = .5f;
+        [Min(0f)] [SerializeField] private float maximumHitImpulse = 11f;
+
         [Header("Authored References")]
         [SerializeField] private RagdollController controller;
         [SerializeField] private RagdollElementalEffects elementalEffects;
@@ -111,12 +117,25 @@ namespace KickTheBuddy.Physics
             float appliedDamage = health.TakeDamage(rawDamage * incomingDamageMultiplier, force, point);
             if (appliedDamage <= 0f) return false;
 
+            ApplyHitImpulse(hitBody, impactSpeed, force, point);
             elementalEffects?.NotifyImpact(configuredPart.DismemberableLimb, impactSpeed, point);
             bool criticalDeath = health.IsCritical && health.IsDepleted;
             RecalculateAggregateHealth(appliedDamage, impactSpeed, point, criticalDeath);
             DamageCalculated?.Invoke(hitBody, health, attack, appliedDamage, impactSpeed, point);
             if (criticalDeath) CriticalPartDepleted?.Invoke(health);
             return true;
+        }
+
+        private void ApplyHitImpulse(Rigidbody2D hitBody, float impactSpeed, Vector2 force, Vector2 point)
+        {
+            if (hitBody == null || maximumHitImpulse <= 0f) return;
+            Vector2 direction = force.sqrMagnitude > .0001f ? force.normalized : Vector2.up;
+            float impulse = Mathf.Clamp(
+                impactSpeed * hitImpulsePerSpeed,
+                minimumHitImpulse,
+                maximumHitImpulse);
+            if (impulse <= 0f) return;
+            hitBody.AddForceAtPosition(direction * impulse, point, ForceMode2D.Impulse);
         }
 
         private int FindPartIndex(Rigidbody2D body)
@@ -162,6 +181,9 @@ namespace KickTheBuddy.Physics
         {
             incomingDamageMultiplier = Mathf.Clamp(incomingDamageMultiplier, .05f, 1f);
             repeatHitCooldown = Mathf.Max(0f, repeatHitCooldown);
+            hitImpulsePerSpeed = Mathf.Max(0f, hitImpulsePerSpeed);
+            minimumHitImpulse = Mathf.Max(0f, minimumHitImpulse);
+            maximumHitImpulse = Mathf.Max(minimumHitImpulse, maximumHitImpulse);
         }
     }
 }

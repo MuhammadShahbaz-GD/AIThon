@@ -139,6 +139,8 @@ namespace KickTheBuddy.Editor
                             idleAnimation.GetComponent<KickTheBuddy.Physics.RagdollController>();
                         KickTheBuddy.Physics.RagdollDamageManager faceDamage =
                             idleAnimation.GetComponent<KickTheBuddy.Physics.RagdollDamageManager>();
+                        KickTheBuddy.Physics.RagdollPoseController2D facePose =
+                            idleAnimation.GetComponent<KickTheBuddy.Physics.RagdollPoseController2D>();
                         KickTheBuddy.Physics.RagdollController.RagdollPart faceTarget = null;
                         float strongestSafeHealth = 3f;
                         for (int i = 0; i < faceRagdoll.Parts.Count; i++)
@@ -158,6 +160,8 @@ namespace KickTheBuddy.Editor
                         if (!faceDamage.ApplyDirectDamage(faceTarget.Body, 1f, 1f, Vector2.zero, facePoint) ||
                             idleAnimation.CurrentFaceExpression != KickTheBuddy.Physics.RagdollFaceExpression.Shock)
                             throw new InvalidOperationException("A normal resolved hit did not play the authored Shock expression.");
+                        if (facePose == null || facePose.CurrentDamageElasticity <= 0f)
+                            throw new InvalidOperationException("A resolved hit did not relax the active ragdoll joints.");
                         if (!faceDamage.ApplyDirectDamage(faceTarget.Body, 1f, 1f, Vector2.zero, facePoint) ||
                             !faceDamage.ApplyDirectDamage(faceTarget.Body, 1f, 1f, Vector2.zero, facePoint) ||
                             faceRagdoll.CurrentCombo < 3 ||

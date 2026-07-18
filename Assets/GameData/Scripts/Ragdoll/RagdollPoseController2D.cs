@@ -50,6 +50,32 @@ namespace KickTheBuddy.Physics
         [Range(0f, 30f)] [SerializeField] private float maximumLegStabilizationAngle = 10f;
         [Min(0f)] [SerializeField] private float limbBalanceResponseSpeed = 90f;
 
+        [Header("Damage Elastic Reaction")]
+        [Tooltip("Valid damage temporarily relaxes every pose motor so the physical impact can travel through the whole body.")]
+        [SerializeField] private bool enableDamageElasticReaction = true;
+        [Tooltip("Small valid hits still create a readable loose-body reaction.")]
+        [Range(0f, 1f)] [SerializeField] private float minimumDamageReaction = .32f;
+        [Tooltip("Post-mitigation damage that produces the maximum joint relaxation.")]
+        [Min(.01f)] [SerializeField] private float damageForMaximumReaction = 16f;
+        [Tooltip("Impact speed that produces the maximum joint relaxation.")]
+        [Min(.01f)] [SerializeField] private float speedForMaximumReaction = 14f;
+        [Tooltip("How long joints stay loose before their active pose begins recovering.")]
+        [Min(0f)] [SerializeField] private float looseHoldDuration = .32f;
+        [Tooltip("Time required for a maximum-strength hit to recover its normal active pose.")]
+        [Min(.05f)] [SerializeField] private float elasticRecoveryDuration = .95f;
+        [Tooltip("Motor torque retained at the peak of a maximum-strength hit. Lower values feel floppier.")]
+        [Range(0f, 1f)] [SerializeField] private float minimumMotorStrength = .07f;
+        [Tooltip("Torso balance retained during a maximum-strength hit.")]
+        [Range(0f, 1f)] [SerializeField] private float minimumBalanceStrength = .08f;
+        [Tooltip("Head-upright strength retained during a maximum-strength hit.")]
+        [Range(0f, 1f)] [SerializeField] private float minimumHeadStrength = .15f;
+        [Tooltip("Adds a small decaying recoil around each authored joint angle while the active pose returns.")]
+        [Range(0f, 15f)] [SerializeField] private float springReboundAngle = 6.5f;
+        [Tooltip("Oscillations per second during the elastic recovery.")]
+        [Range(.5f, 8f)] [SerializeField] private float springReboundFrequency = 3.4f;
+        [Tooltip("Makes an injured but living body slightly softer between impacts without preventing standing.")]
+        [Range(0f, .6f)] [SerializeField] private float healthBasedLooseness = .24f;
+
         [Header("Broken Leg Recovery")]
         [Tooltip("A severed leg forces the body to fall toward its missing support.")]
         [SerializeField] private bool reactToBrokenLeg = true;
@@ -85,6 +111,9 @@ namespace KickTheBuddy.Physics
         private float brokenLegFallDirection = 1f;
         private float brokenLegFallUntil = float.NegativeInfinity;
         private float brokenLegRecoveryAt = float.NegativeInfinity;
+        private float transientDamageReaction;
+        private float damageReactionHoldUntil = float.NegativeInfinity;
+        private float damageReactionStartedAt = float.NegativeInfinity;
 
         public event Action<Rigidbody2D, int> BrokenLegResponseStarted;
         public event Action OneLegRecoveryStarted;
@@ -106,6 +135,7 @@ namespace KickTheBuddy.Physics
         public float OneLegHeadStrength => oneLegHeadStrength;
         public bool ReactToBrokenLeg => reactToBrokenLeg;
         public bool AllowOneLegRecovery => allowOneLegRecovery;
+        public float CurrentDamageElasticity => ResolveDamageElasticity();
 
         internal void Initialize(RagdollController controller, RagdollRigController2D ragdollRig, RagdollProfileController2D profileController)
         {
@@ -124,13 +154,19 @@ namespace KickTheBuddy.Physics
 
         private void OnEnable() => SubscribeToOwner();
 
-        private void OnDisable() => UnsubscribeFromOwner();
+        private void OnDisable()
+        {
+            UnsubscribeFromOwner();
+            ResetDamageElasticReaction();
+        }
 
         private void OnDestroy() => UnsubscribeFromOwner();
 
         private void FixedUpdate()
         {
-            if (initialized) UpdateStandingAssist();
+            if (!initialized) return;
+            UpdateDamageElasticReaction();
+            UpdateStandingAssist();
         }
 
         internal void SetDragging(bool value)
@@ -320,14 +356,61 @@ namespace KickTheBuddy.Physics
         {
             if (!isActiveAndEnabled || owner == null || ownerEventsSubscribed) return;
             owner.OnLimbBroken += HandleLimbBroken;
+            owner.OnImpactResolved += HandleImpactResolved;
+            owner.OnCharacterRevived += ResetDamageElasticReaction;
             ownerEventsSubscribed = true;
         }
 
         private void UnsubscribeFromOwner()
         {
             if (!ownerEventsSubscribed) return;
-            if (owner != null) owner.OnLimbBroken -= HandleLimbBroken;
+            if (owner != null)
+            {
+                owner.OnLimbBroken -= HandleLimbBroken;
+                owner.OnImpactResolved -= HandleImpactResolved;
+                owner.OnCharacterRevived -= ResetDamageElasticReaction;
+            }
             ownerEventsSubscribed = false;
+        }
+
+        private void HandleImpactResolved(float damage, float impactSpeed, Vector2 point)
+        {
+            if (!enableDamageElasticReaction || damage <= 0f || owner == null) return;
+            if (owner.CurrentState != RagdollState.Active && owner.CurrentState != RagdollState.Burning) return;
+
+            float damageStrength = Mathf.Clamp01(damage / damageForMaximumReaction);
+            float speedStrength = Mathf.Clamp01(impactSpeed / speedForMaximumReaction);
+            float strength = Mathf.Max(minimumDamageReaction, Mathf.Max(damageStrength, speedStrength));
+            transientDamageReaction = Mathf.Max(transientDamageReaction, strength);
+            damageReactionStartedAt = Time.fixedTime;
+            damageReactionHoldUntil = Time.fixedTime + looseHoldDuration * Mathf.Lerp(.75f, 1.35f, strength);
+        }
+
+        private void UpdateDamageElasticReaction()
+        {
+            if (transientDamageReaction <= 0f || Time.fixedTime <= damageReactionHoldUntil) return;
+            float recoveryRate = 1f / elasticRecoveryDuration;
+            transientDamageReaction = Mathf.MoveTowards(
+                transientDamageReaction,
+                0f,
+                recoveryRate * Time.fixedDeltaTime);
+        }
+
+        private float ResolveDamageElasticity()
+        {
+            if (!enableDamageElasticReaction || owner == null) return 0f;
+            float healthRatio = owner.MaximumHealth > 0f
+                ? Mathf.Clamp01(owner.CurrentHealth / owner.MaximumHealth)
+                : 1f;
+            float injuryLooseness = (1f - healthRatio) * healthBasedLooseness;
+            return Mathf.Clamp01(Mathf.Max(transientDamageReaction, injuryLooseness));
+        }
+
+        private void ResetDamageElasticReaction()
+        {
+            transientDamageReaction = 0f;
+            damageReactionHoldUntil = float.NegativeInfinity;
+            damageReactionStartedAt = float.NegativeInfinity;
         }
 
         private float ResolveOneLegStrength(float oneLegStrength) =>
@@ -348,6 +431,7 @@ namespace KickTheBuddy.Physics
             // A clamped proportional-damped torque makes the head feel attentive without injecting
             // energy once it is settled. Dragging exits before this method, so the grabbed body hangs naturally.
             float multiplier = Mathf.Max(0f, strengthMultiplier);
+            multiplier *= Mathf.Lerp(1f, minimumHeadStrength, ResolveDamageElasticity());
             float requestedTorque =
                 error * headUprightTorque * multiplier -
                 head.angularVelocity * headUprightDamping * multiplier;
@@ -373,7 +457,10 @@ namespace KickTheBuddy.Physics
                 torque = profile.JointSpringForce * (isGettingUp ? 1.75f : 1f);
 
             float speedMultiplier = isGettingUp ? standUpSpeed : 1f;
+            float damageElasticity = ResolveDamageElasticity();
+            float motorStrength = Mathf.Lerp(1f, minimumMotorStrength, damageElasticity);
             torque *= speedMultiplier * ResolveOneLegStrength(oneLegMotorStrength);
+            torque *= motorStrength;
             var joints = rig.Joints;
 
             for (int i = 0; i < joints.Count; i++)
@@ -382,7 +469,8 @@ namespace KickTheBuddy.Physics
                 HingeJoint2D joint = item.Joint;
                 if (joint == null || joint.attachedRigidbody == null) continue;
 
-                float targetAngle = item.RestAngle + ResolveBalanceOffset(item);
+                float targetAngle = item.RestAngle + ResolveBalanceOffset(item) +
+                                    ResolveSpringRebound(i, damageElasticity);
                 float error = Mathf.DeltaAngle(joint.jointAngle, targetAngle);
                 JointMotor2D motor = joint.motor;
                 bool settled = !isGettingUp &&
@@ -398,6 +486,17 @@ namespace KickTheBuddy.Physics
                 joint.motor = motor;
                 joint.useMotor = true;
             }
+        }
+
+        private float ResolveSpringRebound(int jointIndex, float damageElasticity)
+        {
+            if (springReboundAngle <= 0f || damageElasticity <= .001f ||
+                damageReactionStartedAt == float.NegativeInfinity)
+                return 0f;
+
+            float elapsed = Mathf.Max(0f, Time.fixedTime - damageReactionStartedAt);
+            float phase = elapsed * springReboundFrequency * Mathf.PI * 2f + jointIndex * 1.73f;
+            return Mathf.Sin(phase) * springReboundAngle * damageElasticity;
         }
 
         private float ResolveBalanceOffset(RagdollRigController2D.JointRuntime item)
@@ -439,6 +538,7 @@ namespace KickTheBuddy.Physics
             RagdollProfile profile = profiles.ActiveProfile;
             float damping = profile != null ? profile.JointDamping : balanceDamping;
             torque *= ResolveOneLegStrength(oneLegBalanceStrength);
+            torque *= Mathf.Lerp(1f, minimumBalanceStrength, ResolveDamageElasticity());
 
             if (!isGettingUp &&
                 Mathf.Abs(error) <= idleAngleDeadZone &&
@@ -476,6 +576,17 @@ namespace KickTheBuddy.Physics
             headUprightDamping = Mathf.Max(0f, headUprightDamping);
             maximumHeadUprightTorque = Mathf.Max(0f, maximumHeadUprightTorque);
             limbBalanceResponseSpeed = Mathf.Max(0f, limbBalanceResponseSpeed);
+            minimumDamageReaction = Mathf.Clamp01(minimumDamageReaction);
+            damageForMaximumReaction = Mathf.Max(.01f, damageForMaximumReaction);
+            speedForMaximumReaction = Mathf.Max(.01f, speedForMaximumReaction);
+            looseHoldDuration = Mathf.Max(0f, looseHoldDuration);
+            elasticRecoveryDuration = Mathf.Max(.05f, elasticRecoveryDuration);
+            minimumMotorStrength = Mathf.Clamp01(minimumMotorStrength);
+            minimumBalanceStrength = Mathf.Clamp01(minimumBalanceStrength);
+            minimumHeadStrength = Mathf.Clamp01(minimumHeadStrength);
+            springReboundAngle = Mathf.Clamp(springReboundAngle, 0f, 15f);
+            springReboundFrequency = Mathf.Clamp(springReboundFrequency, .5f, 8f);
+            healthBasedLooseness = Mathf.Clamp(healthBasedLooseness, 0f, .6f);
             brokenLegFallDuration = Mathf.Max(0f, brokenLegFallDuration);
             brokenLegRecoveryDelay = Mathf.Max(0f, brokenLegRecoveryDelay);
             brokenLegFallTorque = Mathf.Max(0f, brokenLegFallTorque);

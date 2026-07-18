@@ -132,7 +132,6 @@ namespace KickTheBuddy.Gameplay
             LevelDefinition level = levels.CurrentLevel;
             int stars = level.GetStars(score);
             saves.RecordLevel(level.LevelId, score, stars, level.CompletionCoins, levels.CurrentLevelIndex);
-            sounds.Play(GameSound.LevelComplete);
             ChangeState(GameplayState.LevelComplete);
             LevelCompleted?.Invoke(score, stars);
         }
@@ -143,7 +142,6 @@ namespace KickTheBuddy.Gameplay
             ragdollInput?.SetInputEnabled(false);
             sandboxToolInput?.SetInputEnabled(false);
             candyCannons?.CompleteInteraction();
-            sounds.Play(GameSound.LevelFailed);
             ChangeState(GameplayState.LevelFailed);
             LevelFailed?.Invoke();
         }
@@ -188,7 +186,6 @@ namespace KickTheBuddy.Gameplay
             int combo = ragdoll != null ? ragdoll.CurrentCombo : 0;
             int gained = Mathf.Max(1, Mathf.RoundToInt(amount * (1f + combo * .1f)));
             score += gained;
-            sounds.Play(amount >= 15f ? GameSound.HitHeavy : GameSound.HitLight, point);
             ObjectiveProgressChanged?.Invoke(damage, levels.CurrentLevel.TargetDamage);
             ScoreChanged?.Invoke(score);
             ScoreAwarded?.Invoke(gained, score, point, combo);

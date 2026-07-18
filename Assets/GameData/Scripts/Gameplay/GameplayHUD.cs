@@ -23,6 +23,11 @@ namespace KickTheBuddy.Gameplay
         [Tooltip("Legacy slider support. New scenes use the cheaper filled Image below.")]
         [SerializeField] private Slider objectiveSlider;
         [SerializeField] private Image objectiveFillImage;
+        [SerializeField] private Image statusFaceImage;
+        [SerializeField] private Sprite normalStatusSprite;
+        [SerializeField] private Sprite hitStatusSprite;
+        [SerializeField] private Sprite brokenStatusSprite;
+        [SerializeField] private Image[] resultStars;
 
         [Header("Panels")]
         [SerializeField] private GameObject gameplayPanel;
@@ -38,6 +43,8 @@ namespace KickTheBuddy.Gameplay
         [SerializeField] private Button settingsButton;
         [SerializeField] private Button closeSettingsButton;
         [SerializeField] private Button mainMenuButton;
+        [SerializeField] private Button settingsPlayButton;
+        [SerializeField] private Button settingsRetryButton;
 
         [Header("Settings")]
         [SerializeField] private Toggle musicToggle;
@@ -84,10 +91,11 @@ namespace KickTheBuddy.Gameplay
             LevelDefinition level = levels.CurrentLevel;
             if (level != null)
             {
-                Set(levelText, level.DisplayName);
+                Set(levelText, $"Level {levels.CurrentLevelIndex + 1:00}");
                 Set(objectiveText, level.ObjectiveText);
             }
 
+            HandleScore(gameplay.Score);
             HandleState(GameplayState.Booting, gameplay.State);
         }
 
@@ -129,6 +137,12 @@ namespace KickTheBuddy.Gameplay
         {
             float normalized = target > 0f ? Mathf.Clamp01(value / target) : 0f;
             if (objectiveFillImage != null) objectiveFillImage.fillAmount = normalized;
+            if (statusFaceImage != null)
+            {
+                statusFaceImage.sprite = normalized >= .72f
+                    ? brokenStatusSprite
+                    : normalized >= .34f ? hitStatusSprite : normalStatusSprite;
+            }
             if (objectiveProgressText != null) objectiveProgressText.text = $"{Mathf.FloorToInt(value)} / {Mathf.CeilToInt(target)}";
             if (objectiveSlider != null)
             {
@@ -147,8 +161,24 @@ namespace KickTheBuddy.Gameplay
             Set(timerText, $"{seconds / 60:00}:{seconds % 60:00}");
         }
 
-        private void HandleComplete(int score, int stars) => Set(resultText, $"LEVEL COMPLETE\nScore {score}\nStars {stars}/3");
-        private void HandleFailed() => Set(resultText, "TRY AGAIN");
+        private void HandleComplete(int score, int stars)
+        {
+            Set(resultText, $"LEVEL COMPLETE\nScore {score}\nStars {stars}/3");
+            SetResultStars(stars);
+        }
+
+        private void HandleFailed()
+        {
+            Set(resultText, "TRY AGAIN");
+            SetResultStars(0);
+        }
+
+        private void SetResultStars(int count)
+        {
+            if (resultStars == null) return;
+            for (int i = 0; i < resultStars.Length; i++)
+                if (resultStars[i] != null) resultStars[i].enabled = i < count;
+        }
 
         private void LoadSettingsView()
         {
@@ -204,6 +234,8 @@ namespace KickTheBuddy.Gameplay
             if (settingsButton != null) settingsButton.onClick.AddListener(OpenSettings);
             if (closeSettingsButton != null) closeSettingsButton.onClick.AddListener(CloseSettings);
             if (mainMenuButton != null) mainMenuButton.onClick.AddListener(ReturnToMainMenu);
+            if (settingsPlayButton != null) settingsPlayButton.onClick.AddListener(CloseSettings);
+            if (settingsRetryButton != null) settingsRetryButton.onClick.AddListener(RestartFromSettings);
         }
 
         private void ReturnToMainMenu()
@@ -211,6 +243,14 @@ namespace KickTheBuddy.Gameplay
             sounds?.Play(GameSound.Button);
             haptics?.Selection();
             GameBootstrapper.Instance?.Flow?.ShowMainMenu();
+        }
+
+        private void RestartFromSettings()
+        {
+            settingsOpen = false;
+            sounds?.Play(GameSound.Button);
+            haptics?.Selection();
+            gameplay?.Restart();
         }
 
         private void AddSettingsListeners()
@@ -243,6 +283,12 @@ namespace KickTheBuddy.Gameplay
             if (settingsButton != null) settingsButton.onClick.RemoveListener(OpenSettings);
             if (closeSettingsButton != null) closeSettingsButton.onClick.RemoveListener(CloseSettings);
             if (mainMenuButton != null) mainMenuButton.onClick.RemoveListener(ReturnToMainMenu);
+            if (pauseButton != null && gameplay != null) pauseButton.onClick.RemoveListener(gameplay.Pause);
+            if (resumeButton != null && gameplay != null) resumeButton.onClick.RemoveListener(gameplay.Resume);
+            if (restartButton != null && gameplay != null) restartButton.onClick.RemoveListener(gameplay.Restart);
+            if (nextButton != null && gameplay != null) nextButton.onClick.RemoveListener(gameplay.NextLevel);
+            if (settingsPlayButton != null) settingsPlayButton.onClick.RemoveListener(CloseSettings);
+            if (settingsRetryButton != null) settingsRetryButton.onClick.RemoveListener(RestartFromSettings);
         }
     }
 }

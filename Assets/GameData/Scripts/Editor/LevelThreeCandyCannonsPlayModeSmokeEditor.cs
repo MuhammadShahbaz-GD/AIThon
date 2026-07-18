@@ -137,6 +137,11 @@ namespace KickTheBuddy.Editor
                 throw new InvalidOperationException("The left torso hit incorrectly damaged the head.");
             if (Vector2.Distance(vfx.LastImpactPoint, torso.transform.position) > 1.5f)
                 throw new InvalidOperationException("Candy hit VFX was not emitted at the struck torso.");
+            if (cannons.LastImpactImpulse <= 0f)
+                throw new InvalidOperationException("The confirmed candy hit did not apply its local point impulse.");
+            RagdollPoseController2D pose = ragdoll.GetComponent<RagdollPoseController2D>();
+            if (pose == null || pose.CurrentDamageElasticity <= 0f)
+                throw new InvalidOperationException("The cannon hit did not trigger whole-body elastic joint relaxation.");
             if (cannons.ActiveProjectileCount > 1)
                 throw new InvalidOperationException("One cannon press activated more than one pooled projectile.");
 
@@ -204,6 +209,7 @@ namespace KickTheBuddy.Editor
                 throw new InvalidOperationException("Cannon input still fired after gameplay disabled it.");
             Debug.Log("LEVEL03_CANDY_CANNONS_PLAYMODE_OK: level_03 selected, left-before-right gating=true, " +
                       "one projectile per press=true, physical torso hits=true, other-part damage=false, " +
+                      "localPointImpulse=true, elasticJointReaction=true, " +
                       "right tutorial unlock=true, rapidTapQueue=3, heldAutoFire=true, freePlay=true, " +
                       "pooledMuzzleAndImpactVFX=true, disabledInputStopsFire=true.");
             SessionState.SetInt(StageKey, StageSucceeded);

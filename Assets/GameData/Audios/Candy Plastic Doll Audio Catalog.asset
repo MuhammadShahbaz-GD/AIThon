@@ -1,0 +1,709 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 264435e0f9c01b949abf94861464e00a, type: 3}
+  m_Name: Candy Plastic Doll Audio Catalog
+  m_EditorClassIdentifier: 
+  menuMusic: {fileID: 8300000, guid: 08ade97de7f34a74595ae472a6752b48, type: 3}
+  gameplayMusic: {fileID: 8300000, guid: e87f88f97d4ffc64c96476d6f4a7408d, type: 3}
+  cues:
+  - id: 0
+    bus: 2
+    clips:
+    - {fileID: 8300000, guid: 85940cf606ae6b040b17a74eebcf33b1, type: 3}
+    - {fileID: 8300000, guid: 2f3995fc16b6dfe4a9bd0f1de940b423, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.72
+    minimumPitch: 0.96
+    maximumPitch: 1.04
+    spatialBlend: 0
+    cooldown: 0.035
+    maximumVoices: 3
+    priority: 50
+  - id: 1
+    bus: 2
+    clips:
+    - {fileID: 8300000, guid: 963879bb5aa346341bb604e2d3939dd8, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.72
+    minimumPitch: 0.98
+    maximumPitch: 1.02
+    spatialBlend: 0
+    cooldown: 0.06
+    maximumVoices: 2
+    priority: 55
+  - id: 2
+    bus: 2
+    clips:
+    - {fileID: 8300000, guid: bab180b434f20ca44a1f74838602dde5, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.68
+    minimumPitch: 0.98
+    maximumPitch: 1.02
+    spatialBlend: 0
+    cooldown: 0.08
+    maximumVoices: 2
+    priority: 55
+  - id: 3
+    bus: 2
+    clips:
+    - {fileID: 8300000, guid: e669b3f6f9c7c554288e47f8dbe558e8, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.78
+    minimumPitch: 0.98
+    maximumPitch: 1.02
+    spatialBlend: 0
+    cooldown: 0.08
+    maximumVoices: 2
+    priority: 65
+  - id: 4
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: a1c37b1184d52bf4892868481f0dd11a, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.7
+    minimumPitch: 0.94
+    maximumPitch: 1.06
+    spatialBlend: 0
+    cooldown: 0.08
+    maximumVoices: 1
+    priority: 45
+  - id: 5
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 1824341297409994fb97150ceb8f40ee, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.68
+    minimumPitch: 0.94
+    maximumPitch: 1.06
+    spatialBlend: 0
+    cooldown: 0.08
+    maximumVoices: 1
+    priority: 45
+  - id: 6
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: f465478b2f16707458186a04c239f20b, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.5
+    minimumPitch: 0.91
+    maximumPitch: 1.08
+    spatialBlend: 0
+    cooldown: 0.24
+    maximumVoices: 1
+    priority: 38
+  - id: 7
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: fe2e25875ac75df47a9ba310f605c47a, type: 3}
+    - {fileID: 8300000, guid: 09fc878d83b8e0941a50f6dc1a914526, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.62
+    minimumPitch: 0.92
+    maximumPitch: 1.08
+    spatialBlend: 0
+    cooldown: 0.1
+    maximumVoices: 2
+    priority: 48
+  - id: 8
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 2da5711b1fee76349ae958e0651fee29, type: 3}
+    - {fileID: 8300000, guid: cf32914e268bfb54dac8a62543632fd1, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.54
+    minimumPitch: 0.92
+    maximumPitch: 1.08
+    spatialBlend: 0
+    cooldown: 0.11
+    maximumVoices: 2
+    priority: 35
+  - id: 9
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: d4434272bff4fca45ac2e151433c85d3, type: 3}
+    - {fileID: 8300000, guid: 9b9694f14b7784646bd60a8bfac66cb3, type: 3}
+    - {fileID: 8300000, guid: 16cf46a01071bc24cb83de6f64ce6fbc, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.62
+    minimumPitch: 0.94
+    maximumPitch: 1.08
+    spatialBlend: 0
+    cooldown: 0.055
+    maximumVoices: 3
+    priority: 42
+  - id: 10
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 1de9c673f1889a94ea60f89710a4918b, type: 3}
+    - {fileID: 8300000, guid: ecbabd8feac89f248a1f5208978f8932, type: 3}
+    - {fileID: 8300000, guid: 0ba4360cb82efa845b856b6c016a349e, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.76
+    minimumPitch: 0.94
+    maximumPitch: 1.06
+    spatialBlend: 0
+    cooldown: 0.065
+    maximumVoices: 3
+    priority: 52
+  - id: 11
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 0fc7ee7ccdc5a2244810f89263536dc3, type: 3}
+    - {fileID: 8300000, guid: 39ac8b248cd49ae4fb1a9ba5eb322885, type: 3}
+    - {fileID: 8300000, guid: afc81f8d89c314c44a4bb7be58cccce9, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.9
+    minimumPitch: 0.95
+    maximumPitch: 1.04
+    spatialBlend: 0
+    cooldown: 0.085
+    maximumVoices: 3
+    priority: 68
+  - id: 12
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: c098726c684c6fb49b6db80b5f89b37b, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.72
+    minimumPitch: 0.96
+    maximumPitch: 1.04
+    spatialBlend: 0
+    cooldown: 0.12
+    maximumVoices: 2
+    priority: 65
+  - id: 13
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 5b528e824db18fc4ca0f1ae2dce95711, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.88
+    minimumPitch: 0.95
+    maximumPitch: 1.03
+    spatialBlend: 0
+    cooldown: 0.18
+    maximumVoices: 2
+    priority: 76
+  - id: 14
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: e080e7be4c907384890f6f10036222fe, type: 3}
+    - {fileID: 8300000, guid: 4838a6af4e941254f8a2c35a01343e2b, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.94
+    minimumPitch: 0.96
+    maximumPitch: 1.03
+    spatialBlend: 0
+    cooldown: 0.2
+    maximumVoices: 2
+    priority: 90
+  - id: 15
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 57d4a9c08f8d13042a9c400f293d41a7, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.72
+    minimumPitch: 0.92
+    maximumPitch: 1.06
+    spatialBlend: 0
+    cooldown: 0.18
+    maximumVoices: 2
+    priority: 82
+  - id: 16
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 65ee923f95b73934aabf29cb74b08d80, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.58
+    minimumPitch: 0.92
+    maximumPitch: 1.08
+    spatialBlend: 0
+    cooldown: 0.1
+    maximumVoices: 2
+    priority: 38
+  - id: 17
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: fa9e285f66c06834b95314c5993e0fc1, type: 3}
+    - {fileID: 8300000, guid: 4598dc09edd129c4aa5e82a38fd60001, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.84
+    minimumPitch: 0.94
+    maximumPitch: 1.05
+    spatialBlend: 0
+    cooldown: 0.08
+    maximumVoices: 2
+    priority: 64
+  - id: 18
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 16d8a48435e610d43b499205bc45804f, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.46
+    minimumPitch: 0.92
+    maximumPitch: 1.08
+    spatialBlend: 0
+    cooldown: 0.1
+    maximumVoices: 2
+    priority: 35
+  - id: 19
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 02b862763e435304e88b948b58cd9752, type: 3}
+    - {fileID: 8300000, guid: 1fb1021ae1a7f8d4c9c9f6765f846631, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.76
+    minimumPitch: 0.92
+    maximumPitch: 1.06
+    spatialBlend: 0
+    cooldown: 0.1
+    maximumVoices: 2
+    priority: 52
+  - id: 20
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: cbd89d2e4e31dc44f9a42b2ac22bb5ab, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.64
+    minimumPitch: 0.96
+    maximumPitch: 1.04
+    spatialBlend: 0
+    cooldown: 0.15
+    maximumVoices: 1
+    priority: 55
+  - id: 21
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 8d3ac090d9867fb498856a4362cdd9a3, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.46
+    minimumPitch: 0.94
+    maximumPitch: 1.05
+    spatialBlend: 0
+    cooldown: 0.2
+    maximumVoices: 1
+    priority: 38
+  - id: 22
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 23eb55f07043da147931b457a55dd3f5, type: 3}
+    - {fileID: 8300000, guid: a6a31cf096b891f4f909dc65182950b6, type: 3}
+    - {fileID: 8300000, guid: 1bea8333435cffb4aa9c4cb1dff76e77, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.82
+    minimumPitch: 0.96
+    maximumPitch: 1.04
+    spatialBlend: 0
+    cooldown: 0.06
+    maximumVoices: 4
+    priority: 58
+  - id: 23
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: ed8589899547b954fa9a2970f9c50582, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.96
+    minimumPitch: 0.98
+    maximumPitch: 1.02
+    spatialBlend: 0
+    cooldown: 0.12
+    maximumVoices: 2
+    priority: 78
+  - id: 24
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 825412a3f0f1a4a44a1edc101c7b9d2e, type: 3}
+    - {fileID: 8300000, guid: a1af83ca83b06284297a139162a18f8b, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.9
+    minimumPitch: 0.96
+    maximumPitch: 1.04
+    spatialBlend: 0
+    cooldown: 0.065
+    maximumVoices: 3
+    priority: 72
+  - id: 25
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: c68f7db8df7a98c40b782cf52d464260, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.44
+    minimumPitch: 0.92
+    maximumPitch: 1.07
+    spatialBlend: 0
+    cooldown: 0.12
+    maximumVoices: 2
+    priority: 30
+  - id: 26
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: ae69d22e46e372543a9c868115c21f86, type: 3}
+    - {fileID: 8300000, guid: 636dd9f6a11508a4db97fb48dc27478b, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.72
+    minimumPitch: 0.98
+    maximumPitch: 1.04
+    spatialBlend: 0
+    cooldown: 0.12
+    maximumVoices: 2
+    priority: 72
+  - id: 27
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 3008d7caeca70014280f45dce49067b8, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.88
+    minimumPitch: 0.99
+    maximumPitch: 1.03
+    spatialBlend: 0
+    cooldown: 0.16
+    maximumVoices: 2
+    priority: 82
+  - id: 28
+    bus: 3
+    clips:
+    - {fileID: 8300000, guid: aa55a5a0762a6074196b0e3943fc2e1c, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.42
+    minimumPitch: 0.97
+    maximumPitch: 1.04
+    spatialBlend: 0
+    cooldown: 2.5
+    maximumVoices: 1
+    priority: 32
+  - id: 29
+    bus: 3
+    clips:
+    - {fileID: 8300000, guid: 7b649ff68df37ee48844554439ae1f5f, type: 3}
+    - {fileID: 8300000, guid: 5291fb514d14c8846b34f5fc3e74d052, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.58
+    minimumPitch: 0.96
+    maximumPitch: 1.05
+    spatialBlend: 0
+    cooldown: 0.42
+    maximumVoices: 1
+    priority: 60
+  - id: 30
+    bus: 3
+    clips:
+    - {fileID: 8300000, guid: f0dc886d4d3ff3c43a28497c1b1e04d8, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.62
+    minimumPitch: 0.96
+    maximumPitch: 1.04
+    spatialBlend: 0
+    cooldown: 0.7
+    maximumVoices: 1
+    priority: 62
+  - id: 31
+    bus: 3
+    clips:
+    - {fileID: 8300000, guid: 7905356a076c65d4f8dd8a81132b8f64, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.62
+    minimumPitch: 0.97
+    maximumPitch: 1.03
+    spatialBlend: 0
+    cooldown: 0.85
+    maximumVoices: 1
+    priority: 74
+  - id: 32
+    bus: 3
+    clips:
+    - {fileID: 8300000, guid: fa70fc52ea50ed6409b62df0ce3b39ee, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.72
+    minimumPitch: 0.98
+    maximumPitch: 1.02
+    spatialBlend: 0
+    cooldown: 1
+    maximumVoices: 1
+    priority: 84
+  - id: 33
+    bus: 3
+    clips:
+    - {fileID: 8300000, guid: 6bf20c8474222b04d9bac919fff51eaf, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.58
+    minimumPitch: 0.98
+    maximumPitch: 1.03
+    spatialBlend: 0
+    cooldown: 1
+    maximumVoices: 1
+    priority: 64
+  - id: 34
+    bus: 2
+    clips:
+    - {fileID: 8300000, guid: 8c2da66bbbeaa1d48945e6388124f6af, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.72
+    minimumPitch: 0.99
+    maximumPitch: 1.01
+    spatialBlend: 0
+    cooldown: 0.5
+    maximumVoices: 1
+    priority: 82
+  - id: 35
+    bus: 2
+    clips:
+    - {fileID: 8300000, guid: 7d5834c1c55389c49a3b1454b555248a, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.96
+    minimumPitch: 0.99
+    maximumPitch: 1.01
+    spatialBlend: 0
+    cooldown: 1
+    maximumVoices: 1
+    priority: 96
+  - id: 36
+    bus: 2
+    clips:
+    - {fileID: 8300000, guid: d689b61e236054244b6762313aec6715, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 0.8
+    minimumPitch: 0.99
+    maximumPitch: 1.01
+    spatialBlend: 0
+    cooldown: 1
+    maximumVoices: 1
+    priority: 90
+  - id: 37
+    bus: 2
+    clips:
+    - {fileID: 8300000, guid: 4828dcf71512d4247a93052093b0de90, type: 3}
+    - {fileID: 8300000, guid: a614b747ac0be564882e7496c3ce6b41, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.68
+    minimumPitch: 0.98
+    maximumPitch: 1.06
+    spatialBlend: 0
+    cooldown: 0.04
+    maximumVoices: 4
+    priority: 55
+  - id: 38
+    bus: 2
+    clips:
+    - {fileID: 8300000, guid: 4828dcf71512d4247a93052093b0de90, type: 3}
+    - {fileID: 8300000, guid: a614b747ac0be564882e7496c3ce6b41, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.5
+    minimumPitch: 1
+    maximumPitch: 1.08
+    spatialBlend: 0
+    cooldown: 0.05
+    maximumVoices: 3
+    priority: 48
+  - id: 39
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 3c1004c9bd4c72d44986edb1fd4805c8, type: 3}
+    randomize: 0
+    loop: 0
+    volume: 1
+    minimumPitch: 0.99
+    maximumPitch: 1.01
+    spatialBlend: 0
+    cooldown: 2
+    maximumVoices: 1
+    priority: 100
+  - id: 40
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 2bce757e35a4c184c995c29b76a13cba, type: 3}
+    - {fileID: 8300000, guid: 0f0c110de04aeb64cb2dedf635e4dd0a, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.68
+    minimumPitch: 0.94
+    maximumPitch: 1.06
+    spatialBlend: 0.12
+    cooldown: 0.09
+    maximumVoices: 3
+    priority: 44
+  - id: 41
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 9e2021263d2622f4c92f8c5850978ee0, type: 3}
+    - {fileID: 8300000, guid: 7c9875a0e5d52d34d9067e91ecc31eff, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.82
+    minimumPitch: 0.92
+    maximumPitch: 1.08
+    spatialBlend: 0.12
+    cooldown: 0.06
+    maximumVoices: 3
+    priority: 58
+  - id: 42
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: c6658768098ce99469a68f23edc492f4, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.62
+    minimumPitch: 0.94
+    maximumPitch: 1.08
+    spatialBlend: 0.12
+    cooldown: 0.1
+    maximumVoices: 2
+    priority: 38
+  - id: 43
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 63f2f2614bee37b41a26db78a015a0fa, type: 3}
+    - {fileID: 8300000, guid: 740727d1c1289a745b675992bd8566fa, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.72
+    minimumPitch: 0.91
+    maximumPitch: 1.09
+    spatialBlend: 0.12
+    cooldown: 0.08
+    maximumVoices: 3
+    priority: 52
+  - id: 44
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 65e3b069a366a614ebadb332f8079afd, type: 3}
+    - {fileID: 8300000, guid: 875e2f619f4120847858cae4835aba76, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.82
+    minimumPitch: 0.91
+    maximumPitch: 1.05
+    spatialBlend: 0.12
+    cooldown: 0.1
+    maximumVoices: 2
+    priority: 60
+  - id: 45
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 5182da64030c2cd468cae939f4708e59, type: 3}
+    - {fileID: 8300000, guid: a1f60aad193ddb34ea515e9a902a7f7a, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.84
+    minimumPitch: 0.96
+    maximumPitch: 1.06
+    spatialBlend: 0.12
+    cooldown: 0.1
+    maximumVoices: 3
+    priority: 64
+  - id: 46
+    bus: 1
+    clips:
+    - {fileID: 8300000, guid: 8725ca542146ff94e8804bb4492fb03b, type: 3}
+    - {fileID: 8300000, guid: 22013a0a907d9364fbfed8d3686dfaae, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.86
+    minimumPitch: 0.94
+    maximumPitch: 1.08
+    spatialBlend: 0.12
+    cooldown: 0.07
+    maximumVoices: 3
+    priority: 66
+  - id: 47
+    bus: 3
+    clips:
+    - {fileID: 8300000, guid: 6d06270c1eb5ed04f97940d4e119eb5a, type: 3}
+    - {fileID: 8300000, guid: 54de64e2db27dee40a6c3762a55be450, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.78
+    minimumPitch: 1.02
+    maximumPitch: 1.11
+    spatialBlend: 0.12
+    cooldown: 0.32
+    maximumVoices: 1
+    priority: 76
+  - id: 48
+    bus: 3
+    clips:
+    - {fileID: 8300000, guid: 9b34eb574764fe84faa41408060bb5d6, type: 3}
+    - {fileID: 8300000, guid: 83cc53b083f8797439a24aeec507bdf1, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.74
+    minimumPitch: 1.02
+    maximumPitch: 1.1
+    spatialBlend: 0.12
+    cooldown: 0.4
+    maximumVoices: 1
+    priority: 74
+  - id: 49
+    bus: 3
+    clips:
+    - {fileID: 8300000, guid: b309eb0e7a23a794796b88dc9e642b07, type: 3}
+    - {fileID: 8300000, guid: 86ee771d6d39a7c459b8e1803f178bbf, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.82
+    minimumPitch: 1.01
+    maximumPitch: 1.08
+    spatialBlend: 0.12
+    cooldown: 0.75
+    maximumVoices: 1
+    priority: 82
+  - id: 50
+    bus: 3
+    clips:
+    - {fileID: 8300000, guid: 539f324cbf3b4c64ab10a5c252c722ac, type: 3}
+    - {fileID: 8300000, guid: 63fbb82b3179e3a4791992215e65f8c6, type: 3}
+    randomize: 1
+    loop: 0
+    volume: 0.8
+    minimumPitch: 1.01
+    maximumPitch: 1.09
+    spatialBlend: 0.12
+    cooldown: 0.65
+    maximumVoices: 1
+    priority: 80

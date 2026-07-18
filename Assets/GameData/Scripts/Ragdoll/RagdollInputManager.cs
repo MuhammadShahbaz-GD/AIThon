@@ -35,6 +35,8 @@ namespace KickTheBuddy.Physics
             [Tooltip("The head must pull the full body through the neck, so it receives extra force.")]
             [Range(1f, 3f)] [SerializeField] private float headForceMultiplier = 1.8f;
             [Range(1f, 2f)] [SerializeField] private float headFrequencyMultiplier = 1.3f;
+            [Tooltip("Lower values let the grabbed head bounce around the pointer like a spring.")]
+            [Range(.15f, 1f)] [SerializeField] private float headDampingMultiplier = .55f;
 
             public float Frequency => frequency;
             public float DampingRatio => dampingRatio;
@@ -48,6 +50,7 @@ namespace KickTheBuddy.Physics
             public float StretchedFrequencyMultiplier => stretchedFrequencyMultiplier;
             public float HeadForceMultiplier => headForceMultiplier;
             public float HeadFrequencyMultiplier => headFrequencyMultiplier;
+            public float HeadDampingMultiplier => headDampingMultiplier;
 
             internal void Validate()
             {
@@ -63,6 +66,7 @@ namespace KickTheBuddy.Physics
                 stretchedFrequencyMultiplier = Mathf.Clamp(stretchedFrequencyMultiplier, .1f, 1f);
                 headForceMultiplier = Mathf.Clamp(headForceMultiplier, 1f, 3f);
                 headFrequencyMultiplier = Mathf.Clamp(headFrequencyMultiplier, 1f, 2f);
+                headDampingMultiplier = Mathf.Clamp(headDampingMultiplier, .15f, 1f);
             }
         }
 

@@ -19,10 +19,12 @@ namespace KickTheBuddy.Audio
             [Range(0f, 1f)] [SerializeField] private float spatialBlend;
             [Min(0f)] [SerializeField] private float cooldown = .05f;
             [Range(1, 8)] [SerializeField] private int maximumVoices = 3;
+            [Tooltip("Higher-priority cues can replace lower-priority voices when the pool is full.")]
+            [Range(0, 100)] [SerializeField] private int priority = 50;
             [NonSerialized] private int sequenceIndex;
             public GameSound Id => id; public AudioBus Bus => bus; public bool Loop => loop; public float Volume => volume;
             public float MinimumPitch => minimumPitch; public float MaximumPitch => maximumPitch; public float SpatialBlend => spatialBlend;
-            public float Cooldown => cooldown; public int MaximumVoices => maximumVoices;
+            public float Cooldown => cooldown; public int MaximumVoices => maximumVoices; public int Priority => priority;
             public AudioClip NextClip() { if (clips == null || clips.Length == 0) return null; if (randomize) return clips[UnityEngine.Random.Range(0, clips.Length)]; AudioClip clip = clips[sequenceIndex % clips.Length]; sequenceIndex = (sequenceIndex + 1) % clips.Length; return clip; }
         }
         [SerializeField] private AudioClip menuMusic, gameplayMusic;

@@ -7,7 +7,13 @@ namespace KickTheBuddy.Gameplay
     public enum SandboxToolKind
     {
         Lollipop,
-        Jelly
+        Jelly,
+        CandyStick,
+        ChocolateBar,
+        GummyBear,
+        LooseCandy,
+        CandyJar,
+        CandyGun
     }
 
     /// <summary>
@@ -27,6 +33,8 @@ namespace KickTheBuddy.Gameplay
         [SerializeField] private FixedJoint2D stickyJoint;
         [SerializeField] private RagdollAttackManager2D attack;
         [SerializeField] private Transform visual;
+        [Tooltip("Optional authored pickup point. Melee tools use the bottom/base instead of the touched pixel.")]
+        [SerializeField] private Transform dragGrip;
 
         [Header("Drag Feel")]
         [Range(.5f, 12f)] [SerializeField] private float dragFrequency = 7.5f;
@@ -34,6 +42,14 @@ namespace KickTheBuddy.Gameplay
         [Min(1f)] [SerializeField] private float dragMaximumForce = 1450f;
         [Range(.01f, .2f)] [SerializeField] private float targetSmoothTime = .025f;
         [Min(1f)] [SerializeField] private float maximumTargetSpeed = 65f;
+
+        [Header("Tap Auto Throw")]
+        [Tooltip("Tap releases and launches this prop directly toward the authored ragdoll target.")]
+        [SerializeField] private bool autoThrowOnTap;
+        [SerializeField] private Transform throwTarget;
+        [Min(0f)] [SerializeField] private float tapThrowImpulse = 9f;
+        [Range(-1f, 1f)] [SerializeField] private float tapThrowUpwardBias = .12f;
+        [Min(0f)] [SerializeField] private float tapThrowSpin = 360f;
 
         [Header("Jelly Stick And Slide")]
         [Min(0f)] [SerializeField] private float minimumStickSpeed = 2.5f;
@@ -62,10 +78,18 @@ namespace KickTheBuddy.Gameplay
         public RagdollAttackManager2D Attack => attack;
         public bool IsDragging => dragging;
         public bool IsStuck => stickyJoint != null && stickyJoint.enabled;
+        public bool HasAuthoredGrip => dragGrip != null;
+        public bool AutoThrowOnTap => autoThrowOnTap;
+        public Transform ThrowTarget => throwTarget;
+        public Vector2 CurrentDragTarget => pendingTarget;
+        public Vector2 GripWorldPosition => dragGrip != null
+            ? (Vector2)dragGrip.position
+            : body != null ? body.worldCenterOfMass : (Vector2)transform.position;
 
         public event Action<SandboxTool2D, Vector2> Grabbed;
         public event Action<SandboxTool2D, Vector2> Dragged;
         public event Action<SandboxTool2D, Vector2> Released;
+        public event Action<SandboxTool2D, Vector2> Tapped;
         public event Action<SandboxTool2D, Rigidbody2D, float, Vector2> Impacted;
         public event Action<SandboxTool2D, Rigidbody2D, Vector2> Stuck;
         public event Action<SandboxTool2D> Detached;
@@ -131,7 +155,9 @@ namespace KickTheBuddy.Gameplay
             body.drag = defaultDrag;
             body.WakeUp();
             dragJoint.enabled = false;
-            dragJoint.anchor = transform.InverseTransformPoint(worldPoint);
+            dragJoint.anchor = dragGrip != null
+                ? transform.InverseTransformPoint(dragGrip.position)
+                : transform.InverseTransformPoint(worldPoint);
             dragJoint.target = worldPoint;
             dragJoint.frequency = dragFrequency;
             dragJoint.dampingRatio = dragDamping;
@@ -157,6 +183,44 @@ namespace KickTheBuddy.Gameplay
             dragging = false;
             if (dragJoint != null) dragJoint.enabled = false;
             Released?.Invoke(this, pendingTarget);
+        }
+
+        /// <summary>
+        /// Raised by the shared input owner when a press ends without a meaningful drag.
+        /// Tap-capable tools such as the candy gun subscribe without polling input themselves.
+        /// </summary>
+        public void NotifyTap(Vector2 worldPoint)
+        {
+            Tapped?.Invoke(this, worldPoint);
+            TryAutoThrow();
+        }
+
+        public bool TryAutoThrow()
+        {
+            if (!autoThrowOnTap || body == null || throwTarget == null || tapThrowImpulse <= 0f)
+                return false;
+            ReleaseStick(false);
+            Vector2 direction = (Vector2)throwTarget.position - body.worldCenterOfMass;
+            direction.y += tapThrowUpwardBias * Mathf.Max(1f, direction.magnitude);
+            if (direction.sqrMagnitude < .0001f) return false;
+            body.velocity = Vector2.zero;
+            body.angularVelocity = Mathf.Sign(direction.x) * tapThrowSpin;
+            body.AddForce(direction.normalized * tapThrowImpulse, ForceMode2D.Impulse);
+            body.WakeUp();
+            return true;
+        }
+
+        public void ConfigureAutoThrow(
+            Transform target,
+            float impulse,
+            float upwardBias = .12f,
+            float spin = 360f)
+        {
+            throwTarget = target;
+            tapThrowImpulse = Mathf.Max(0f, impulse);
+            tapThrowUpwardBias = Mathf.Clamp(upwardBias, -1f, 1f);
+            tapThrowSpin = Mathf.Max(0f, spin);
+            autoThrowOnTap = throwTarget != null && tapThrowImpulse > 0f;
         }
 
         public bool OwnsCollider(Collider2D candidate) =>
@@ -257,6 +321,9 @@ namespace KickTheBuddy.Gameplay
             dragMaximumForce = Mathf.Max(1f, dragMaximumForce);
             targetSmoothTime = Mathf.Clamp(targetSmoothTime, .01f, .2f);
             maximumTargetSpeed = Mathf.Max(1f, maximumTargetSpeed);
+            tapThrowImpulse = Mathf.Max(0f, tapThrowImpulse);
+            tapThrowUpwardBias = Mathf.Clamp(tapThrowUpwardBias, -1f, 1f);
+            tapThrowSpin = Mathf.Max(0f, tapThrowSpin);
             minimumStickSpeed = Mathf.Max(0f, minimumStickSpeed);
             stickDuration = Mathf.Max(0f, stickDuration);
             reattachCooldown = Mathf.Max(0f, reattachCooldown);

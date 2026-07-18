@@ -12,7 +12,12 @@ namespace KickTheBuddy.Physics
         Explosion,
         Custom,
         Lollipop,
-        Jelly
+        Jelly,
+        CandyStick,
+        ChocolateBar,
+        GummyBear,
+        CandyJar,
+        CandyProjectile
     }
 
     /// <summary>

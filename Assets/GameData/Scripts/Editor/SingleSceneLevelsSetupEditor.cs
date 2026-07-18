@@ -23,12 +23,14 @@ namespace KickTheBuddy.Editor
         public const string LevelOneRootName = "Level 01 - Wall Smash";
         public const string LevelTwoRootName = "Level 02 - Candy Lab";
         public const string LevelThreeRootName = "Level 03 - Candy Cannons";
+        public const string LevelTwoNewRootName = CandyRoomLevelSetupEditor.LevelRootName;
 
         private const string SplashPath = "Assets/GameData/Scene/Splash.unity";
         private const string MenuPath = "Assets/GameData/Scene/MainMenu.unity";
         private const string LevelOneAssetPath = "Assets/GameData/Materials/Gameplay/Level_01.asset";
         private const string LevelTwoAssetPath = "Assets/GameData/Materials/Gameplay/Level_02.asset";
         private const string LevelThreeAssetPath = "Assets/GameData/Materials/Gameplay/Level_03.asset";
+        private const string LevelTwoNewAssetPath = "Assets/GameData/Materials/Gameplay/Level_02_New.asset";
         private const string LollipopPrefabPath = "Assets/GameData/Prefabs/Gameplay/Lollipop.prefab";
         private const string JellyPrefabPath = "Assets/GameData/Prefabs/Gameplay/Jelly.prefab";
         private const string JellyPoolPrefabPath = "Assets/GameData/Prefabs/VFX/VFX_Jelly_ContactPool.prefab";
@@ -42,6 +44,9 @@ namespace KickTheBuddy.Editor
         private const float LevelThreeWallDamagePerSpeed = .55f;
         private const float LevelThreeWallMinimumSpeed = 5f;
         private const float LevelThreeWallMaximumDamage = 8f;
+        private const float LevelTwoNewWallDamagePerSpeed = .7f;
+        private const float LevelTwoNewWallMinimumSpeed = 5f;
+        private const float LevelTwoNewWallMaximumDamage = 8f;
 
         [MenuItem("Tools/Game/Build Single-Scene Level Hierarchy")]
         public static void BuildFromMenu() => Build(false);
@@ -99,11 +104,13 @@ namespace KickTheBuddy.Editor
             LevelDefinition levelOne = AssetDatabase.LoadAssetAtPath<LevelDefinition>(LevelOneAssetPath);
             LevelDefinition levelTwo = AssetDatabase.LoadAssetAtPath<LevelDefinition>(LevelTwoAssetPath);
             LevelDefinition levelThree = AssetDatabase.LoadAssetAtPath<LevelDefinition>(LevelThreeAssetPath);
+            LevelDefinition levelTwoNew = AssetDatabase.LoadAssetAtPath<LevelDefinition>(LevelTwoNewAssetPath);
             if (levelOne == null || levelTwo == null)
                 throw new InvalidOperationException("Both LevelDefinition assets are required.");
-            int expectedLevelCount = levelThree != null ? 3 : 2;
+            int expectedLevelCount = levelTwoNew != null ? 4 : levelThree != null ? 3 : 2;
             if (!string.Equals(levelOne.ScenePath, GameplayScenePath, StringComparison.Ordinal) ||
-                !string.Equals(levelTwo.ScenePath, GameplayScenePath, StringComparison.Ordinal))
+                !string.Equals(levelTwo.ScenePath, GameplayScenePath, StringComparison.Ordinal) ||
+                (levelTwoNew != null && !string.Equals(levelTwoNew.ScenePath, GameplayScenePath, StringComparison.Ordinal)))
                 throw new InvalidOperationException("Every gameplay level must point to the one RagdollSandbox scene.");
             ValidateDefinitionRoomProfile(levelOne, LevelOneWallDamagePerSpeed,
                 LevelOneWallMinimumSpeed, LevelOneWallMaximumDamage);
@@ -112,6 +119,9 @@ namespace KickTheBuddy.Editor
             if (levelThree != null)
                 ValidateDefinitionRoomProfile(levelThree, LevelThreeWallDamagePerSpeed,
                     LevelThreeWallMinimumSpeed, LevelThreeWallMaximumDamage);
+            if (levelTwoNew != null)
+                ValidateDefinitionRoomProfile(levelTwoNew, LevelTwoNewWallDamagePerSpeed,
+                    LevelTwoNewWallMinimumSpeed, LevelTwoNewWallMaximumDamage);
 
             EditorBuildSettingsScene[] buildScenes = EditorBuildSettings.scenes;
             if (buildScenes.Length != 3 || buildScenes[0].path != SplashPath || buildScenes[1].path != MenuPath ||
@@ -128,12 +138,16 @@ namespace KickTheBuddy.Editor
             Transform levelOneRoot = FindDirectChild(levelsRoot.transform, LevelOneRootName);
             Transform levelTwoRoot = FindDirectChild(levelsRoot.transform, LevelTwoRootName);
             Transform levelThreeRoot = FindDirectChild(levelsRoot.transform, LevelThreeRootName);
+            Transform levelTwoNewRoot = FindDirectChild(levelsRoot.transform, LevelTwoNewRootName);
             if (levelOneRoot == null || levelTwoRoot == null)
                 throw new InvalidOperationException("Levels must contain the Level 01 and Level 02 child roots.");
             if (levelThree != null && levelThreeRoot == null)
                 throw new InvalidOperationException("Levels must contain the authored Level 03 child root.");
+            if (levelTwoNew != null && levelTwoNewRoot == null)
+                throw new InvalidOperationException("Levels must preserve the authored Level 02 New child root.");
             if (!levelOneRoot.gameObject.activeSelf || levelTwoRoot.gameObject.activeSelf ||
-                (levelThreeRoot != null && levelThreeRoot.gameObject.activeSelf))
+                (levelThreeRoot != null && levelThreeRoot.gameObject.activeSelf) ||
+                (levelTwoNewRoot != null && levelTwoNewRoot.gameObject.activeSelf))
                 throw new InvalidOperationException("The preview must enable Level 01 and disable later levels.");
 
             Transform sharedRoom = FindDirectChild(levelsRoot.transform, "Room");
@@ -143,11 +157,20 @@ namespace KickTheBuddy.Editor
                 throw new InvalidOperationException("Room must be shared under Levels, never duplicated inside a level root.");
             if (levelThreeRoot != null && FindDirectChild(levelThreeRoot, "Room") != null)
                 throw new InvalidOperationException("Level 03 must also use the shared Room.");
+            if (levelTwoNewRoot != null && FindDirectChild(levelTwoNewRoot, "Room") != null)
+                throw new InvalidOperationException("Level 02 New must also use the shared Room.");
             ValidateRoom(sharedRoom, "Levels/Room", LevelOneWallDamagePerSpeed,
                 LevelOneWallMinimumSpeed, LevelOneWallMaximumDamage);
             if (levelOneRoot.GetComponentInChildren<SandboxToolInput2D>(true) != null)
                 throw new InvalidOperationException("Level 01 must not contain Level 02 tools.");
             ValidateLevelTwoTools(levelTwoRoot);
+            if (levelTwoNewRoot != null)
+            {
+                SandboxToolInput2D newInput = levelTwoNewRoot.GetComponentInChildren<SandboxToolInput2D>(true);
+                if (newInput == null || newInput.Tools.Count != 11 ||
+                    levelTwoNewRoot.GetComponentInChildren<CandyGunController2D>(true) == null)
+                    throw new InvalidOperationException("Level 02 New candy playground references are incomplete.");
+            }
 
             SerializedObject controllerData = new SerializedObject(controller);
             SerializedProperty entries = controllerData.FindProperty("levels");
@@ -158,6 +181,9 @@ namespace KickTheBuddy.Editor
             if (levelThree != null)
                 ValidateEntry(entries.GetArrayElementAtIndex(2), "level_03",
                     levelThreeRoot.gameObject, false, true);
+            if (levelTwoNew != null)
+                ValidateEntry(entries.GetArrayElementAtIndex(3), CandyRoomLevelSetupEditor.LevelId,
+                    levelTwoNewRoot.gameObject, true, false);
             SerializedProperty sharedRoomReference = controllerData.FindProperty("sharedRoom");
             SerializedProperty sharedAttacks = controllerData.FindProperty("sharedRoomAttacks");
             if (sharedRoomReference == null || sharedRoomReference.objectReferenceValue != sharedRoom.gameObject ||
@@ -209,6 +235,9 @@ namespace KickTheBuddy.Editor
             if (AssetDatabase.LoadAssetAtPath<LevelDefinition>(LevelThreeAssetPath) != null)
                 ConfigureLevelDefinition(LevelThreeAssetPath, LevelThreeWallDamagePerSpeed,
                     LevelThreeWallMinimumSpeed, LevelThreeWallMaximumDamage);
+            if (AssetDatabase.LoadAssetAtPath<LevelDefinition>(LevelTwoNewAssetPath) != null)
+                ConfigureLevelDefinition(LevelTwoNewAssetPath, LevelTwoNewWallDamagePerSpeed,
+                    LevelTwoNewWallMinimumSpeed, LevelTwoNewWallMaximumDamage);
         }
 
         private static void ConfigureLevelDefinition(string assetPath, float wallDamagePerSpeed,
@@ -453,12 +482,20 @@ namespace KickTheBuddy.Editor
             Transform levelThree = FindDirectChild(controller.transform, LevelThreeRootName);
             CandyCannonController2D cannons =
                 levelThree != null ? levelThree.GetComponent<CandyCannonController2D>() : null;
-            levels.arraySize = levelThree != null && cannons != null ? 3 : 2;
+            Transform levelTwoNew = FindDirectChild(controller.transform, LevelTwoNewRootName);
+            SandboxToolInput2D newToolInput = levelTwoNew != null
+                ? levelTwoNew.GetComponentInChildren<SandboxToolInput2D>(true)
+                : null;
+            levels.arraySize = levelTwoNew != null && newToolInput != null ? 4 :
+                levelThree != null && cannons != null ? 3 : 2;
             ConfigureEntry(levels.GetArrayElementAtIndex(0), "level_01", levelOne, ragdoll, ragdollInput, null, null);
             ConfigureEntry(levels.GetArrayElementAtIndex(1), "level_02", levelTwo, ragdoll, ragdollInput, toolInput, null);
-            if (levels.arraySize == 3)
+            if (levels.arraySize >= 3)
                 ConfigureEntry(levels.GetArrayElementAtIndex(2), "level_03", levelThree.gameObject,
                     ragdoll, ragdollInput, null, cannons);
+            if (levels.arraySize == 4)
+                ConfigureEntry(levels.GetArrayElementAtIndex(3), CandyRoomLevelSetupEditor.LevelId,
+                    levelTwoNew.gameObject, ragdoll, ragdollInput, newToolInput, null);
             data.FindProperty("sharedRoom").objectReferenceValue = sharedRoom;
             SerializedProperty roomAttacks = data.FindProperty("sharedRoomAttacks");
             roomAttacks.arraySize = sharedRoomAttacks.Length;

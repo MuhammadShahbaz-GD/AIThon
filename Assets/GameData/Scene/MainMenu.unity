@@ -3786,7 +3786,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d06fbbaab86fb94482faae326fcbb45, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  catalog: {fileID: 0}
+  catalog: {fileID: 11400000, guid: bc576273ad091eb46b12242b9ec827f0, type: 2}
   menuMusic: {fileID: 0}
   gameplayMusic: {fileID: 0}
   sounds: []
@@ -3795,7 +3795,7 @@ MonoBehaviour:
   uiGroup: {fileID: 0}
   voiceGroup: {fileID: 0}
   ambientGroup: {fileID: 0}
-  voicePoolSize: 10
+  voicePoolSize: 8
   persistAcrossScenes: 0
 --- !u!114 &2090943573
 MonoBehaviour:
