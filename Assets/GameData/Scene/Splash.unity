@@ -278,7 +278,7 @@ VideoPlayer:
   m_TargetMaterialRenderer: {fileID: 0}
   m_TargetMaterialProperty: <noninit>
   m_RenderMode: 0
-  m_AspectRatio: 2
+  m_AspectRatio: 4
   m_DataSource: 0
   m_TimeUpdateMode: 2
   m_PlaybackSpeed: 1
@@ -533,7 +533,6 @@ GameObject:
   - component: {fileID: 916675117}
   - component: {fileID: 916675116}
   - component: {fileID: 916675115}
-  - component: {fileID: 916675118}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -615,24 +614,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &916675118
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 916675114}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8fd1c2b15b9a6374e89b04519454b7e5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  referenceOrthoSize: 5.25
-  referenceWidth: 1920
-  referenceHeight: 1080
-  framingMode: 2
-  overscan: 0.25
-  accountForSafeArea: 1
 --- !u!1 &1036884738
 GameObject:
   m_ObjectHideFlags: 0

@@ -52,7 +52,7 @@ namespace KickTheBuddy.VFX
             shakeEndsAt = 0f;
         }
 
-        private void HandleImpact(float damage, float impactSpeed, Vector2 point)
+        public void HandleImpact(float damage, float impactSpeed, Vector2 point)
         {
             if (impactSpeed < minimumImpactSpeed) return;
             float strength = Mathf.InverseLerp(minimumImpactSpeed, speedForMaximumShake, impactSpeed);
@@ -61,7 +61,7 @@ namespace KickTheBuddy.VFX
 
         private void HandleDeath(Vector2 point) => StartShake(deathAmplitude, deathDuration, deathFrequency);
 
-        private void StartShake(float amplitude, float duration, float frequency)
+        public void StartShake(float amplitude, float duration, float frequency)
         {
             if (amplitude <= 0f || duration <= 0f) return;
             float now = Time.unscaledTime;

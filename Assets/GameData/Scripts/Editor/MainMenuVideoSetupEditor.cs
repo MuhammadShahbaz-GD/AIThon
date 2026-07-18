@@ -14,6 +14,7 @@ namespace KickTheBuddy.Editor
     public static class MainMenuVideoSetupEditor
     {
         private const string ScenePath = "Assets/GameData/Scene/MainMenu.unity";
+        private const string SplashScenePath = "Assets/GameData/Scene/Splash.unity";
         private const string ArtRoot = "Assets/GameData/UI/MainMenu/";
         private const string VideoPath = ArtRoot + "Ragdoll Video.mp4";
         private const string PosterPath = ArtRoot + "Sequence 06.00_00_19_23.Still003.png";
@@ -29,6 +30,23 @@ namespace KickTheBuddy.Editor
             AssetDatabase.SaveAssets();
             Validate();
             Debug.Log("VIDEO_MAIN_MENU_OK: intro video, static poster, delayed Play button, and saved-level Continue command are authored.");
+        }
+
+        [MenuItem("Tools/Gameplay/UI/Make Splash And Menu Videos Responsive")]
+        public static void MakeVideoScreensResponsive()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+                throw new InvalidOperationException("Stop Play Mode before changing video presentation.");
+
+            Scene originalScene = SceneManager.GetActiveScene();
+            string originalPath = originalScene.path;
+            ConfigureResponsiveScene(SplashScenePath, false);
+            ConfigureResponsiveScene(ScenePath, true);
+            AssetDatabase.SaveAssets();
+            ValidateResponsivePresentation();
+            if (!string.IsNullOrEmpty(originalPath))
+                EditorSceneManager.OpenScene(originalPath, OpenSceneMode.Single);
+            Debug.Log("RESPONSIVE_VIDEO_SCREENS_OK: splash video, menu video, and menu poster now preserve 16:9 framing and cover every display without stretching.");
         }
 
         private static void ConfigureSprite(string path, bool alpha)
@@ -80,7 +98,7 @@ namespace KickTheBuddy.Editor
 
             Image poster = CreateImage(staticObject.transform, "Home Poster", RequireSprite(PosterPath));
             Stretch(poster.rectTransform);
-            poster.preserveAspect = false;
+            ConfigureCoverImage(poster);
             poster.raycastTarget = false;
 
             Button playButton = CreateButton(staticObject.transform, RequireSprite(PlayPath));
@@ -113,7 +131,7 @@ namespace KickTheBuddy.Editor
             player.renderMode = VideoRenderMode.CameraNearPlane;
             player.targetCamera = camera;
             player.targetCameraAlpha = 1f;
-            player.aspectRatio = VideoAspectRatio.FitInside;
+            player.aspectRatio = VideoAspectRatio.FitOutside;
             player.audioOutputMode = VideoAudioOutputMode.Direct;
             player.controlledAudioTrackCount = 1;
             player.EnableAudioTrack(0, true);
@@ -169,6 +187,81 @@ namespace KickTheBuddy.Editor
             colors.fadeDuration = .08f;
             button.colors = colors;
             return button;
+        }
+
+        private static void ConfigureResponsiveScene(string scenePath, bool configurePoster)
+        {
+            Scene scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+            VideoPlayer[] players = UnityEngine.Object.FindObjectsOfType<VideoPlayer>(true);
+            if (players.Length == 0)
+                throw new InvalidOperationException("No VideoPlayer found in " + scenePath);
+            for (int i = 0; i < players.Length; i++)
+            {
+                Undo.RecordObject(players[i], "Configure Responsive Video");
+                players[i].aspectRatio = VideoAspectRatio.FitOutside;
+                EditorUtility.SetDirty(players[i]);
+            }
+
+            Canvas canvas = UnityEngine.Object.FindObjectOfType<Canvas>(true);
+            CanvasScaler scaler = canvas != null ? canvas.GetComponent<CanvasScaler>() : null;
+            if (scaler != null)
+            {
+                Undo.RecordObject(scaler, "Configure Responsive Canvas");
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1920f, 1080f);
+                scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+                scaler.matchWidthOrHeight = .5f;
+                EditorUtility.SetDirty(scaler);
+            }
+
+            if (configurePoster)
+            {
+                Image poster = GameObject.Find("Home Poster")?.GetComponent<Image>();
+                if (poster == null) throw new InvalidOperationException("Main Menu Home Poster is missing.");
+                ConfigureCoverImage(poster);
+            }
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            if (!EditorSceneManager.SaveScene(scene))
+                throw new InvalidOperationException("Could not save responsive scene: " + scenePath);
+        }
+
+        private static void ConfigureCoverImage(Image image)
+        {
+            Undo.RecordObject(image, "Configure Cover Image");
+            image.preserveAspect = true;
+            RectTransform rect = image.rectTransform;
+            Undo.RecordObject(rect, "Center Cover Image");
+            rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
+            rect.pivot = new Vector2(.5f, .5f);
+            rect.anchoredPosition = Vector2.zero;
+            AspectRatioFitter fitter = image.GetComponent<AspectRatioFitter>();
+            if (fitter == null) fitter = Undo.AddComponent<AspectRatioFitter>(image.gameObject);
+            Undo.RecordObject(fitter, "Configure Cover Aspect");
+            fitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+            Sprite sprite = image.sprite;
+            fitter.aspectRatio = sprite != null && sprite.rect.height > 0f
+                ? sprite.rect.width / sprite.rect.height
+                : 16f / 9f;
+            EditorUtility.SetDirty(image);
+            EditorUtility.SetDirty(fitter);
+        }
+
+        private static void ValidateResponsivePresentation()
+        {
+            EditorSceneManager.OpenScene(SplashScenePath, OpenSceneMode.Single);
+            VideoPlayer splashPlayer = UnityEngine.Object.FindObjectOfType<VideoPlayer>(true);
+            if (splashPlayer == null || splashPlayer.aspectRatio != VideoAspectRatio.FitOutside)
+                throw new InvalidOperationException("Splash video is not configured to cover the display.");
+
+            EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            VideoPlayer menuPlayer = UnityEngine.Object.FindObjectOfType<VideoPlayer>(true);
+            Image poster = GameObject.Find("Home Poster")?.GetComponent<Image>();
+            AspectRatioFitter fitter = poster != null ? poster.GetComponent<AspectRatioFitter>() : null;
+            if (menuPlayer == null || menuPlayer.aspectRatio != VideoAspectRatio.FitOutside ||
+                poster == null || !poster.preserveAspect || fitter == null ||
+                fitter.aspectMode != AspectRatioFitter.AspectMode.EnvelopeParent)
+                throw new InvalidOperationException("Main Menu video/poster responsive presentation is incomplete.");
         }
 
         private static Image CreateImage(Transform parent, string name, Sprite sprite)
