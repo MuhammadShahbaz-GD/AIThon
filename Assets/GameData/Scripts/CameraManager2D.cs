@@ -1,4 +1,3 @@
-﻿using Unity.VisualScripting;
 using UnityEngine;
 
 [ExecuteAlways]
@@ -6,35 +5,80 @@ using UnityEngine;
 public class CameraManager2D : MonoBehaviour
 {
     [Header("Reference")]
-    public float referenceOrthoSize = 5f;    // the orthographic size that fits your game
-    public float referenceWidth = 1920f;     // reference screen width
-    public float referenceHeight = 1080f;    // reference screen height
+    [Min(0.01f)] public float referenceOrthoSize = 5f;
+    [Min(1f)] public float referenceWidth = 1920f;
+    [Min(1f)] public float referenceHeight = 1080f;
 
     private Camera cam;
-    private Vector2 previousScreen;
+    private Vector2Int previousViewportSize;
+    private Vector3 previousReferenceSettings;
 
-    void Awake()
+    private void Awake()
     {
-        cam = GetComponent<Camera>();
-        cam.orthographic = true;
-        AdjustCamera();
+        CacheCamera();
+        RefreshCamera(true);
     }
 
-    void AdjustCamera()
+    private void OnEnable()
+    {
+        CacheCamera();
+        RefreshCamera(true);
+    }
+
+    private void LateUpdate()
+    {
+        // Keep the framing authoritative in Play Mode without interfering with
+        // camera position and rotation effects such as shake.
+        RefreshCamera(false);
+    }
+
+    private void OnValidate()
+    {
+        referenceOrthoSize = Mathf.Max(0.01f, referenceOrthoSize);
+        referenceWidth = Mathf.Max(1f, referenceWidth);
+        referenceHeight = Mathf.Max(1f, referenceHeight);
+
+        CacheCamera();
+        RefreshCamera(true);
+    }
+
+    private void CacheCamera()
+    {
+        if (cam == null)
+            cam = GetComponent<Camera>();
+    }
+
+    private void RefreshCamera(bool force)
+    {
+        if (cam == null)
+            return;
+
+        int viewportWidth = Mathf.Max(1, cam.pixelWidth);
+        int viewportHeight = Mathf.Max(1, cam.pixelHeight);
+        Vector2Int viewportSize = new Vector2Int(viewportWidth, viewportHeight);
+        Vector3 referenceSettings = new Vector3(referenceOrthoSize, referenceWidth, referenceHeight);
+        float requiredSize = CalculateOrthographicSize(viewportWidth, viewportHeight);
+
+        bool settingsChanged = previousReferenceSettings != referenceSettings;
+        bool viewportChanged = previousViewportSize != viewportSize;
+        bool cameraChanged = !cam.orthographic || !Mathf.Approximately(cam.orthographicSize, requiredSize);
+        if (!force && !settingsChanged && !viewportChanged && !cameraChanged)
+            return;
+
+        cam.orthographic = true;
+        cam.orthographicSize = requiredSize;
+        previousViewportSize = viewportSize;
+        previousReferenceSettings = referenceSettings;
+    }
+
+    private float CalculateOrthographicSize(int viewportWidth, int viewportHeight)
     {
         float targetAspect = referenceWidth / referenceHeight;
-        float currentAspect = (float)Screen.width / Screen.height;
+        float currentAspect = (float)viewportWidth / viewportHeight;
 
-        // Scale camera orthographic size based on width or height
         if (currentAspect >= targetAspect)
-        {
-            // Screen is wider than reference → fit height
-            cam.orthographicSize = referenceOrthoSize;
-        }
-        else
-        {
-            // Screen is taller → increase vertical size to fit width
-            cam.orthographicSize = referenceOrthoSize * (targetAspect / currentAspect);
-        }
+            return referenceOrthoSize;
+
+        return referenceOrthoSize * (targetAspect / currentAspect);
     }
 }
