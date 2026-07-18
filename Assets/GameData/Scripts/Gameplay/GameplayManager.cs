@@ -2,13 +2,15 @@
 using System.Collections;
 using KickTheBuddy.Physics;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace KickTheBuddy.Gameplay
 {
     [DisallowMultipleComponent]
     public sealed class GameplayManager : MonoBehaviour
     {
-        [Min(0f)] [SerializeField] private float deathCompletionDelay = .8f;
+        [FormerlySerializedAs("deathCompletionDelay")]
+        [Range(2f, 3f)] [SerializeField] private float deathNextLevelDelay = 2.5f;
 
         private LevelsManager levels;
         private GameSaveManager saves;
@@ -18,22 +20,18 @@ namespace KickTheBuddy.Gameplay
         private SandboxToolInput2D sandboxToolInput;
         private CandyCannonController2D candyCannons;
         private float damage;
-        private float remainingTime;
         private int score;
         private bool subscribed;
         private Coroutine deathCompletion;
-        private int lastReportedSecond = -1;
 
         public GameplayState State { get; private set; } = GameplayState.Booting;
         public float Damage => damage;
         public int Score => score;
-        public float RemainingTime => remainingTime;
 
         public event Action<GameplayState, GameplayState> StateChanged;
         public event Action<float, float> ObjectiveProgressChanged;
         public event Action<int> ScoreChanged;
         public event Action<int, int, Vector2, int> ScoreAwarded;
-        public event Action<float> TimeChanged;
         public event Action<int, int> LevelCompleted;
         public event Action LevelFailed;
         public event Action NextLevelRequested;
@@ -66,14 +64,11 @@ namespace KickTheBuddy.Gameplay
             candyCannons?.SetInputEnabled(true);
             damage = 0f;
             score = 0;
-            remainingTime = level.TimeLimit;
-            lastReportedSecond = Mathf.CeilToInt(remainingTime);
             Time.timeScale = 1f;
             sounds.PlayMusic(true);
             ChangeState(GameplayState.Playing);
             ObjectiveProgressChanged?.Invoke(0f, level.TargetDamage);
             ScoreChanged?.Invoke(0);
-            TimeChanged?.Invoke(remainingTime);
         }
 
         public void PrepareForLevelLoad()
@@ -97,19 +92,6 @@ namespace KickTheBuddy.Gameplay
             Time.timeScale = 1f;
             sounds?.PlayMusic(false);
             ChangeState(GameplayState.MainMenu);
-        }
-
-        private void Update()
-        {
-            if (State != GameplayState.Playing) return;
-            remainingTime = Mathf.Max(0f, remainingTime - Time.deltaTime);
-            int displayedSecond = Mathf.CeilToInt(remainingTime);
-            if (displayedSecond != lastReportedSecond)
-            {
-                lastReportedSecond = displayedSecond;
-                TimeChanged?.Invoke(remainingTime);
-            }
-            if (remainingTime <= 0f) FailLevel();
         }
 
         public void Pause() { if (State == GameplayState.Playing) { Time.timeScale = 0f; ChangeState(GameplayState.Paused); } }
@@ -207,13 +189,15 @@ namespace KickTheBuddy.Gameplay
         private IEnumerator CompleteAfterDeath()
         {
             float elapsed = 0f;
-            while (elapsed < deathCompletionDelay)
+            float delay = Mathf.Clamp(deathNextLevelDelay, 2f, 3f);
+            while (elapsed < delay)
             {
                 elapsed += Time.unscaledDeltaTime;
                 yield return null;
             }
             deathCompletion = null;
             CompleteLevel();
+            NextLevel();
         }
 
         private void ChangeState(GameplayState next)
@@ -253,6 +237,6 @@ namespace KickTheBuddy.Gameplay
             Time.timeScale = 1f;
         }
 
-        private void OnValidate() => deathCompletionDelay = Mathf.Max(0f, deathCompletionDelay);
+        private void OnValidate() => deathNextLevelDelay = Mathf.Clamp(deathNextLevelDelay, 2f, 3f);
     }
 }

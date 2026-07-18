@@ -15,6 +15,12 @@ namespace KickTheBuddy.Gameplay
     [DisallowMultipleComponent]
     public sealed class CandyCannonController2D : MonoBehaviour
     {
+        private const float MinimumProjectileThrowVelocity = 6.5f;
+        private const float CannonBulletBaseDamage = 12f;
+        private const float CannonBulletDamagePerSpeed = 2.5f;
+        private const float CannonBulletMinimumDamageSpeed = 2f;
+        private const float CannonBulletMaximumDamage = 38f;
+
         [Serializable]
         private sealed class CannonSlot
         {
@@ -106,6 +112,8 @@ namespace KickTheBuddy.Gameplay
         [Min(0f)] [SerializeField] private float projectileImpactImpulse = 3.4f;
         [Tooltip("Extra physical kick for the low-health charged shot.")]
         [Range(1f, 2f)] [SerializeField] private float chargedImpactMultiplier = 1.35f;
+        [Tooltip("Velocity added to every ragdoll body on a confirmed hit so the whole character is thrown away.")]
+        [Min(0f)] [SerializeField] private float projectileThrowVelocity = MinimumProjectileThrowVelocity;
         [SerializeField] private Color leftProjectileColor = new Color(1f, .35f, .62f);
         [SerializeField] private Color rightProjectileColor = new Color(.34f, .75f, 1f);
 
@@ -155,6 +163,7 @@ namespace KickTheBuddy.Gameplay
         {
             leftCannon?.CachePresentation();
             rightCannon?.CachePresentation();
+            ConfigureProjectileInputExclusion();
             ResetCannons();
         }
 
@@ -386,20 +395,14 @@ namespace KickTheBuddy.Gameplay
                 return;
             }
 
-            Rigidbody2D targetBody = ResolveAimBody();
             Vector2 origin = cannon.Muzzle.position;
-            Vector2 target = targetBody != null
-                ? targetBody.worldCenterOfMass + targetBody.velocity * targetLeadTime
-                : Vector2.zero;
-            Vector2 direction = target - origin;
-            if (direction.sqrMagnitude < .001f)
-                direction = cannon.Side == CandyCannonSide.Left ? Vector2.right : Vector2.left;
-            direction.Normalize();
+            Vector3 localForward = cannon.Side == CandyCannonSide.Left ? Vector3.right : Vector3.left;
+            Vector2 direction = cannon.Muzzle.TransformDirection(localForward).normalized;
 
             bool charged = ragdoll != null && ragdoll.MaximumHealth > 0f &&
                            ragdoll.CurrentHealth / ragdoll.MaximumHealth <= chargedHealthRatio;
             float speed = projectileSpeed * (charged ? chargedSpeedMultiplier : 1f);
-            ActivateProjectile(projectile, cannon.Side, targetBody, origin, direction, speed, charged);
+            ActivateProjectile(projectile, cannon.Side, null, origin, direction, speed, charged);
             PlayCannonPresentation(cannon, direction, origin, charged);
             CannonFired?.Invoke(cannon.Side, origin, direction * speed, charged);
         }
@@ -497,6 +500,7 @@ namespace KickTheBuddy.Gameplay
                 direction = projectile.Side == CandyCannonSide.Left ? Vector2.right : Vector2.left;
             else
                 direction.Normalize();
+            direction = -direction;
 
             float speedRatio = projectileSpeed > .01f
                 ? Mathf.Clamp(relativeSpeed / projectileSpeed, .65f, 1.5f)
@@ -504,8 +508,27 @@ namespace KickTheBuddy.Gameplay
             float impulse = projectileImpactImpulse * speedRatio *
                             (projectile.Charged ? chargedImpactMultiplier : 1f);
             hitBody.AddForceAtPosition(direction * impulse, point, ForceMode2D.Impulse);
+            ApplyWholeRagdollThrow(
+                direction,
+                Mathf.Max(MinimumProjectileThrowVelocity, projectileThrowVelocity) *
+                (projectile.Charged ? chargedImpactMultiplier : 1f));
             LastImpactImpulse = impulse;
             ProjectileImpactApplied?.Invoke(projectile.Side, hitBody, direction, impulse, point);
+        }
+
+        private void ApplyWholeRagdollThrow(Vector2 direction, float velocityChange)
+        {
+            if (ragdoll == null || velocityChange <= 0f) return;
+            var parts = ragdoll.Parts;
+            for (int i = 0; i < parts.Count; i++)
+            {
+                RagdollController.RagdollPart part = parts[i];
+                Rigidbody2D target = part != null ? part.Body : null;
+                if (target == null || !target.simulated ||
+                    target.bodyType != RigidbodyType2D.Dynamic) continue;
+                target.AddForce(direction * target.mass * velocityChange, ForceMode2D.Impulse);
+                target.WakeUp();
+            }
         }
 
         private ProjectileSlot FindAvailableProjectile()
@@ -565,9 +588,27 @@ namespace KickTheBuddy.Gameplay
             {
                 Collider2D partCollider = ragdollPartColliders[i];
                 if (partCollider == null) continue;
-                bool ignore = ignoreNonTargets &&
+                bool ignore = ignoreNonTargets && projectile.TargetBody != null &&
                               partCollider.attachedRigidbody != projectile.TargetBody;
                 Physics2D.IgnoreCollision(projectile.Collider, partCollider, ignore);
+            }
+        }
+
+        private void ConfigureProjectileInputExclusion()
+        {
+            int ignoreRaycastLayer = LayerMask.NameToLayer("Ignore Raycast");
+            for (int i = 0; i < projectilePool.Length; i++)
+            {
+                ProjectileSlot projectile = projectilePool[i];
+                if (projectile == null) continue;
+                if (projectile.Body != null && ignoreRaycastLayer >= 0)
+                    projectile.Body.gameObject.layer = ignoreRaycastLayer;
+                projectile.Attack?.Configure(
+                    RagdollAttackType.Bullet,
+                    CannonBulletBaseDamage,
+                    CannonBulletDamagePerSpeed,
+                    CannonBulletMinimumDamageSpeed,
+                    CannonBulletMaximumDamage);
             }
         }
 
@@ -627,6 +668,7 @@ namespace KickTheBuddy.Gameplay
             chargedSpeedMultiplier = Mathf.Clamp(chargedSpeedMultiplier, 1f, 2f);
             projectileImpactImpulse = Mathf.Max(0f, projectileImpactImpulse);
             chargedImpactMultiplier = Mathf.Clamp(chargedImpactMultiplier, 1f, 2f);
+            projectileThrowVelocity = Mathf.Max(0f, projectileThrowVelocity);
             recoilDistance = Mathf.Max(0f, recoilDistance);
             recoilRecoverySpeed = Mathf.Max(.1f, recoilRecoverySpeed);
             tutorialPulseAmount = Mathf.Clamp(tutorialPulseAmount, 0f, .3f);

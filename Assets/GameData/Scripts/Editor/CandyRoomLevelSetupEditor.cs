@@ -514,13 +514,16 @@ namespace KickTheBuddy.Editor
                 CircleCollider2D collider = go.AddComponent<CircleCollider2D>();
                 collider.radius = Mathf.Max(.12f, Mathf.Min(sprite.bounds.extents.x, sprite.bounds.extents.y) * .72f);
                 RagdollAttackManager2D attack = go.AddComponent<RagdollAttackManager2D>();
-                attack.Configure(RagdollAttackType.CandyProjectile, 2f, .8f, 4f, 12f);
+                attack.Configure(RagdollAttackType.CandyProjectile, 8f, 1.6f, 2f, 24f);
                 CandyGunProjectile2D projectile = go.AddComponent<CandyGunProjectile2D>();
                 SerializedObject projectileData = new SerializedObject(projectile);
                 projectileData.FindProperty("body").objectReferenceValue = body;
                 projectileData.FindProperty("projectileCollider").objectReferenceValue = collider;
                 projectileData.FindProperty("attack").objectReferenceValue = attack;
                 projectileData.FindProperty("lifetime").floatValue = 3f;
+                projectileData.FindProperty("limbHitImpulse").floatValue = 24f;
+                projectileData.FindProperty("bodyPushImpulse").floatValue = 14f;
+                projectileData.FindProperty("upwardLift").floatValue = .22f;
                 projectileData.ApplyModifiedPropertiesWithoutUndo();
                 body.simulated = false;
                 collider.enabled = false;

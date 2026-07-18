@@ -86,6 +86,7 @@ namespace KickTheBuddy.Editor
                 SerializedObject data = new SerializedObject(cannons);
                 data.FindProperty("projectileImpactImpulse").floatValue = 3.4f;
                 data.FindProperty("chargedImpactMultiplier").floatValue = 1.35f;
+                data.FindProperty("projectileThrowVelocity").floatValue = 6.5f;
                 data.ApplyModifiedPropertiesWithoutUndo();
                 EditorUtility.SetDirty(cannons);
                 EditorSceneManager.MarkSceneDirty(scene);
@@ -672,6 +673,7 @@ namespace KickTheBuddy.Editor
             data.FindProperty("maximumQueuedShots").intValue = ProjectilePoolSize;
             data.FindProperty("projectileImpactImpulse").floatValue = 3.4f;
             data.FindProperty("chargedImpactMultiplier").floatValue = 1.35f;
+            data.FindProperty("projectileThrowVelocity").floatValue = 6.5f;
             ConfigureCannonSlot(data.FindProperty("leftCannon"), left);
             ConfigureCannonSlot(data.FindProperty("rightCannon"), right);
             SerializedProperty pool = data.FindProperty("projectilePool");
@@ -705,6 +707,7 @@ namespace KickTheBuddy.Editor
             GameObject go = new GameObject("Candy Projectile " + (index + 1).ToString("00"),
                 typeof(SpriteRenderer), typeof(Rigidbody2D), typeof(CircleCollider2D),
                 typeof(TrailRenderer), typeof(RagdollAttackManager2D));
+            go.layer = LayerMask.NameToLayer("Ignore Raycast");
             go.transform.SetParent(parent, false);
             renderer = go.GetComponent<SpriteRenderer>();
             renderer.sprite = sprite;
@@ -738,7 +741,7 @@ namespace KickTheBuddy.Editor
             trail.sortingOrder = 54;
             trail.enabled = false;
             attack = go.GetComponent<RagdollAttackManager2D>();
-            attack.Configure(RagdollAttackType.Bullet, 5f, 1f, 5f, 14f);
+            attack.Configure(RagdollAttackType.Bullet, 12f, 2.5f, 2f, 38f);
             go.SetActive(false);
         }
 

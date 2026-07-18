@@ -1,4 +1,5 @@
 using System;
+using KickTheBuddy.Physics;
 using UnityEngine;
 
 namespace KickTheBuddy.Gameplay
@@ -10,6 +11,11 @@ namespace KickTheBuddy.Gameplay
     [DisallowMultipleComponent]
     public sealed class CandyGunController2D : MonoBehaviour
     {
+        private const float CandyBulletBaseDamage = 8f;
+        private const float CandyBulletDamagePerSpeed = 1.6f;
+        private const float CandyBulletMinimumDamageSpeed = 2f;
+        private const float CandyBulletMaximumDamage = 24f;
+
         [SerializeField] private SandboxTool2D gunTool;
         [SerializeField] private Transform muzzle;
         [Tooltip("Authored ragdoll target used to aim every shot while the gun is held.")]
@@ -51,6 +57,7 @@ namespace KickTheBuddy.Gameplay
 
         private void OnEnable()
         {
+            ResolveLiveRagdollTarget();
             if (gunTool != null)
             {
                 gunTool.Grabbed += HandleGrabbed;
@@ -60,7 +67,14 @@ namespace KickTheBuddy.Gameplay
             for (int i = 0; i < projectilePool.Length; i++)
             {
                 CandyGunProjectile2D projectile = projectilePool[i];
-                if (projectile != null) projectile.Hit += HandleProjectileHit;
+                if (projectile == null) continue;
+                projectile.Attack?.Configure(
+                    RagdollAttackType.CandyProjectile,
+                    CandyBulletBaseDamage,
+                    CandyBulletDamagePerSpeed,
+                    CandyBulletMinimumDamageSpeed,
+                    CandyBulletMaximumDamage);
+                projectile.Hit += HandleProjectileHit;
             }
         }
 
@@ -111,6 +125,7 @@ namespace KickTheBuddy.Gameplay
         private bool TryFireAt(float currentTime)
         {
             if (gunTool == null || muzzle == null || currentTime < nextFireTime) return false;
+            if (!ResolveLiveRagdollTarget()) return false;
             CandyGunProjectile2D projectile = NextAvailableProjectile();
             if (projectile == null)
             {
@@ -121,6 +136,7 @@ namespace KickTheBuddy.Gameplay
 
             nextFireTime = currentTime + fireCooldown;
             Vector2 direction = ResolveFireDirection();
+            if (direction.sqrMagnitude <= .0001f) return false;
             Vector2 velocity = direction * launchSpeed;
             float projectileRotation = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             projectile.Launch(muzzle.position, projectileRotation, velocity);
@@ -134,12 +150,33 @@ namespace KickTheBuddy.Gameplay
 
         private Vector2 ResolveFireDirection()
         {
-            if (aimTarget != null)
+            if (aimTarget == null || muzzle == null) return Vector2.zero;
+            Vector2 aimedDirection = (Vector2)aimTarget.position - (Vector2)muzzle.position;
+            return aimedDirection.sqrMagnitude > .0001f ? aimedDirection.normalized : Vector2.zero;
+        }
+
+        private bool ResolveLiveRagdollTarget()
+        {
+            RagdollController ragdoll = aimTarget != null
+                ? aimTarget.GetComponentInParent<RagdollController>()
+                : GameplayLevelSceneController.Active?.ActiveRagdoll;
+            if (ragdoll == null || ragdoll.CurrentHealth <= 0f)
             {
-                Vector2 aimedDirection = (Vector2)aimTarget.position - (Vector2)muzzle.position;
-                if (aimedDirection.sqrMagnitude > .0001f) return aimedDirection.normalized;
+                aimTarget = null;
+                return false;
             }
-            return muzzle.right;
+
+            var parts = ragdoll.Parts;
+            for (int i = 0; i < parts.Count; i++)
+            {
+                RagdollController.RagdollPart part = parts[i];
+                if (part == null || part.PartType != RagdollPartType.Torso || part.Body == null) continue;
+                aimTarget = part.Body.transform;
+                return true;
+            }
+
+            aimTarget = null;
+            return false;
         }
 
         private void AimGunBody()

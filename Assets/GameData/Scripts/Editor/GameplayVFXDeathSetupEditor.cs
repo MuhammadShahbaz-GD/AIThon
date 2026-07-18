@@ -302,7 +302,7 @@ namespace KickTheBuddy.Editor
             if (shake == null || shake.DeathAmplitude < .5f || shake.DeathDuration < .8f)
                 throw new InvalidOperationException("The heavy death camera shake is missing or too weak.");
             GameplayManager gameplay = UnityEngine.Object.FindObjectOfType<GameplayManager>();
-            if (gameplay == null || new SerializedObject(gameplay).FindProperty("deathCompletionDelay").floatValue < 1.5f)
+            if (gameplay == null || new SerializedObject(gameplay).FindProperty("deathNextLevelDelay").floatValue < 2f)
                 throw new InvalidOperationException("Death presentation delay is too short to show the floor burst.");
             SerializedObject coinData = new SerializedObject(coins);
             if (coinData.FindProperty("coinPool").arraySize != 12)
@@ -887,7 +887,7 @@ namespace KickTheBuddy.Editor
             GameplayManager gameplay = UnityEngine.Object.FindObjectOfType<GameplayManager>();
             if (gameplay == null) return;
             SerializedObject data = new SerializedObject(gameplay);
-            data.FindProperty("deathCompletionDelay").floatValue = 2f;
+            data.FindProperty("deathNextLevelDelay").floatValue = 2.5f;
             data.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(gameplay);
         }

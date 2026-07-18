@@ -102,9 +102,6 @@ namespace KickTheBuddy.Editor
                         if (initialLevels == null || initialLevels.ActiveLevelId != "level_01")
                             throw new InvalidOperationException("Initial gameplay did not activate Level 01 content.");
                         ValidateSharedRoom(initialLevels, 5f, 16f, "Initial Level 01");
-                        float configuredTime = root.Levels.CurrentLevel.TimeLimit;
-                        if (configuredTime < LevelDefinition.MinimumPlayTimeSeconds || Mathf.Abs(root.Gameplay.RemainingTime - configuredTime) > 0.1f)
-                            throw new InvalidOperationException($"Gameplay timer did not begin at the configured minimum-safe duration ({configuredTime:F1}s). Actual: {root.Gameplay.RemainingTime:F1}s.");
                         BeginTimedStage(StageIdleFace);
                         break;
                     case StageIdleFace:
@@ -168,21 +165,15 @@ namespace KickTheBuddy.Editor
                             idleAnimation.CurrentFaceExpression != KickTheBuddy.Physics.RagdollFaceExpression.Cry)
                             throw new InvalidOperationException("The third resolved combo hit did not promote the face to authored Cry.");
                         root.Gameplay.Pause();
-                        SetTimerSample(root.Gameplay.RemainingTime);
                         BeginTimedStage(StagePausedTimer);
                         break;
                     case StagePausedTimer:
                         if (root == null || root.Gameplay.State != GameplayState.Paused || StageElapsedSeconds() < 0.25d) return;
-                        if (Mathf.Abs(root.Gameplay.RemainingTime - GetTimerSample()) > 0.001f)
-                            throw new InvalidOperationException("Gameplay timer continued while the game was paused.");
                         root.Gameplay.Resume();
-                        SetTimerSample(root.Gameplay.RemainingTime);
                         BeginTimedStage(StageResumedTimer);
                         break;
                     case StageResumedTimer:
                         if (root == null || root.Gameplay.State != GameplayState.Playing || StageElapsedSeconds() < 0.25d) return;
-                        if (root.Gameplay.RemainingTime >= GetTimerSample() - 0.05f)
-                            throw new InvalidOperationException("Gameplay timer did not continue after resume.");
                         root.Gameplay.Restart();
                         if (!root.Flow.IsTransitioning || root.Gameplay.State != GameplayState.Loading)
                             throw new InvalidOperationException("Retry did not enter the guarded gameplay-scene reload flow.");
@@ -196,8 +187,6 @@ namespace KickTheBuddy.Editor
                             retryLevels.ActiveLevelId != "level_01" || retryLevels.ActiveLevelIndex != 0)
                             throw new InvalidOperationException("Retry did not reactivate the saved Level 01 content.");
                         ValidateSharedRoom(retryLevels, 5f, 16f, "Level 01");
-                        if (Mathf.Abs(root.Gameplay.RemainingTime - root.Levels.CurrentLevel.TimeLimit) > 0.15f)
-                            throw new InvalidOperationException("Retry reload did not restore the full configured timer.");
                         root.Gameplay.CompleteLevel();
                         if (root.Gameplay.State != GameplayState.LevelComplete)
                             throw new InvalidOperationException("The completed level did not enter LevelComplete before Next was requested.");
@@ -216,8 +205,6 @@ namespace KickTheBuddy.Editor
                             !nextLevels.ActiveLevelRoot.activeInHierarchy)
                             throw new InvalidOperationException("Next reload did not activate the Level 02 content and tools.");
                         ValidateSharedRoom(nextLevels, 2.975f, 9f, "Level 02");
-                        if (Mathf.Abs(root.Gameplay.RemainingTime - root.Levels.CurrentLevel.TimeLimit) > .15f)
-                            throw new InvalidOperationException("Level 2 did not start with its full configured play time.");
                         root.Flow.ShowMainMenu();
                         SessionState.SetInt(StageKey, StageReturnMenu);
                         break;

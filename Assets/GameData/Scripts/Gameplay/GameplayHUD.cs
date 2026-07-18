@@ -15,7 +15,6 @@ namespace KickTheBuddy.Gameplay
         [SerializeField] private Text levelText;
         [SerializeField] private Text objectiveText;
         [SerializeField] private Text scoreText;
-        [SerializeField] private Text timerText;
         [SerializeField] private Text resultText;
         [SerializeField] private Text objectiveProgressText;
 
@@ -56,11 +55,18 @@ namespace KickTheBuddy.Gameplay
         private GameSaveManager saves;
         private SoundManager sounds;
         private GameplayHapticsAdapter haptics;
-        private int displayedSeconds = -1;
         private bool settingsOpen;
         private bool updatingSettings;
         private float enabledMusicVolume = .8f;
         private float enabledSoundVolume = 1f;
+
+        private void Awake()
+        {
+            Transform legacyTimer = gameplayPanel != null
+                ? gameplayPanel.transform.Find("Tehreem Gameplay HUD/Timer")
+                : null;
+            if (legacyTimer != null) legacyTimer.gameObject.SetActive(false);
+        }
 
         private void Start()
         {
@@ -80,7 +86,6 @@ namespace KickTheBuddy.Gameplay
             gameplay.StateChanged += HandleState;
             gameplay.ObjectiveProgressChanged += HandleObjective;
             gameplay.ScoreChanged += HandleScore;
-            gameplay.TimeChanged += HandleTime;
             gameplay.LevelCompleted += HandleComplete;
             gameplay.LevelFailed += HandleFailed;
 
@@ -152,14 +157,6 @@ namespace KickTheBuddy.Gameplay
         }
 
         private void HandleScore(int value) => Set(scoreText, value.ToString("N0"));
-
-        private void HandleTime(float value)
-        {
-            int seconds = Mathf.CeilToInt(value);
-            if (seconds == displayedSeconds) return;
-            displayedSeconds = seconds;
-            Set(timerText, $"{seconds / 60:00}:{seconds % 60:00}");
-        }
 
         private void HandleComplete(int score, int stars)
         {
@@ -272,7 +269,6 @@ namespace KickTheBuddy.Gameplay
                 gameplay.StateChanged -= HandleState;
                 gameplay.ObjectiveProgressChanged -= HandleObjective;
                 gameplay.ScoreChanged -= HandleScore;
-                gameplay.TimeChanged -= HandleTime;
                 gameplay.LevelCompleted -= HandleComplete;
                 gameplay.LevelFailed -= HandleFailed;
             }

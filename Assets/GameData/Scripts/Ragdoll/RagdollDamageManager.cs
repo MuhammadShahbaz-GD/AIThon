@@ -9,6 +9,11 @@ namespace KickTheBuddy.Physics
     [RequireComponent(typeof(RagdollController))]
     public sealed class RagdollDamageManager : MonoBehaviour, IRagdollCollisionReceiver
     {
+        private const float MinimumThrowImpulsePerSpeed = .8f;
+        private const float MinimumThrowImpulse = 2.5f;
+        private const float MinimumMaximumThrowImpulse = 30f;
+        private const float MinimumWholeBodyPushRatio = .5f;
+
         [Header("Damage Tuning")]
         [Tooltip("Character-wide damage scale applied after an attack calculates its speed-based raw damage.")]
         [Range(.05f, 1f)] [SerializeField] private float incomingDamageMultiplier = .65f;
@@ -18,9 +23,11 @@ namespace KickTheBuddy.Physics
 
         [Header("Physical Hit Reaction")]
         [Tooltip("Impulse applied to the body part that actually receives damage.")]
-        [Min(0f)] [SerializeField] private float hitImpulsePerSpeed = .32f;
-        [Min(0f)] [SerializeField] private float minimumHitImpulse = .5f;
-        [Min(0f)] [SerializeField] private float maximumHitImpulse = 11f;
+        [Min(0f)] [SerializeField] private float hitImpulsePerSpeed = .8f;
+        [Min(0f)] [SerializeField] private float minimumHitImpulse = 2.5f;
+        [Min(0f)] [SerializeField] private float maximumHitImpulse = 30f;
+        [Tooltip("Transfers part of every valid hit into the torso, pushing the complete ragdoll away.")]
+        [Range(0f, 1f)] [SerializeField] private float wholeBodyPushRatio = .5f;
 
         [Header("Authored References")]
         [SerializeField] private RagdollController controller;
@@ -130,12 +137,32 @@ namespace KickTheBuddy.Physics
         {
             if (hitBody == null || maximumHitImpulse <= 0f) return;
             Vector2 direction = force.sqrMagnitude > .0001f ? force.normalized : Vector2.up;
+            float impulsePerSpeed = Mathf.Max(MinimumThrowImpulsePerSpeed, hitImpulsePerSpeed);
+            float minimumImpulse = Mathf.Max(MinimumThrowImpulse, minimumHitImpulse);
+            float maximumImpulse = Mathf.Max(MinimumMaximumThrowImpulse, maximumHitImpulse);
             float impulse = Mathf.Clamp(
-                impactSpeed * hitImpulsePerSpeed,
-                minimumHitImpulse,
-                maximumHitImpulse);
+                impactSpeed * impulsePerSpeed,
+                minimumImpulse,
+                maximumImpulse);
             if (impulse <= 0f) return;
             hitBody.AddForceAtPosition(direction * impulse, point, ForceMode2D.Impulse);
+            ApplyWholeBodyPush(
+                hitBody,
+                direction,
+                impulse * Mathf.Max(MinimumWholeBodyPushRatio, wholeBodyPushRatio));
+        }
+
+        private void ApplyWholeBodyPush(Rigidbody2D hitBody, Vector2 direction, float impulse)
+        {
+            if (impulse <= 0f) return;
+            for (int i = 0; i < parts.Length; i++)
+            {
+                RagdollController.RagdollPart part = parts[i];
+                if (part == null || part.PartType != RagdollPartType.Torso || part.Body == null ||
+                    part.Body == hitBody) continue;
+                part.Body.AddForce(direction * impulse, ForceMode2D.Impulse);
+                return;
+            }
         }
 
         private int FindPartIndex(Rigidbody2D body)

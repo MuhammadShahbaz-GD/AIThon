@@ -31,6 +31,18 @@ namespace KickTheBuddy.Editor
         public static void RemoveBoostersFromMenu() => RemoveBoosters(false);
         public static void RemoveBoostersBatch() => RemoveBoosters(true);
 
+        [MenuItem("Tools/Game/UI/Remove Level Timer")]
+        public static void RemoveLevelTimerFromMenu()
+        {
+            var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            Transform hudRoot = GameObject.Find("Tehreem Gameplay HUD")?.transform;
+            if (hudRoot != null) Remove(hudRoot, "Timer");
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            Debug.Log("LEVEL_TIMER_REMOVAL_OK: gameplay timer UI removed.");
+        }
+
         private static void RemoveBoosters(bool exitWhenDone)
         {
             try
@@ -73,7 +85,7 @@ namespace KickTheBuddy.Editor
                 SerializedObject serialized = new SerializedObject(hud);
                 string[] required =
                 {
-                    "levelText", "scoreText", "timerText", "objectiveFillImage", "statusFaceImage",
+                    "levelText", "scoreText", "objectiveFillImage", "statusFaceImage",
                     "gameplayPanel", "resultPanel", "settingsPanel",
                     "settingsButton", "closeSettingsButton", "settingsPlayButton", "settingsRetryButton", "restartButton", "nextButton",
                     "musicToggle", "soundToggle", "vibrationToggle"
@@ -108,7 +120,8 @@ namespace KickTheBuddy.Editor
 
                 RequireRect(hudRoot, "Settings", new Vector2(163f, -102.5f), new Vector2(152f, 153f));
                 RequireRect(hudRoot, "Progress", new Vector2(0f, -120f), new Vector2(526f, 86f));
-                RequireRect(hudRoot, "Timer", new Vector2(0f, -205f), new Vector2(243f, 86f));
+                if (hudRoot.Find("Timer") != null)
+                    throw new InvalidOperationException("Removed level timer is still present.");
                 RequireRect(hudRoot, "Coins", new Vector2(-200f, -93.5f), new Vector2(274f, 123f));
 
                 Transform settingsCard = ((GameObject)serialized.FindProperty("settingsPanel").objectReferenceValue)
@@ -173,7 +186,6 @@ namespace KickTheBuddy.Editor
                 so.Update();
                 Assign(so, "levelText", main.Level);
                 Assign(so, "scoreText", main.Score);
-                Assign(so, "timerText", main.Timer);
                 Assign(so, "resultText", result.Result);
                 Assign(so, "objectiveFillImage", main.Progress);
                 Assign(so, "statusFaceImage", main.Face);
@@ -251,12 +263,6 @@ namespace KickTheBuddy.Editor
             ArtImage("Stroke", progressRoot.transform, GameplayArt + "progress bar stroke.png", Vector2.zero, new Vector2(526f, 86f));
             Image face = ArtImage("Status Face", progressRoot.transform, GameplayArt + "normal.png", new Vector2(220f, 0f), new Vector2(101f, 101f));
 
-            GameObject timerRoot = UI("Timer", root.transform);
-            SetRect(timerRoot.GetComponent<RectTransform>(), new Vector2(.5f, 1f), new Vector2(0f, -205f), new Vector2(243f, 86f), new Vector2(.5f, .5f));
-            ArtImage("Clock Bar", timerRoot.transform, GameplayArt + "clock bar.png", Vector2.zero, new Vector2(243f, 86f));
-            Text timer = Label("Value", timerRoot.transform, "00:00", 42, new Color(.02f, .15f, .23f, 1f), FontStyle.Bold);
-            SetRect(timer.rectTransform, new Vector2(.5f, .5f), new Vector2(38f, 0f), new Vector2(150f, 60f), new Vector2(.5f, .5f));
-
             GameObject coins = UI("Coins", root.transform);
             SetRect(coins.GetComponent<RectTransform>(), new Vector2(1f, 1f), new Vector2(-200f, -93.5f), new Vector2(274f, 123f), new Vector2(.5f, .5f));
             ArtImage("Coin Bar", coins.transform, GameplayArt + "coin bar.png", Vector2.zero, new Vector2(274f, 123f));
@@ -264,7 +270,7 @@ namespace KickTheBuddy.Editor
             SetRect(score.rectTransform, new Vector2(.5f, .5f), new Vector2(45f, -1f), new Vector2(142f, 58f), new Vector2(.5f, .5f));
             AddOutline(score, new Color(.25f, .18f, .35f, 1f), new Vector2(2f, -2f));
 
-            return new HudReferences(level, score, timer, fill, face, settings);
+            return new HudReferences(level, score, fill, face, settings);
         }
 
         private static SettingsReferences BuildSettings(Transform parent)
@@ -399,7 +405,7 @@ namespace KickTheBuddy.Editor
 
         private static void SetOldPresentationHidden(SerializedObject so)
         {
-            string[] labels = { "levelText", "objectiveText", "scoreText", "timerText", "resultText", "objectiveProgressText" };
+            string[] labels = { "levelText", "objectiveText", "scoreText", "resultText", "objectiveProgressText" };
             foreach (string property in labels)
             {
                 Text text = so.FindProperty(property)?.objectReferenceValue as Text;
@@ -508,12 +514,12 @@ namespace KickTheBuddy.Editor
 
         private readonly struct HudReferences
         {
-            public readonly Text Level, Score, Timer;
+            public readonly Text Level, Score;
             public readonly Image Progress, Face;
             public readonly Button SettingsButton;
-            public HudReferences(Text level, Text score, Text timer, Image progress, Image face, Button settingsButton)
+            public HudReferences(Text level, Text score, Image progress, Image face, Button settingsButton)
             {
-                Level = level; Score = score; Timer = timer; Progress = progress; Face = face;
+                Level = level; Score = score; Progress = progress; Face = face;
                 SettingsButton = settingsButton;
             }
         }

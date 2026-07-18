@@ -5582,6 +5582,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 63355146}
   attack: {fileID: 63355145}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &63355145
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5750,7 +5753,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.104528464, w: 0.9945219}
   m_LocalPosition: {x: 2.45, y: -3.05, z: 0}
-  m_LocalScale: {x: 0.72, y: 0.72, z: 0.72}
+  m_LocalScale: {x: 1.082736, y: 1.082736, z: 1.082736}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1884229668}
@@ -6234,7 +6237,6 @@ MonoBehaviour:
   levelText: {fileID: 752320851}
   objectiveText: {fileID: 764508019}
   scoreText: {fileID: 875701180}
-  timerText: {fileID: 260197335}
   resultText: {fileID: 1543756491}
   objectiveProgressText: {fileID: 0}
   objectiveSlider: {fileID: 0}
@@ -6531,6 +6533,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 99050261}
   attack: {fileID: 99050260}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &99050260
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7244,7 +7249,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8aae770f21a5e042844a10a862a4c8f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  deathCompletionDelay: 2
+  deathNextLevelDelay: 2
 --- !u!114 &137366982
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8129,6 +8134,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 174225494}
   attack: {fileID: 174225493}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &174225493
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9335,6 +9343,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 214949204}
   attack: {fileID: 214949203}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &214949203
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10945,7 +10956,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &323793581
 Transform:
   m_ObjectHideFlags: 0
@@ -11545,7 +11556,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 385888677}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: 0.20065656, w: 0.9796617}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -11553,7 +11564,7 @@ Transform:
   - {fileID: 1309289745}
   - {fileID: 1225317163}
   m_Father: {fileID: 707553676}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 23.151}
 --- !u!199 &385888679
 ParticleSystemRenderer:
   serializedVersion: 6
@@ -11934,7 +11945,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startSizeY:
       serializedVersion: 2
-      minMaxState: 0
+      minMaxState: 3
       scalar: 1
       minScalar: 1
       maxCurve:
@@ -11987,7 +11998,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startSizeZ:
       serializedVersion: 2
-      minMaxState: 0
+      minMaxState: 3
       scalar: 1
       minScalar: 1
       maxCurve:
@@ -21648,6 +21659,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 400563340}
   attack: {fileID: 400563339}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &400563339
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -22268,6 +22282,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 444588488}
   attack: {fileID: 444588487}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &444588487
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -24288,6 +24305,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 507266411}
   attack: {fileID: 507266410}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &507266410
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -24551,6 +24571,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 512852113}
   attack: {fileID: 512852112}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &512852112
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -26838,7 +26861,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &618782844
 Transform:
   m_ObjectHideFlags: 0
@@ -28228,6 +28251,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 723172987}
   attack: {fileID: 723172986}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &723172986
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28925,7 +28951,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &744189685
 Transform:
   m_ObjectHideFlags: 0
@@ -31515,6 +31541,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 851658488}
   attack: {fileID: 851658487}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &851658487
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -32300,7 +32329,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &880376560
 Transform:
   m_ObjectHideFlags: 0
@@ -39165,6 +39194,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 980900682}
   attack: {fileID: 980900681}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &980900681
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -40006,8 +40038,8 @@ Transform:
   m_GameObject: {fileID: 1056907992}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.06975647, w: 0.9975641}
-  m_LocalPosition: {x: -4.95, y: -3.15, z: 0}
-  m_LocalScale: {x: 0.62, y: 0.62, z: 0.62}
+  m_LocalPosition: {x: -2.69, y: -2.69, z: 0}
+  m_LocalScale: {x: 0.998138, y: 0.998138, z: 0.998138}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1884229668}
@@ -45356,270 +45388,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1088806719}
   m_CullTransparentMesh: 1
---- !u!1 &1097054978
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1097054980}
-  - component: {fileID: 1097054986}
-  - component: {fileID: 1097054983}
-  - component: {fileID: 1097054985}
-  - component: {fileID: 1097054982}
-  - component: {fileID: 1097054981}
-  - component: {fileID: 1097054979}
-  - component: {fileID: 1097054984}
-  m_Layer: 0
-  m_Name: Interactive Candy Jar
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1097054979
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1097054978}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dae474310e029914caed0c90b3e530f1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  kind: 6
-  body: {fileID: 1097054983}
-  dragJoint: {fileID: 1097054982}
-  stickyJoint: {fileID: 0}
-  attack: {fileID: 1097054981}
-  visual: {fileID: 1097054980}
-  dragGrip: {fileID: 0}
-  dragFrequency: 8.5
-  dragDamping: 0.94
-  dragMaximumForce: 1800
-  targetSmoothTime: 0.022
-  maximumTargetSpeed: 75
-  autoThrowOnTap: 1
-  throwTarget: {fileID: 1789752364}
-  tapThrowImpulse: 12
-  tapThrowUpwardBias: 0.12
-  tapThrowSpin: 360
-  minimumStickSpeed: 2.5
-  stickDuration: 0.65
-  reattachCooldown: 0.85
-  slideDrag: 0.45
-  slideDragDuration: 1.25
-  squashAmount: 0.24
-  squashRecoverySpeed: 7
---- !u!4 &1097054980
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1097054978}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -5.05, y: -1.7, z: 0}
-  m_LocalScale: {x: 0.58, y: 0.58, z: 0.58}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1884229668}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1097054981
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1097054978}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 614f1ff2469806545a5e9dc8cfe39c92, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  attackType: 11
-  baseDamage: 0.3
-  damagePerSpeed: 0.38
-  minimumImpactSpeed: 3.8
-  maximumDamage: 6
-  damageableLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  enabledForDamage: 1
-  disableAfterSuccessfulHit: 0
---- !u!257 &1097054982
-TargetJoint2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1097054978}
-  m_Enabled: 0
-  serializedVersion: 4
-  m_EnableCollision: 1
-  m_ConnectedRigidBody: {fileID: 0}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_BreakAction: 3
-  m_Anchor: {x: 0, y: 0}
-  m_Target: {x: -5.05, y: -1.7}
-  m_AutoConfigureTarget: 0
-  m_MaxForce: 10000
-  m_DampingRatio: 1
-  m_Frequency: 5
---- !u!50 &1097054983
-Rigidbody2D:
-  serializedVersion: 4
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1097054978}
-  m_BodyType: 0
-  m_Simulated: 1
-  m_UseFullKinematicContacts: 0
-  m_UseAutoMass: 0
-  m_Mass: 1.25
-  m_LinearDrag: 0.22
-  m_AngularDrag: 0.65
-  m_GravityScale: 1.45
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_Interpolate: 1
-  m_SleepingMode: 1
-  m_CollisionDetection: 1
-  m_Constraints: 0
---- !u!114 &1097054984
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1097054978}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0bcd1385597e907419acc76a6e5f35e2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  jarBody: {fileID: 1097054983}
-  jarCollider: {fileID: 1097054985}
-  jarRenderer: {fileID: 1097054986}
-  containedCandy:
-  - {fileID: 1376127177}
-  - {fileID: 575887714}
-  - {fileID: 789535662}
-  - {fileID: 486874703}
-  - {fileID: 2011232438}
-  - {fileID: 866635462}
-  breakImpactSpeed: 8.5
-  burstImpulse: 3.1
---- !u!61 &1097054985
-BoxCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1097054978}
-  m_Enabled: 1
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_UsedByComposite: 0
-  m_Offset: {x: 0, y: 0}
-  m_SpriteTilingProperty:
-    border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 2.92, y: 2.67}
-    newSize: {x: 2.92, y: 2.67}
-    adaptiveTilingThreshold: 0.5
-    drawMode: 0
-    adaptiveTiling: 0
-  m_AutoTiling: 0
-  serializedVersion: 2
-  m_Size: {x: 2.3944001, y: 2.0825999}
-  m_EdgeRadius: 0
---- !u!212 &1097054986
-SpriteRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1097054978}
-  m_Enabled: 1
-  m_CastShadows: 0
-  m_ReceiveShadows: 0
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 0
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 85
-  m_Sprite: {fileID: 21300000, guid: 3f2d7432863479f4ca608ee140863e84, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_FlipX: 0
-  m_FlipY: 0
-  m_DrawMode: 0
-  m_Size: {x: 2.92, y: 2.67}
-  m_AdaptiveModeThreshold: 0.5
-  m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
-  m_MaskInteraction: 0
-  m_SpriteSortPoint: 0
 --- !u!1 &1106422797
 GameObject:
   m_ObjectHideFlags: 0
@@ -50626,7 +50394,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1112962847
 Transform:
   m_ObjectHideFlags: 0
@@ -56059,6 +55827,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 1139353153}
   attack: {fileID: 1139353152}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &1139353152
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -78089,272 +77860,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 385888678}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1227492287
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1227492288}
-  - component: {fileID: 1227492294}
-  - component: {fileID: 1227492293}
-  - component: {fileID: 1227492292}
-  - component: {fileID: 1227492291}
-  - component: {fileID: 1227492290}
-  - component: {fileID: 1227492295}
-  - component: {fileID: 1227492289}
-  m_Layer: 0
-  m_Name: Lollipop Pink
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1227492288
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1227492287}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.12186935, w: 0.99254614}
-  m_LocalPosition: {x: 4.65, y: -2.45, z: 0}
-  m_LocalScale: {x: 0.48, y: 0.48, z: 0.48}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2038829617}
-  m_Father: {fileID: 1884229668}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1227492289
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1227492287}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cbcd8bda046098646bebeb8af7d60f1a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  tool: {fileID: 1227492295}
-  body: {fileID: 1227492293}
-  attackTarget: {fileID: 1789752364}
-  localTipAxis: {x: 0, y: 1}
-  aimOffsetDegrees: 0
-  strikesPerSecond: 2.25
-  windUpAngle: 30
-  followThroughAngle: 30
-  strikePhase: 0.34
-  rotationDrive: 26
-  rotationDamping: 2.2
-  maximumTorque: 220
-  maximumAngularSpeed: 720
---- !u!114 &1227492290
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1227492287}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 614f1ff2469806545a5e9dc8cfe39c92, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  attackType: 6
-  baseDamage: 3.5
-  damagePerSpeed: 2.5
-  minimumImpactSpeed: 3.8
-  maximumDamage: 32
-  damageableLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  enabledForDamage: 1
-  disableAfterSuccessfulHit: 0
---- !u!257 &1227492291
-TargetJoint2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1227492287}
-  m_Enabled: 0
-  serializedVersion: 4
-  m_EnableCollision: 1
-  m_ConnectedRigidBody: {fileID: 0}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_BreakAction: 3
-  m_Anchor: {x: 0, y: 0}
-  m_Target: {x: 4.65, y: -2.45}
-  m_AutoConfigureTarget: 0
-  m_MaxForce: 10000
-  m_DampingRatio: 1
-  m_Frequency: 5
---- !u!61 &1227492292
-BoxCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1227492287}
-  m_Enabled: 1
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_UsedByComposite: 0
-  m_Offset: {x: 0, y: 0}
-  m_SpriteTilingProperty:
-    border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1.19, y: 1.85}
-    newSize: {x: 1.19, y: 1.85}
-    adaptiveTilingThreshold: 0.5
-    drawMode: 0
-    adaptiveTiling: 0
-  m_AutoTiling: 0
-  serializedVersion: 2
-  m_Size: {x: 0.97580004, y: 1.443}
-  m_EdgeRadius: 0
---- !u!50 &1227492293
-Rigidbody2D:
-  serializedVersion: 4
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1227492287}
-  m_BodyType: 0
-  m_Simulated: 1
-  m_UseFullKinematicContacts: 0
-  m_UseAutoMass: 0
-  m_Mass: 1.25
-  m_LinearDrag: 0.22
-  m_AngularDrag: 0.65
-  m_GravityScale: 1.45
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_Interpolate: 1
-  m_SleepingMode: 1
-  m_CollisionDetection: 1
-  m_Constraints: 0
---- !u!212 &1227492294
-SpriteRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1227492287}
-  m_Enabled: 1
-  m_CastShadows: 0
-  m_ReceiveShadows: 0
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 0
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 85
-  m_Sprite: {fileID: 21300000, guid: a23c517361e368b478eaefdc8feba5f7, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_FlipX: 0
-  m_FlipY: 0
-  m_DrawMode: 0
-  m_Size: {x: 1.19, y: 1.85}
-  m_AdaptiveModeThreshold: 0.5
-  m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
-  m_MaskInteraction: 0
-  m_SpriteSortPoint: 0
---- !u!114 &1227492295
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1227492287}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dae474310e029914caed0c90b3e530f1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  kind: 0
-  body: {fileID: 1227492293}
-  dragJoint: {fileID: 1227492291}
-  stickyJoint: {fileID: 0}
-  attack: {fileID: 1227492290}
-  visual: {fileID: 1227492288}
-  dragGrip: {fileID: 2038829617}
-  dragFrequency: 8.5
-  dragDamping: 0.94
-  dragMaximumForce: 1900
-  targetSmoothTime: 0.022
-  maximumTargetSpeed: 75
-  autoThrowOnTap: 0
-  throwTarget: {fileID: 0}
-  tapThrowImpulse: 9
-  tapThrowUpwardBias: 0.12
-  tapThrowSpin: 360
-  minimumStickSpeed: 2.5
-  stickDuration: 0.65
-  reattachCooldown: 0.85
-  slideDrag: 0.45
-  slideDragDuration: 1.25
-  squashAmount: 0.24
-  squashRecoverySpeed: 7
 --- !u!1 &1237953034
 GameObject:
   m_ObjectHideFlags: 0
@@ -79557,6 +79062,7 @@ MonoBehaviour:
   hitImpulsePerSpeed: 0.22
   minimumHitImpulse: 0.35
   maximumHitImpulse: 8
+  wholeBodyPushRatio: 0.5
   controller: {fileID: 0}
   elementalEffects: {fileID: 0}
 --- !u!114 &1251663631
@@ -79959,7 +79465,7 @@ SpriteRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1275783601}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 0
   m_ReceiveShadows: 0
   m_DynamicOccludee: 1
@@ -85718,6 +85224,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 1339663315}
   attack: {fileID: 1339663314}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &1339663314
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -86713,7 +86222,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1381349388}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0.17869253, w: 0.98390496}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -86721,7 +86230,7 @@ Transform:
   - {fileID: 1877395107}
   - {fileID: 882270822}
   m_Father: {fileID: 1923557799}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -20.587}
 --- !u!199 &1381349390
 ParticleSystemRenderer:
   serializedVersion: 6
@@ -87102,7 +86611,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startSizeY:
       serializedVersion: 2
-      minMaxState: 0
+      minMaxState: 3
       scalar: 1
       minScalar: 1
       maxCurve:
@@ -87155,7 +86664,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startSizeZ:
       serializedVersion: 2
-      minMaxState: 0
+      minMaxState: 3
       scalar: 1
       minScalar: 1
       maxCurve:
@@ -92492,6 +92001,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 1420449061}
   attack: {fileID: 1420449060}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &1420449060
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -102840,7 +102352,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1442251885
 Transform:
   m_ObjectHideFlags: 0
@@ -103144,6 +102656,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 1450136572}
   attack: {fileID: 1450136571}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &1450136571
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -104076,6 +103591,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 1502421561}
   attack: {fileID: 1502421560}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &1502421560
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -104419,7 +103937,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1505804768
 Transform:
   m_ObjectHideFlags: 0
@@ -105981,7 +105499,7 @@ Transform:
   m_GameObject: {fileID: 1579976489}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.06975647, w: 0.9975641}
-  m_LocalPosition: {x: -3.25, y: -3.15, z: 0}
+  m_LocalPosition: {x: -4.2, y: -3.67, z: 0}
   m_LocalScale: {x: 0.9, y: 0.9, z: 0.9}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -106758,6 +106276,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 1590858954}
   attack: {fileID: 1590858953}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &1590858953
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -107220,6 +106741,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 1600388113}
   attack: {fileID: 1600388112}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &1600388112
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -108503,6 +108027,7 @@ MonoBehaviour:
   chargedSpeedMultiplier: 1.18
   projectileImpactImpulse: 3.4
   chargedImpactMultiplier: 1.35
+  projectileThrowVelocity: 6.5
   leftProjectileColor: {r: 1, g: 0.35, b: 0.62, a: 1}
   rightProjectileColor: {r: 0.34, g: 0.75, b: 1, a: 1}
   recoilDistance: 0.22
@@ -110111,14 +109636,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1694889974}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.15643448, w: 0.98768836}
-  m_LocalPosition: {x: 4.15, y: -2.6, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0.137675, w: 0.9904775}
+  m_LocalPosition: {x: 6.68, y: -2.35, z: 0}
   m_LocalScale: {x: 0.75, y: 0.75, z: 0.75}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 920105672}
   m_Father: {fileID: 1884229668}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -15.827}
 --- !u!114 &1694889976
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -110889,6 +110414,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 1747864075}
   attack: {fileID: 1747864074}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &1747864074
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -111374,6 +110902,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 1757413860}
   attack: {fileID: 1757413859}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &1757413859
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -116808,7 +116339,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1763685656
 Transform:
   m_ObjectHideFlags: 0
@@ -122483,6 +122014,7 @@ MonoBehaviour:
   hitImpulsePerSpeed: 0.32
   minimumHitImpulse: 0.5
   maximumHitImpulse: 11
+  wholeBodyPushRatio: 0.5
   controller: {fileID: 1789752363}
   elementalEffects: {fileID: 1789752373}
 --- !u!114 &1789752368
@@ -122963,9 +122495,9 @@ MonoBehaviour:
   - {fileID: 892731194}
   - {fileID: 744189692}
   - {fileID: 1694889982}
-  - {fileID: 1227492295}
+  - {fileID: 0}
   - {fileID: 1934887600}
-  - {fileID: 1097054979}
+  - {fileID: 0}
   candyCannons: {fileID: 1636671346}
   candyGuns:
   - {fileID: 2068606607}
@@ -123068,6 +122600,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 1795910647}
   attack: {fileID: 1795910646}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &1795910646
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -123647,6 +123182,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 1818964203}
   attack: {fileID: 1818964202}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &1818964202
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -124041,7 +123579,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1826371594
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -124814,7 +124352,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1859281362
 Transform:
   m_ObjectHideFlags: 0
@@ -130069,9 +129607,9 @@ MonoBehaviour:
   - {fileID: 892731194}
   - {fileID: 744189692}
   - {fileID: 1694889982}
-  - {fileID: 1227492295}
+  - {fileID: 0}
   - {fileID: 1934887600}
-  - {fileID: 1097054979}
+  - {fileID: 0}
   toolLayers:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -130099,9 +129637,7 @@ Transform:
   - {fileID: 892731188}
   - {fileID: 744189685}
   - {fileID: 1694889975}
-  - {fileID: 1227492288}
   - {fileID: 1934887594}
-  - {fileID: 1097054980}
   m_Father: {fileID: 1709967805}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1887688800
@@ -130304,6 +129840,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 1918385262}
   attack: {fileID: 1918385261}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &1918385261
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -130587,7 +130126,7 @@ Transform:
   m_GameObject: {fileID: 1934887593}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.05233596, w: 0.9986295}
-  m_LocalPosition: {x: 1.55, y: -3.2, z: 0}
+  m_LocalPosition: {x: 5.65, y: -3.9, z: 0}
   m_LocalScale: {x: 0.62, y: 0.62, z: 0.62}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -131228,8 +130767,8 @@ Transform:
   m_GameObject: {fileID: 1955584182}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.1736482, w: 0.9848078}
-  m_LocalPosition: {x: 3.1, y: -2.9, z: 0}
-  m_LocalScale: {x: 0.68, y: 0.68, z: 0.68}
+  m_LocalPosition: {x: 3.72, y: -2.96, z: 0}
+  m_LocalScale: {x: 0.950436, y: 0.950436, z: 0.950436}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1884229668}
@@ -132455,7 +131994,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2018114149
 Transform:
   m_ObjectHideFlags: 0
@@ -132792,37 +132331,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!1 &2038829616
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2038829617}
-  m_Layer: 0
-  m_Name: Base Grip
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2038829617
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2038829616}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.74, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1227492288}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2044441243
 GameObject:
   m_ObjectHideFlags: 0
@@ -134931,6 +134439,9 @@ MonoBehaviour:
   projectileCollider: {fileID: 2134711608}
   attack: {fileID: 2134711607}
   lifetime: 3
+  limbHitImpulse: 7.5
+  bodyPushImpulse: 3
+  upwardLift: 0.14
 --- !u!114 &2134711607
 MonoBehaviour:
   m_ObjectHideFlags: 0
