@@ -19,6 +19,8 @@ MonoBehaviour:
     every candy toy.
   completionRule: 1
   targetDamage: 1000
+  targetDurabilityMultiplier: 3
+  minimumHitsToDepletePart: 10
   timeLimit: 70
   completionCoins: 500
   oneStarScore: 450

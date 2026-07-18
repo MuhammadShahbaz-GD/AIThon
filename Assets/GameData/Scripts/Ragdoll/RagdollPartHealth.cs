@@ -36,6 +36,7 @@ namespace KickTheBuddy.Physics
         [Range(0f, 2f)] [SerializeField] private float damageReactionStrength = 1f;
 
         private float currentHealth;
+        private float authoredMaximumHealth;
         [SerializeField] private DismemberableLimb structuralLimb;
 
         public event Action<RagdollPartHealth, float, Vector2> Damaged;
@@ -55,13 +56,35 @@ namespace KickTheBuddy.Physics
         public float WeightedCurrentHealth => currentHealth * healthContribution;
         public float WeightedMaximumHealth => maximumHealth * healthContribution;
 
-        private void Awake() { currentHealth = maximumHealth; }
+        private void Awake()
+        {
+            authoredMaximumHealth = Mathf.Max(1f, maximumHealth);
+            maximumHealth = authoredMaximumHealth;
+            currentHealth = maximumHealth;
+        }
 
         internal void Initialize(float fallbackHealth, DismemberableLimb authoredStructuralLimb)
         {
             structuralLimb = authoredStructuralLimb;
             if (maximumHealth <= 0f) maximumHealth = Mathf.Max(1f, fallbackHealth);
+            if (authoredMaximumHealth <= 0f) authoredMaximumHealth = maximumHealth;
             currentHealth = maximumHealth;
+        }
+
+        internal void ApplyDurabilityMultiplier(float multiplier)
+        {
+            if (authoredMaximumHealth <= 0f)
+                authoredMaximumHealth = Mathf.Max(1f, maximumHealth);
+            maximumHealth = authoredMaximumHealth * Mathf.Max(.1f, multiplier);
+            currentHealth = maximumHealth;
+        }
+
+        internal float GetMaximumDamagePerHit(int requiredHits)
+        {
+            float limitingCapacity = maximumHealth;
+            if (structuralLimb != null && structuralLimb.CanBeSevered)
+                limitingCapacity = Mathf.Min(limitingCapacity, structuralLimb.MaximumJointHealth);
+            return limitingCapacity / Mathf.Max(1, requiredHits);
         }
 
         public float TakeDamage(float rawDamage, Vector2 force, Vector2 point)
@@ -108,6 +131,7 @@ namespace KickTheBuddy.Physics
         {
             partType = type;
             maximumHealth = Mathf.Max(1f, health);
+            authoredMaximumHealth = maximumHealth;
             healthContribution = Mathf.Max(0f, contribution);
             damageRatio = Mathf.Max(0f, incomingDamageRatio);
             flexibility = Mathf.Clamp(partFlexibility, .25f, 2f);

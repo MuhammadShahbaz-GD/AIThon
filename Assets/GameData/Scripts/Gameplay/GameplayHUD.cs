@@ -1,4 +1,5 @@
 using KickTheBuddy.Haptics;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,7 +13,7 @@ namespace KickTheBuddy.Gameplay
     public sealed class GameplayHUD : MonoBehaviour
     {
         [Header("Labels")]
-        [SerializeField] private Text levelText;
+        [SerializeField] private TextMeshProUGUI levelText;
         [SerializeField] private Text objectiveText;
         [SerializeField] private Text scoreText;
         [SerializeField] private Text resultText;
@@ -261,6 +262,10 @@ namespace KickTheBuddy.Gameplay
         }
 
         private static void Set(Text label, string value)
+        {
+            if (label != null) label.text = value;
+        }
+        private static void Set(TextMeshProUGUI label, string value)
         {
             if (label != null) label.text = value;
         }

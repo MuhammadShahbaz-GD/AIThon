@@ -18,8 +18,8 @@ MonoBehaviour:
   - id: 0
     bus: 2
     clips:
-    - {fileID: 8300000, guid: 85940cf606ae6b040b17a74eebcf33b1, type: 3}
-    - {fileID: 8300000, guid: 2f3995fc16b6dfe4a9bd0f1de940b423, type: 3}
+    - {fileID: 8300000, guid: 57d4a9c08f8d13042a9c400f293d41a7, type: 3}
+    - {fileID: 8300000, guid: 57d4a9c08f8d13042a9c400f293d41a7, type: 3}
     randomize: 1
     loop: 0
     volume: 0.72
@@ -71,7 +71,7 @@ MonoBehaviour:
   - id: 4
     bus: 1
     clips:
-    - {fileID: 8300000, guid: a1c37b1184d52bf4892868481f0dd11a, type: 3}
+    - {fileID: 8300000, guid: f465478b2f16707458186a04c239f20b, type: 3}
     randomize: 0
     loop: 0
     volume: 0.7
@@ -427,7 +427,7 @@ MonoBehaviour:
   - id: 31
     bus: 3
     clips:
-    - {fileID: 8300000, guid: c0c1aa23264f255419c9205bc4b26866, type: 3}
+    - {fileID: 8300000, guid: bf1d8c4a3445c844fa8fa15ed78bc40e, type: 3}
     randomize: 0
     loop: 0
     volume: 0.94
@@ -440,7 +440,7 @@ MonoBehaviour:
   - id: 32
     bus: 3
     clips:
-    - {fileID: 8300000, guid: c0c1aa23264f255419c9205bc4b26866, type: 3}
+    - {fileID: 8300000, guid: bf1d8c4a3445c844fa8fa15ed78bc40e, type: 3}
     randomize: 0
     loop: 0
     volume: 1
@@ -663,7 +663,7 @@ MonoBehaviour:
   - id: 49
     bus: 3
     clips:
-    - {fileID: 8300000, guid: c0c1aa23264f255419c9205bc4b26866, type: 3}
+    - {fileID: 8300000, guid: bf1d8c4a3445c844fa8fa15ed78bc40e, type: 3}
     randomize: 0
     loop: 0
     volume: 0.98

@@ -13,6 +13,12 @@ namespace KickTheBuddy.Physics
         [SerializeField] private float gravityScaleKnockedOut = 1.2f;
         [Min(0f)] [SerializeField] private float dragDefault = 1f;
         [Min(0f)] [SerializeField] private float angularDragDefault = 1.5f;
+        [Tooltip("Minimum gravity used while active so the ragdoll falls with convincing weight.")]
+        [Min(0f)] [SerializeField] private float minimumHeavyFallGravity = 1.8f;
+        [Tooltip("Extra gravity multiplier used while knocked out or limp.")]
+        [Min(1f)] [SerializeField] private float limpFallGravityMultiplier = 1.3f;
+        [Tooltip("Maximum linear drag allowed while applying heavy fall physics.")]
+        [Min(0f)] [SerializeField] private float maximumHeavyFallDrag = .65f;
         [SerializeField] private RagdollState currentState = RagdollState.Active;
 
         private RagdollController owner;
@@ -78,11 +84,15 @@ namespace KickTheBuddy.Physics
             isLimp = makeLimp;
             pose.SetDragging(false);
             pose.CancelRecovery();
+            float activeGravity = Mathf.Max(gravityScaleDefault, minimumHeavyFallGravity);
+            float limpGravity = Mathf.Max(
+                gravityScaleKnockedOut,
+                minimumHeavyFallGravity * limpFallGravityMultiplier);
             rig.ApplyLimpPhysics(
                 makeLimp,
-                gravityScaleDefault,
-                gravityScaleKnockedOut,
-                dragDefault,
+                activeGravity,
+                limpGravity,
+                Mathf.Min(dragDefault, maximumHeavyFallDrag),
                 angularDragDefault);
             owner?.NotifyLimpStateChanged(makeLimp);
         }
@@ -140,6 +150,9 @@ namespace KickTheBuddy.Physics
             gravityScaleKnockedOut = Mathf.Max(0f, gravityScaleKnockedOut);
             dragDefault = Mathf.Max(0f, dragDefault);
             angularDragDefault = Mathf.Max(0f, angularDragDefault);
+            minimumHeavyFallGravity = Mathf.Max(0f, minimumHeavyFallGravity);
+            limpFallGravityMultiplier = Mathf.Max(1f, limpFallGravityMultiplier);
+            maximumHeavyFallDrag = Mathf.Max(0f, maximumHeavyFallDrag);
         }
     }
 }

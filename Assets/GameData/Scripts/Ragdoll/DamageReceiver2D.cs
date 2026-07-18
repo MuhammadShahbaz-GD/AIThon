@@ -12,6 +12,9 @@ namespace KickTheBuddy.Physics
         private float dragFrequency = 5f;
         private float dragDampingRatio = .9f;
         private float dragMaxForce = 1900f;
+        private bool directPointerTracking = true;
+        private float directTrackingFrequency = 22f;
+        private float directTrackingForcePerMass = 4000f;
         private float targetSmoothTime = .03f;
         private float maximumTargetSpeed = 75f;
         private float headStretchLimit = .55f;
@@ -84,6 +87,9 @@ namespace KickTheBuddy.Physics
             dragFrequency = settings.Frequency;
             dragDampingRatio = settings.DampingRatio;
             dragMaxForce = settings.MaximumForce;
+            directPointerTracking = settings.DirectPointerTracking;
+            directTrackingFrequency = settings.DirectTrackingFrequency;
+            directTrackingForcePerMass = settings.DirectTrackingForcePerMass;
             targetSmoothTime = settings.TargetSmoothTime;
             maximumTargetSpeed = settings.MaximumTargetSpeed;
             headStretchLimit = settings.HeadStretchLimit;
@@ -111,12 +117,24 @@ namespace KickTheBuddy.Physics
         private void FixedUpdate()
         {
             if (!dragging || dragJoint == null || !dragJoint.enabled || body == null) return;
-            smoothedDragTarget = Vector2.SmoothDamp(smoothedDragTarget, pendingDragTarget, ref targetVelocity,
-                targetSmoothTime, maximumTargetSpeed, Time.fixedDeltaTime);
+            if (directPointerTracking)
+            {
+                smoothedDragTarget = pendingDragTarget;
+                targetVelocity = Vector2.zero;
+            }
+            else
+            {
+                smoothedDragTarget = Vector2.SmoothDamp(smoothedDragTarget, pendingDragTarget, ref targetVelocity,
+                    targetSmoothTime, maximumTargetSpeed, Time.fixedDeltaTime);
+            }
+
             Vector2 grabbedPoint = body.transform.TransformPoint(dragJoint.anchor);
             float followDistance = Vector2.Distance(grabbedPoint, smoothedDragTarget);
             float stretch = Mathf.Clamp01((followDistance - stretchLimit) / stretchLimit);
-            dragJoint.frequency = dragFrequency * partFrequencyMultiplier *
+            float followFrequency = directPointerTracking
+                ? Mathf.Max(dragFrequency, directTrackingFrequency)
+                : dragFrequency;
+            dragJoint.frequency = followFrequency * partFrequencyMultiplier *
                                   Mathf.Lerp(1f, stretchedFrequencyMultiplier, stretch);
             dragJoint.target = smoothedDragTarget;
         }
@@ -130,9 +148,15 @@ namespace KickTheBuddy.Physics
             dragJoint.enabled = false;
             dragJoint.anchor = transform.InverseTransformPoint(worldPoint);
             dragJoint.target = worldPoint;
-            dragJoint.frequency = dragFrequency * partFrequencyMultiplier;
+            float followFrequency = directPointerTracking
+                ? Mathf.Max(dragFrequency, directTrackingFrequency)
+                : dragFrequency;
+            float followForce = directPointerTracking
+                ? Mathf.Max(dragMaxForce, body.mass * directTrackingForcePerMass)
+                : dragMaxForce;
+            dragJoint.frequency = followFrequency * partFrequencyMultiplier;
             dragJoint.dampingRatio = dragDampingRatio * partDampingMultiplier;
-            dragJoint.maxForce = dragMaxForce * partForceMultiplier;
+            dragJoint.maxForce = followForce * partForceMultiplier;
             dragJoint.enabled = true;
             pendingDragTarget = smoothedDragTarget = worldPoint;
             targetVelocity = Vector2.zero;
@@ -146,6 +170,8 @@ namespace KickTheBuddy.Physics
         {
             if (!dragging) return;
             pendingDragTarget = worldPoint;
+            if (directPointerTracking && dragJoint != null && dragJoint.enabled)
+                dragJoint.target = worldPoint;
             Dragged?.Invoke(this, pendingDragTarget);
         }
 

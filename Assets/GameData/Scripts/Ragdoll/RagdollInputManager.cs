@@ -18,6 +18,12 @@ namespace KickTheBuddy.Physics
             [Range(0f, 1f)] [SerializeField] private float dampingRatio = .9f;
             [Tooltip("Maximum TargetJoint force. Heavy ragdolls need more force.")]
             [Min(0f)] [SerializeField] private float maximumForce = 1900f;
+            [Tooltip("Makes the joint target use the exact mouse/touch world position without smoothing delay.")]
+            [SerializeField] private bool directPointerTracking = true;
+            [Tooltip("Minimum joint frequency used by direct pointer tracking.")]
+            [Range(1f, 40f)] [SerializeField] private float directTrackingFrequency = 22f;
+            [Tooltip("Minimum direct-follow force per unit of grabbed Rigidbody mass.")]
+            [Min(0f)] [SerializeField] private float directTrackingForcePerMass = 4000f;
             [Tooltip("Lower values reduce pointer delay. Avoid zero because it can expose touch jitter.")]
             [Range(.01f, .25f)] [SerializeField] private float targetSmoothTime = .03f;
             [Tooltip("Maximum world-space speed of the smoothed pointer target.")]
@@ -41,6 +47,9 @@ namespace KickTheBuddy.Physics
             public float Frequency => frequency;
             public float DampingRatio => dampingRatio;
             public float MaximumForce => maximumForce;
+            public bool DirectPointerTracking => directPointerTracking;
+            public float DirectTrackingFrequency => directTrackingFrequency;
+            public float DirectTrackingForcePerMass => directTrackingForcePerMass;
             public float TargetSmoothTime => targetSmoothTime;
             public float MaximumTargetSpeed => maximumTargetSpeed;
             public float HeadStretchLimit => headStretchLimit;
@@ -57,6 +66,8 @@ namespace KickTheBuddy.Physics
                 frequency = Mathf.Clamp(frequency, .5f, 12f);
                 dampingRatio = Mathf.Clamp01(dampingRatio);
                 maximumForce = Mathf.Max(0f, maximumForce);
+                directTrackingFrequency = Mathf.Clamp(directTrackingFrequency, 1f, 40f);
+                directTrackingForcePerMass = Mathf.Max(0f, directTrackingForcePerMass);
                 targetSmoothTime = Mathf.Clamp(targetSmoothTime, .01f, .25f);
                 maximumTargetSpeed = Mathf.Max(1f, maximumTargetSpeed);
                 headStretchLimit = Mathf.Max(.05f, headStretchLimit);

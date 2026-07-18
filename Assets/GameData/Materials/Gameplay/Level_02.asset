@@ -19,6 +19,8 @@ MonoBehaviour:
     only annoys it.
   completionRule: 1
   targetDamage: 750
+  targetDurabilityMultiplier: 2
+  minimumHitsToDepletePart: 8
   timeLimit: 500
   completionCoins: 500
   oneStarScore: 180

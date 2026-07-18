@@ -130,6 +130,10 @@ namespace KickTheBuddy.Gameplay
                     content.Root.SetActive(i == selected);
             }
 
+            selectedContent.Ragdoll.ConfigureLevelDurability(
+                definition.TargetDurabilityMultiplier,
+                definition.MinimumHitsToDepletePart);
+
             activeLevelIndex = selected;
             activeContent = selectedContent;
             SharedRoomConfigured?.Invoke(definition);

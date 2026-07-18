@@ -20,6 +20,11 @@ namespace KickTheBuddy.Gameplay
         [Tooltip("Target Damage completes immediately; Character Destroyed waits for the ragdoll death event.")]
         [SerializeField] private LevelCompletionRule completionRule = LevelCompletionRule.TargetDamage;
         [Min(1f)] [SerializeField] private float targetDamage = 250f;
+        [Header("Target Durability Progression")]
+        [Tooltip("Scales every ragdoll part and structural joint for this level.")]
+        [Min(.1f)] [SerializeField] private float targetDurabilityMultiplier = 1f;
+        [Tooltip("Caps damage from one legitimate hit so this many hits are required to deplete a repeatedly-hit part.")]
+        [Min(1)] [SerializeField] private int minimumHitsToDepletePart = 6;
         [Tooltip("Maximum level play time. All levels are clamped to at least 45 seconds.")]
         [Min(MinimumPlayTimeSeconds)] [SerializeField] private float timeLimit = MinimumPlayTimeSeconds;
         [Min(0)] [SerializeField] private int completionCoins = 100;
@@ -36,6 +41,8 @@ namespace KickTheBuddy.Gameplay
         public string LevelId => levelId; public string DisplayName => displayName; public string ScenePath => scenePath;
         public string ObjectiveText => objectiveText; public LevelCompletionRule CompletionRule => completionRule;
         public float TargetDamage => targetDamage; public float TimeLimit => Mathf.Max(MinimumPlayTimeSeconds, timeLimit);
+        public float TargetDurabilityMultiplier => Mathf.Max(.1f, targetDurabilityMultiplier);
+        public int MinimumHitsToDepletePart => Mathf.Max(1, minimumHitsToDepletePart);
         public int CompletionCoins => completionCoins;
         public float WallBaseDamage => wallBaseDamage;
         public float WallDamagePerSpeed => wallDamagePerSpeed;
@@ -46,6 +53,8 @@ namespace KickTheBuddy.Gameplay
         private void OnValidate()
         {
             timeLimit = Mathf.Max(MinimumPlayTimeSeconds, timeLimit);
+            targetDurabilityMultiplier = Mathf.Max(.1f, targetDurabilityMultiplier);
+            minimumHitsToDepletePart = Mathf.Max(1, minimumHitsToDepletePart);
             wallBaseDamage = Mathf.Max(0f, wallBaseDamage);
             wallDamagePerSpeed = Mathf.Max(0f, wallDamagePerSpeed);
             wallMinimumImpactSpeed = Mathf.Max(0f, wallMinimumImpactSpeed);

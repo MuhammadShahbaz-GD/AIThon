@@ -17,6 +17,7 @@ namespace KickTheBuddy.Physics
         [Header("Damage Tuning")]
         [Tooltip("Character-wide damage scale applied after an attack calculates its speed-based raw damage.")]
         [Range(.05f, 1f)] [SerializeField] private float incomingDamageMultiplier = .65f;
+        private int minimumHitsToDepletePart = 1;
 
         [Header("Safety")]
         [Min(0f)] [SerializeField] private float repeatHitCooldown = .08f;
@@ -60,12 +61,23 @@ namespace KickTheBuddy.Physics
             RecalculateAggregateHealth(0f, 0f, transform.position, false);
         }
 
+        internal void ConfigureLevelDurability(float durabilityMultiplier, int requiredHits)
+        {
+            minimumHitsToDepletePart = Mathf.Max(1, requiredHits);
+            for (int i = 0; i < parts.Length; i++)
+            {
+                RagdollPartHealth health = parts[i]?.Health;
+                if (health != null) health.ApplyDurabilityMultiplier(durabilityMultiplier);
+            }
+            RecalculateAggregateHealth(0f, 0f, transform.position, false);
+        }
+
         void IRagdollCollisionReceiver.ReportCollision(Rigidbody2D hitBody, Collision2D collision)
         {
             if (controller == null || hitBody == null || collision == null) return;
             RagdollAttackManager2D attack = collision.collider.GetComponentInParent<RagdollAttackManager2D>();
-            if (attack == null || !attack.CanDamage(controller.gameObject)) return;
             float speed = collision.relativeVelocity.magnitude;
+            if (attack == null || !attack.CanDamageImpact(controller.gameObject, hitBody, speed)) return;
             Vector2 point = collision.contactCount > 0 ? collision.GetContact(0).point : hitBody.worldCenterOfMass;
             ApplyAttack(hitBody, attack, speed, collision.relativeVelocity, point);
         }
@@ -75,7 +87,8 @@ namespace KickTheBuddy.Physics
         {
             if (controller == null || hitBody == null || attack == null) return false;
             if (controller.CurrentHealth <= 0f || controller.CurrentState == RagdollState.Frozen) return false;
-            if (!attack.CanDamage(controller.gameObject) || IsRepeatedHit(hitBody, attack)) return false;
+            if (!attack.CanDamageImpact(controller.gameObject, hitBody, relativeSpeed) ||
+                IsRepeatedHit(hitBody, attack)) return false;
             float rawDamage = attack.CalculateDamage(relativeSpeed);
             if (rawDamage <= 0f) return false;
             RememberHit(hitBody, attack);
@@ -121,7 +134,9 @@ namespace KickTheBuddy.Physics
             RagdollPartHealth health = configuredPart.Health;
             // Attacks remain responsible for speed/material tuning. This single character-wide scale
             // extends play time without duplicating balance multipliers across walls, tools and bullets.
-            float appliedDamage = health.TakeDamage(rawDamage * incomingDamageMultiplier, force, point);
+            float scaledDamage = rawDamage * incomingDamageMultiplier;
+            float maximumDamagePerHit = health.GetMaximumDamagePerHit(minimumHitsToDepletePart);
+            float appliedDamage = health.TakeDamage(Mathf.Min(scaledDamage, maximumDamagePerHit), force, point);
             if (appliedDamage <= 0f) return false;
 
             ApplyHitImpulse(hitBody, impactSpeed, force, point);

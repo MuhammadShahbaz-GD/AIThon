@@ -5,7 +5,7 @@ namespace KickTheBuddy.Physics
 {
     /// <summary>
     /// Owns one body's local durability and detachable joints. Collision damage is supplied by the
-    /// controller; sustained pulling is measured directly from HingeJoint2D reaction forces.
+    /// controller. Optional hazard rigs may explicitly enable sustained joint-stress damage.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class RagdollBreakableLimb : MonoBehaviour
@@ -17,6 +17,8 @@ namespace KickTheBuddy.Physics
         private float baseHealth;
         private float stressThreshold;
         private float stressDamageRate;
+        [Tooltip("Optional hazard-only behavior. Keep disabled for normal ragdolls so resting, dragging, and attached objects cannot deal passive damage.")]
+        [SerializeField] private bool damageFromJointStress;
         private float currentHealth;
         private bool broken;
         private float nextStressSampleTime;
@@ -45,7 +47,7 @@ namespace KickTheBuddy.Physics
 
         private void FixedUpdate()
         {
-            if (broken || owner == null) return;
+            if (!damageFromJointStress || broken || owner == null || owner.IsUserDragging) return;
             if (Time.time < nextStressSampleTime) return;
             nextStressSampleTime = Time.time + StressSampleInterval;
             float strongestForce = 0f;

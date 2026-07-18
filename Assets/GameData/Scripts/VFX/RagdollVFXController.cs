@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using KickTheBuddy.Physics;
 using KickTheBuddy.Physics.VFX;
 using UnityEngine;
@@ -62,6 +63,10 @@ namespace KickTheBuddy.VFX
         [Range(1, 12)] [SerializeField] private int maximumImpactGlassParticles = 7;
         [Range(0f, 1f)] [SerializeField] private float impactGlassMinimumStrength = .12f;
 
+        [Header("Limb Break Explosion")]
+        [Tooltip("Prewarmed slots using the same death and candy-burst prefabs as the main ragdoll explosion.")]
+        [Range(1, 6)] [SerializeField] private int limbExplosionPoolSize = 6;
+
         [Header("Impact Glass Visibility")]
         [Tooltip("Smallest possible glass crack emitted at the impact point.")]
         [Min(.01f)] [SerializeField] private float minimumImpactGlassSize = .08f;
@@ -77,8 +82,12 @@ namespace KickTheBuddy.VFX
         private ParticleSystem candyBurstParticle;
         private ParticleSystem collisionFumeParticle;
         private ParticleSystem impactGlassParticle;
+        private ParticleSystem[] limbDeathParticles = Array.Empty<ParticleSystem>();
+        private ParticleSystem[] limbCandyBurstParticles = Array.Empty<ParticleSystem>();
         private Color profileColor = Color.white;
         private bool deathPlayed;
+        private int nextLimbExplosionSlot;
+        private readonly HashSet<int> explodedLimbBodyIds = new HashSet<int>();
         private Coroutine debrisCleanup;
         private bool[] authoredRendererEnabled = Array.Empty<bool>();
         private Vector3[] candyAuthoredScales = Array.Empty<Vector3>();
@@ -88,6 +97,7 @@ namespace KickTheBuddy.VFX
         public event Action<int, Vector2> ComboEffectPlayed;
         public event Action<Vector2> KnockoutEffectPlayed;
         public event Action<Vector2> DeathEffectPlayed;
+        public event Action<Rigidbody2D, Vector2> LimbExplosionEffectPlayed;
 
         public float MinimumImpactGlassSize => minimumImpactGlassSize;
         public float LightImpactGlassMaximumSize => lightImpactGlassMaximumSize;

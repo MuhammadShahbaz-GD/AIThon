@@ -13,6 +13,8 @@ namespace KickTheBuddy.Physics
         private RagdollController owner;
         private RagdollRigController2D rig;
         private PhysicsMaterial2D runtimeJellyMaterial;
+        private float profileDurabilityMultiplier = 1f;
+        private float levelDurabilityMultiplier = 1f;
 
         public RagdollProfile ActiveProfile => activeProfile;
         public RagdollCategory Category => category;
@@ -52,6 +54,8 @@ namespace KickTheBuddy.Physics
 
             if (profile == null)
             {
+                profileDurabilityMultiplier = 1f;
+                rig.SetDurabilityMultiplier(levelDurabilityMultiplier);
                 owner?.NotifyProfileApplied(null);
                 return;
             }
@@ -64,9 +68,12 @@ namespace KickTheBuddy.Physics
             switch (profile.ProfileType)
             {
                 case RagdollProfileType.SolidRobot:
-                    mass = Mathf.Max(3f, mass);
-                    linearDrag = Mathf.Max(2f, linearDrag);
-                    angularDrag = Mathf.Max(3f, angularDrag);
+                    // A heavy body needs stronger gravity and low linear resistance;
+                    // mass alone does not increase gravitational acceleration in Physics2D.
+                    mass = Mathf.Max(4f, mass);
+                    gravity = Mathf.Max(2.2f, gravity);
+                    linearDrag = Mathf.Min(.65f, linearDrag);
+                    angularDrag = Mathf.Min(1.5f, angularDrag);
                     break;
                 case RagdollProfileType.Jelly:
                     mass = Mathf.Min(.7f, mass);
@@ -128,8 +135,15 @@ namespace KickTheBuddy.Physics
                 }
             }
 
-            rig.SetDurabilityMultiplier(ResolveDurability(profile.ProfileType));
+            profileDurabilityMultiplier = ResolveDurability(profile.ProfileType);
+            rig.SetDurabilityMultiplier(profileDurabilityMultiplier * levelDurabilityMultiplier);
             owner?.NotifyProfileApplied(profile);
+        }
+
+        internal void SetLevelDurabilityMultiplier(float multiplier)
+        {
+            levelDurabilityMultiplier = Mathf.Max(.1f, multiplier);
+            rig.SetDurabilityMultiplier(profileDurabilityMultiplier * levelDurabilityMultiplier);
         }
 
         private PhysicsMaterial2D ResolveMaterial(RagdollProfile profile)

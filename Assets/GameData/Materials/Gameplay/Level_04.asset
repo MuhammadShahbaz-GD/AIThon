@@ -18,7 +18,9 @@ MonoBehaviour:
   objectiveText: Use the bomb pipe, soda pipe, candy cannon and tools to destroy
     the buddy.
   completionRule: 1
-  targetDamage: 4500
+  targetDamage: 1500
+  targetDurabilityMultiplier: 5
+  minimumHitsToDepletePart: 14
   timeLimit: 45
   completionCoins: 500
   oneStarScore: 450

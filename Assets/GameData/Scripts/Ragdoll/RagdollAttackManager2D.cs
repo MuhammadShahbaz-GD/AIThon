@@ -35,6 +35,8 @@ namespace KickTheBuddy.Physics
         [Min(0f)] [SerializeField] private float damagePerSpeed = 2.5f;
         [Min(0f)] [SerializeField] private float minimumImpactSpeed = 3.5f;
         [Min(0f)] [SerializeField] private float maximumDamage = 35f;
+        [Tooltip("Absolute motion floor for a legitimate strike. Prevents resting, solver jitter, and attached contacts from dealing fixed damage.")]
+        [Min(.1f)] [SerializeField] private float minimumAttackMotionSpeed = 1f;
         [SerializeField] private LayerMask damageableLayers = ~0;
         [SerializeField] private bool enabledForDamage = true;
         [SerializeField] private bool disableAfterSuccessfulHit;
@@ -42,6 +44,7 @@ namespace KickTheBuddy.Physics
         public event Action<RagdollAttackManager2D, Rigidbody2D, float, float, Vector2> DamageDealt;
 
         private Rigidbody2D attackBody;
+        private Joint2D[] attackJoints = Array.Empty<Joint2D>();
 
         public RagdollAttackType AttackType => attackType;
         public bool DamageEnabled => enabledForDamage;
@@ -49,6 +52,7 @@ namespace KickTheBuddy.Physics
         private void Awake()
         {
             attackBody = GetComponentInParent<Rigidbody2D>();
+            if (attackBody != null) attackJoints = attackBody.GetComponents<Joint2D>();
         }
 
         private void OnTriggerEnter2D(Collider2D other)
@@ -61,6 +65,7 @@ namespace KickTheBuddy.Physics
 
             Vector2 attackVelocity = attackBody != null ? attackBody.velocity : Vector2.zero;
             Vector2 relativeVelocity = attackVelocity - hitBody.velocity;
+            if (!CanDamageImpact(damageManager.gameObject, hitBody, relativeVelocity.magnitude)) return;
             damageManager.ApplyAttack(
                 hitBody,
                 this,
@@ -75,6 +80,24 @@ namespace KickTheBuddy.Physics
                    enabledForDamage &&
                    target != null &&
                    (damageableLayers.value & (1 << target.layer)) != 0;
+        }
+
+        /// <summary>Validates that a contact represents a moving attack rather than resting or attached contact.</summary>
+        public bool CanDamageImpact(GameObject target, Rigidbody2D hitBody, float relativeSpeed)
+        {
+            if (!CanDamage(target) || relativeSpeed < Mathf.Max(.1f, minimumAttackMotionSpeed)) return false;
+            if (hitBody == null || attackJoints == null) return true;
+
+            RagdollController targetRagdoll = hitBody.GetComponentInParent<RagdollController>();
+            if (targetRagdoll == null) return true;
+            for (int i = 0; i < attackJoints.Length; i++)
+            {
+                Joint2D joint = attackJoints[i];
+                if (joint == null || !joint.enabled || joint.connectedBody == null) continue;
+                if (joint.connectedBody.GetComponentInParent<RagdollController>() == targetRagdoll)
+                    return false;
+            }
+            return true;
         }
 
         /// <summary>Speed curve shared by walls, bullets, hammers, needles, and custom hazards.</summary>
@@ -144,6 +167,7 @@ namespace KickTheBuddy.Physics
             damagePerSpeed = Mathf.Max(0f, damagePerSpeed);
             minimumImpactSpeed = Mathf.Max(0f, minimumImpactSpeed);
             maximumDamage = Mathf.Max(baseDamage, maximumDamage);
+            minimumAttackMotionSpeed = Mathf.Max(.1f, minimumAttackMotionSpeed);
         }
     }
 }

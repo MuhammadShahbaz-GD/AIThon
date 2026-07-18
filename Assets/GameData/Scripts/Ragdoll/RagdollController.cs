@@ -147,6 +147,14 @@ namespace KickTheBuddy.Physics
         public void Knockout(float duration) => state?.Knockout(duration);
         public void Revive() => state?.Revive();
 
+        /// <summary>Applies the selected level's idempotent health, joint, and per-hit progression.</summary>
+        public void ConfigureLevelDurability(float durabilityMultiplier, int minimumHitsToDepletePart)
+        {
+            durabilityMultiplier = Mathf.Max(.1f, durabilityMultiplier);
+            profiles?.SetLevelDurabilityMultiplier(durabilityMultiplier);
+            damageManager?.ConfigureLevelDurability(durabilityMultiplier, minimumHitsToDepletePart);
+        }
+
         internal void SynchronizeAggregateHealth(float combinedHealth, float combinedMaximumHealth,
             float appliedDamage, float impactSpeed, Vector2 point)
         {
