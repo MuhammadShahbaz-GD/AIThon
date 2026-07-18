@@ -389,9 +389,9 @@ namespace KickTheBuddy.Editor
                     S("SFX/Flow/Level_Complete.wav")),
                 Cue(GameSound.LevelFailed, AudioBus.UI, .8f, .99f, 1.01f, 1f, 1, 90,
                     S("SFX/Flow/Level_Failed.wav")),
-                Cue(GameSound.Coin, AudioBus.UI, .68f, .98f, 1.06f, .04f, 4, 55,
+                Cue(GameSound.Coin, AudioBus.UI, .1f, .98f, 1.06f, .04f, 4, 55,
                     S("SFX/Flow/Coin_01.wav"), S("SFX/Flow/Coin_02.wav")),
-                Cue(GameSound.ScoreReward, AudioBus.UI, .5f, 1f, 1.08f, .05f, 3, 48,
+                Cue(GameSound.ScoreReward, AudioBus.UI, .1f, 1f, 1.08f, .05f, 3, 48,
                     S("SFX/Flow/Coin_01.wav"), S("SFX/Flow/Coin_02.wav")),
                 Cue(GameSound.DeathBlast, AudioBus.Sfx, 1f, .99f, 1.01f, 2f, 1, 100,
                     S("SFX/Death/Plastic_Doll_Death_Burst.wav"))

@@ -22,6 +22,7 @@ namespace KickTheBuddy.Audio
         [SerializeField] private SandboxTool2D[] tools = Array.Empty<SandboxTool2D>();
         [SerializeField] private CandyCannonController2D candyCannons;
         [SerializeField] private CandyGunController2D[] candyGuns = Array.Empty<CandyGunController2D>();
+        [SerializeField] private LevelFourPipeController2D[] levelFourPipes = Array.Empty<LevelFourPipeController2D>();
         [SerializeField] private CracksModifier[] crackModifiers = Array.Empty<CracksModifier>();
 
         [Header("Impact Mix")]
@@ -31,12 +32,18 @@ namespace KickTheBuddy.Audio
         [Min(.01f)] [SerializeField] private float fullIntensitySpeed = 18f;
         [Min(.1f)] [SerializeField] private float lollipopAudibleSpeed = 2f;
 
+        [Header("Character Expressions")]
+        [Tooltip("Minimum spacing between spoken reactions. Every legitimate damage hit requests a reaction; this prevents overlapping voices during rapid fire.")]
+        [Min(.05f)] [SerializeField] private float expressionRepeatDelay = .32f;
+
         [Header("Drag Foley")]
         [Min(.05f)] [SerializeField] private float stretchDistance = .55f;
         [Min(.05f)] [SerializeField] private float stretchRepeatDelay = .28f;
 
         private DamageReceiver2D draggedReceiver;
         private float nextStretchTime;
+        private float nextExpressionTime;
+        private int expressionVariation;
         private bool subscribed;
 
         private void OnEnable() => Subscribe();
@@ -64,6 +71,20 @@ namespace KickTheBuddy.Audio
             candyCannons = cannons;
             crackModifiers = cracks ?? Array.Empty<CracksModifier>();
             if (wasSubscribed && isActiveAndEnabled) Subscribe();
+        }
+
+        /// <summary>
+        /// Replaces scene-serialized service references after a gameplay scene reload. The
+        /// persistent bootstrapper owns these services; the duplicate scene bootstrapper is
+        /// destroyed, so keeping its references would silence every level after the first.
+        /// </summary>
+        public void RebindServices(SoundManager sounds, GameplayManager gameplay)
+        {
+            if (soundManager == sounds && gameplayManager == gameplay && subscribed) return;
+            if (subscribed) Unsubscribe();
+            soundManager = sounds;
+            gameplayManager = gameplay;
+            if (isActiveAndEnabled) Subscribe();
         }
 
         private void Subscribe()
@@ -103,6 +124,13 @@ namespace KickTheBuddy.Audio
                 if (gun == null) continue;
                 gun.Fired += HandleCandyGunFired;
                 gun.ProjectileHit += HandleCandyGunHit;
+            }
+            for (int i = 0; i < levelFourPipes.Length; i++)
+            {
+                LevelFourPipeController2D pipe = levelFourPipes[i];
+                if (pipe == null) continue;
+                pipe.ProjectileFired += HandlePipeFired;
+                pipe.ProjectileImpacted += HandlePipeImpact;
             }
             for (int i = 0; i < tools.Length; i++)
             {
@@ -157,6 +185,13 @@ namespace KickTheBuddy.Audio
                 gun.Fired -= HandleCandyGunFired;
                 gun.ProjectileHit -= HandleCandyGunHit;
             }
+            for (int i = 0; i < levelFourPipes.Length; i++)
+            {
+                LevelFourPipeController2D pipe = levelFourPipes[i];
+                if (pipe == null) continue;
+                pipe.ProjectileFired -= HandlePipeFired;
+                pipe.ProjectileImpacted -= HandlePipeImpact;
+            }
             for (int i = 0; i < tools.Length; i++)
             {
                 SandboxTool2D tool = tools[i];
@@ -185,6 +220,7 @@ namespace KickTheBuddy.Audio
             Play(cue, point, Mathf.Clamp01(Mathf.Max(.2f, Mathf.Max(damageStrength, speedStrength))));
             if (damage >= mediumDamageThreshold)
                 Play(GameSound.CandyRattle, point, Mathf.Clamp01(.28f + damageStrength * .55f));
+            PlayDamageExpression(point, damage);
         }
 
         private void HandleCombo(int count, float damage, Vector2 point)
@@ -236,17 +272,29 @@ namespace KickTheBuddy.Audio
             Vector2 point = ragdoll != null ? ragdoll.transform.position : transform.position;
             if (expression == RagdollFaceExpression.Shock)
             {
-                int variation = UnityEngine.Random.Range(0, 3);
-                Play(variation == 0 ? GameSound.CharacterOuch :
-                     variation == 1 ? GameSound.CharacterOoo : GameSound.CharacterGasp, point, .68f);
+                PlayExpression(point, false, .68f);
             }
             else if (expression == RagdollFaceExpression.Cry ||
                      expression == RagdollFaceExpression.Depressed)
             {
-                int variation = UnityEngine.Random.Range(0, 3);
-                Play(variation == 0 ? GameSound.CharacterDontHitMe :
-                     variation == 1 ? GameSound.CharacterMan : GameSound.CharacterCry, point, .72f);
+                PlayExpression(point, true, .72f);
             }
+        }
+
+        private void PlayDamageExpression(Vector2 point, float damage) =>
+            PlayExpression(point, damage >= heavyDamageThreshold, Mathf.Clamp01(.58f + damage / fullIntensityDamage * .3f));
+
+        private void PlayExpression(Vector2 point, bool severe, float intensity)
+        {
+            if (Time.unscaledTime < nextExpressionTime) return;
+            nextExpressionTime = Time.unscaledTime + expressionRepeatDelay;
+            int variation = expressionVariation++ % 3;
+            GameSound cue = severe
+                ? variation == 0 ? GameSound.CharacterDontHitMe :
+                  variation == 1 ? GameSound.CharacterMan : GameSound.CharacterCry
+                : variation == 0 ? GameSound.CharacterOuch :
+                  variation == 1 ? GameSound.CharacterOoo : GameSound.CharacterGasp;
+            Play(cue, point, intensity);
         }
 
         private void HandleAnnoyed(Rigidbody2D body, float strength) =>
@@ -308,6 +356,12 @@ namespace KickTheBuddy.Audio
                 Play(GameSound.CandyGunImpact, point, Mathf.Clamp01(.5f + speed / fullIntensitySpeed));
         }
 
+        private void HandlePipeFired(bool bomb, Vector2 origin) =>
+            Play(bomb ? GameSound.PipeBombLaunch : GameSound.PipeSodaLaunch, origin, bomb ? 1f : .82f);
+
+        private void HandlePipeImpact(bool bomb, Vector2 point) =>
+            Play(bomb ? GameSound.PipeBombBlast : GameSound.PipeSodaImpact, point, bomb ? 1f : .86f);
+
         private void HandleCannonFired(
             CandyCannonSide side, Vector2 origin, Vector2 velocity, bool charged) =>
             Play(charged ? GameSound.CannonChargedFire : GameSound.CannonFire, origin,
@@ -347,10 +401,12 @@ namespace KickTheBuddy.Audio
             fullIntensityDamage = Mathf.Max(.01f, fullIntensityDamage);
             fullIntensitySpeed = Mathf.Max(.01f, fullIntensitySpeed);
             lollipopAudibleSpeed = Mathf.Max(.1f, lollipopAudibleSpeed);
+            expressionRepeatDelay = Mathf.Max(.05f, expressionRepeatDelay);
             stretchDistance = Mathf.Max(.05f, stretchDistance);
             stretchRepeatDelay = Mathf.Max(.05f, stretchRepeatDelay);
             if (tools == null) tools = Array.Empty<SandboxTool2D>();
             if (candyGuns == null) candyGuns = Array.Empty<CandyGunController2D>();
+            if (levelFourPipes == null) levelFourPipes = Array.Empty<LevelFourPipeController2D>();
             if (crackModifiers == null) crackModifiers = Array.Empty<CracksModifier>();
         }
     }

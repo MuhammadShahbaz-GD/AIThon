@@ -58,7 +58,11 @@ namespace KickTheBuddy.Gameplay
         CharacterOuch,
         CharacterOoo,
         CharacterDontHitMe,
-        CharacterMan
+        CharacterMan,
+        PipeBombLaunch,
+        PipeBombBlast,
+        PipeSodaLaunch,
+        PipeSodaImpact
     }
 
     /// <summary>Core game audio facade. Persistent callers use this API while catalogs, pooling, buses, and fades remain internal.</summary>
@@ -77,6 +81,9 @@ namespace KickTheBuddy.Gameplay
         [Header("Pooling")]
         [Range(4, 24)] [SerializeField] private int voicePoolSize = 10;
         [SerializeField] private bool persistAcrossScenes;
+        [Header("Audibility")]
+        [Tooltip("Keeps gameplay SFX clearly audible while still respecting the player's SFX bus volume.")]
+        [Range(0f, 1f)] [SerializeField] private float minimumSfxIntensity = .68f;
 
         private AudioSource musicSource; private AudioSource[] voices; private int[] voicePriorities; private AudioCatalog.Cue[] cueLookup; private int cursor, playbackId;
         private readonly float[] busVolumes = { 1f, 1f, 1f, 1f, 1f };
@@ -110,11 +117,26 @@ namespace KickTheBuddy.Gameplay
         public void Play(GameSound sound, Vector2 position = default) { PlaySfx(sound, position); }
         public AudioPlaybackHandle PlaySfx(GameSound cue, Vector3 position = default, float intensity = 1f)
         {
-            EnsureInitialized(); float now = Time.unscaledTime; if (now < nextCueTimes[(int)cue]) return default;
+            EnsureInitialized();
+            bool critical = cue == GameSound.DeathBlast;
+            float now = Time.unscaledTime;
+            if (!critical && now < nextCueTimes[(int)cue]) return default;
             AudioCatalog.Cue entry = cueLookup != null ? cueLookup[(int)cue] : null; AudioClip clip; float volume, minPitch, maxPitch, spatial; AudioBus bus; float cooldown; int maxVoices, priority;
             if (entry != null) { clip = entry.NextClip(); volume = entry.Volume; minPitch = entry.MinimumPitch; maxPitch = entry.MaximumPitch; spatial = entry.SpatialBlend; bus = entry.Bus; cooldown = entry.Cooldown; maxVoices = entry.MaximumVoices; priority = entry.Priority; }
             else { LegacySoundEntry legacy = FindLegacy(cue); if (legacy == null || legacy.clips == null || legacy.clips.Length == 0) return default; clip = legacy.clips[UnityEngine.Random.Range(0, legacy.clips.Length)]; volume = legacy.volume; minPitch = legacy.minimumPitch; maxPitch = legacy.maximumPitch; spatial = 0f; bus = cue == GameSound.Button ? AudioBus.UI : AudioBus.Sfx; cooldown = legacy.cooldown; maxVoices = 3; priority = 50; }
-            if (clip == null || CountPlaying(clip) >= maxVoices) return default; AudioSource source = NextVoice(priority); if (source == null) return default; ConfigureVoice(source, bus, position, spatial); source.clip = clip; source.volume = volume * Mathf.Clamp01(intensity) * busVolumes[(int)bus]; source.pitch = UnityEngine.Random.Range(minPitch, maxPitch); source.loop = entry != null && entry.Loop; source.Play(); nextCueTimes[(int)cue] = now + cooldown;
+            if (clip == null || (!critical && CountPlaying(clip) >= maxVoices)) return default;
+            AudioSource source = NextVoice(critical ? 100 : priority, critical);
+            if (source == null) return default;
+            ConfigureVoice(source, bus, position, spatial);
+            source.clip = clip;
+            float audibleIntensity = bus == AudioBus.Sfx
+                ? Mathf.Max(minimumSfxIntensity, Mathf.Clamp01(intensity))
+                : Mathf.Clamp01(intensity);
+            source.volume = volume * audibleIntensity * busVolumes[(int)bus];
+            source.pitch = UnityEngine.Random.Range(minPitch, maxPitch);
+            source.loop = entry != null && entry.Loop;
+            source.Play();
+            nextCueTimes[(int)cue] = now + cooldown;
             AudioPlaybackHandle handle = new AudioPlaybackHandle(++playbackId, source); SoundPlayed?.Invoke(cue); PlaybackStarted?.Invoke(handle, cue); return handle;
         }
         public void SetBusVolume(AudioBus bus, float normalizedVolume) { float value = Mathf.Clamp01(normalizedVolume); busVolumes[(int)bus] = value; if (bus == AudioBus.Music && musicSource != null) musicSource.volume = value; BusVolumeChanged?.Invoke(bus, value); }
@@ -126,7 +148,7 @@ namespace KickTheBuddy.Gameplay
             if (next != null) { musicSource.volume = half > 0f ? 0f : busVolumes[(int)AudioBus.Music]; musicSource.Play(); if (half > 0f) yield return Fade(0f, busVolumes[(int)AudioBus.Music], half); MusicChanged?.Invoke(next); } musicFade = null;
         }
         private IEnumerator Fade(float from, float to, float duration) { float elapsed = 0f; while (elapsed < duration) { elapsed += Time.unscaledDeltaTime; musicSource.volume = Mathf.Lerp(from, to, Mathf.Clamp01(elapsed / duration)); yield return null; } musicSource.volume = to; }
-        private AudioSource NextVoice(int priority)
+        private AudioSource NextVoice(int priority, bool forcePreempt = false)
         {
             int lowestPriority = int.MaxValue;
             int lowestIndex = -1;
@@ -146,7 +168,7 @@ namespace KickTheBuddy.Gameplay
                     lowestIndex = index;
                 }
             }
-            if (lowestIndex < 0 || lowestPriority > priority) return null;
+            if (lowestIndex < 0 || (!forcePreempt && lowestPriority > priority)) return null;
             AudioSource fallback = voices[lowestIndex];
             fallback.Stop();
             voicePriorities[lowestIndex] = priority;
@@ -158,5 +180,6 @@ namespace KickTheBuddy.Gameplay
         private int CountPlaying(AudioClip clip) { int count = 0; for (int i = 0; i < voices.Length; i++) if (voices[i].isPlaying && voices[i].clip == clip) count++; return count; }
         private LegacySoundEntry FindLegacy(GameSound cue) { for (int i = 0; i < sounds.Length; i++) if (sounds[i] != null && sounds[i].sound == cue) return sounds[i]; return null; }
         private void OnDisable() { if (musicFade != null) StopCoroutine(musicFade); musicFade = null; }
+        private void OnValidate() { minimumSfxIntensity = Mathf.Clamp01(minimumSfxIntensity); }
     }
 }

@@ -116,6 +116,12 @@ namespace KickTheBuddy.Editor
             if (!damage.ApplyDirectDamage(head.Body, lethal, 24f, Vector2.up, head.Body.worldCenterOfMass))
                 throw new InvalidOperationException("Critical head damage could not be applied.");
 
+            AudioPlaybackHandle repeatedDeathOne = sounds.PlaySfx(GameSound.DeathBlast, point, 1f);
+            AudioPlaybackHandle repeatedDeathTwo = sounds.PlaySfx(GameSound.DeathBlast, point, 1f);
+            if (!repeatedDeathOne.IsValid || !repeatedDeathTwo.IsValid)
+                throw new InvalidOperationException(
+                    "Protected death audio was blocked by cooldown, duplicate limits, or pool pressure.");
+
             sounds.SoundPlayed -= OnSound;
             if (lightHits != 1)
                 throw new InvalidOperationException($"Expected one cooldown-bounded light hit, received {lightHits}.");
@@ -124,11 +130,11 @@ namespace KickTheBuddy.Editor
                     $"Expected one or two bounded escalation cues, received {combos}.");
             if (cannonFires != 1)
                 throw new InvalidOperationException($"Expected one cannon cue, received {cannonFires}.");
-            if (deaths != 1)
-                throw new InvalidOperationException($"Expected one protected death cue, received {deaths}.");
+            if (deaths != 3)
+                throw new InvalidOperationException($"Expected three unskippable death cues, received {deaths}.");
 
             Debug.Log("CANDY_PLASTIC_AUDIO_PLAYMODE_OK: hitCooldown=true, combo=true, cannonPool=true, " +
-                      "deathPriority=true, controllers=authored.");
+                      "deathPriority=true, deathCooldownBypass=true, controllers=authored.");
             SessionState.SetBool(SuccessKey, true);
             EditorApplication.isPlaying = false;
         }

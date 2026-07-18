@@ -54,6 +54,9 @@ namespace KickTheBuddy.Gameplay
 
         private bool inputEnabled;
 
+        public event Action<bool, Vector2> ProjectileFired;
+        public event Action<bool, Vector2> ProjectileImpacted;
+
         public void SetInputEnabled(bool value)
         {
             inputEnabled = value;
@@ -135,14 +138,17 @@ namespace KickTheBuddy.Gameplay
             if (direction.sqrMagnitude < .0001f) direction = Vector2.down;
             direction.Normalize();
             pipeVfx?.PlayMuzzle(bomb, origin, direction);
+            ProjectileFired?.Invoke(bomb, origin);
             if (bomb)
                 projectile.Launch(origin, direction * bombSpeed, projectileLifetime, true,
                     bombBaseDamage, bombDamagePerSpeed, bombMaximumDamage, bombBlastDamage,
-                    bombImpactImpulse, bombWholeBodyVelocity, pipeVfx, RecycleProjectile);
+                    bombImpactImpulse, bombWholeBodyVelocity, pipeVfx, RecycleProjectile,
+                    ReportProjectileImpact);
             else
                 projectile.Launch(origin, direction * sodaSpeed, projectileLifetime, false,
                     sodaBaseDamage, sodaDamagePerSpeed, sodaMaximumDamage, 0f,
-                    sodaImpactImpulse, sodaWholeBodyVelocity, pipeVfx, RecycleProjectile);
+                    sodaImpactImpulse, sodaWholeBodyVelocity, pipeVfx, RecycleProjectile,
+                    ReportProjectileImpact);
             stream.NextShotTime = Time.time + interval;
         }
 
@@ -175,6 +181,9 @@ namespace KickTheBuddy.Gameplay
         }
 
         private static void RecycleProjectile(LevelFourPipeProjectile2D projectile) => projectile?.Recycle();
+
+        private void ReportProjectileImpact(bool bomb, Vector2 point) =>
+            ProjectileImpacted?.Invoke(bomb, point);
 
         private void ResetStreams()
         {

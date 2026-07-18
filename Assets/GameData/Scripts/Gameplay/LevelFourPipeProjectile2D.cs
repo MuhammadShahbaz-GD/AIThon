@@ -17,6 +17,7 @@ namespace KickTheBuddy.Gameplay
         [SerializeField] private RagdollAttackManager2D attack;
 
         private Action<LevelFourPipeProjectile2D> recycle;
+        private Action<bool, Vector2> impactReported;
         private bool bomb;
         private float blastDamage;
         private float hitImpulse;
@@ -50,9 +51,10 @@ namespace KickTheBuddy.Gameplay
         public void Launch(Vector2 origin, Vector2 velocity, float lifetime, bool isBomb,
             float directDamage, float speedDamage, float damageCap, float explosionDamage,
             float limbImpulse, float bodyVelocity, LevelFourPipeVFXController2D vfx,
-            Action<LevelFourPipeProjectile2D> recycleAction)
+            Action<LevelFourPipeProjectile2D> recycleAction, Action<bool, Vector2> impactAction)
         {
             recycle = recycleAction;
+            impactReported = impactAction;
             bomb = isBomb;
             blastDamage = Mathf.Max(0f, explosionDamage);
             hitImpulse = Mathf.Max(0f, limbImpulse);
@@ -116,6 +118,7 @@ namespace KickTheBuddy.Gameplay
             Vector2 point = collision.contactCount > 0 ? collision.GetContact(0).point : hitBody.worldCenterOfMass;
             Vector2 direction = body.velocity.sqrMagnitude > .0001f ? body.velocity.normalized : Vector2.up;
             impactVfx?.PlayImpact(bomb, point, direction);
+            impactReported?.Invoke(bomb, point);
             RagdollPartHealth part = hitBody.GetComponent<RagdollPartHealth>();
             if (part == null)
             {

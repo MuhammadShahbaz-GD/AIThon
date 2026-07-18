@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using KickTheBuddy.Audio;
 using KickTheBuddy.Physics;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -158,6 +159,10 @@ namespace KickTheBuddy.Gameplay
             sandboxToolInput = sceneLevels.ActiveSandboxToolInput;
             candyCannons = sceneLevels.ActiveCandyCannons;
             levelFourPipes = sceneLevels.ActiveLevelFourPipes;
+            GameplayAudioController gameplayAudio = ragdoll != null
+                ? ragdoll.GetComponent<GameplayAudioController>()
+                : null;
+            gameplayAudio?.RebindServices(sounds, this);
             if (candyCannons != null) candyCannons.ConfigureAudio(sounds);
             if (ragdoll == null || ragdollInput == null)
             {
