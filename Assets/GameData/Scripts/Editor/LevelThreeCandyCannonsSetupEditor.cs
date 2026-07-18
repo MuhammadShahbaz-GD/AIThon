@@ -671,6 +671,7 @@ namespace KickTheBuddy.Editor
             data.FindProperty("holdDelay").floatValue = .28f;
             data.FindProperty("holdFireInterval").floatValue = .11f;
             data.FindProperty("maximumQueuedShots").intValue = ProjectilePoolSize;
+            data.FindProperty("randomLimbAimLoop").boolValue = true;
             data.FindProperty("projectileImpactImpulse").floatValue = 3.4f;
             data.FindProperty("chargedImpactMultiplier").floatValue = 1.35f;
             data.FindProperty("projectileThrowVelocity").floatValue = 6.5f;

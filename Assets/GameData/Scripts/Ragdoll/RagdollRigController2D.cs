@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using KickTheBuddy.Physics.VFX;
 using UnityEngine;
 
 namespace KickTheBuddy.Physics
@@ -76,6 +77,8 @@ namespace KickTheBuddy.Physics
         private readonly List<BodyRuntime> bodies = new List<BodyRuntime>(6);
         private readonly List<ColliderRuntime> colliders = new List<ColliderRuntime>(8);
         private readonly List<DismemberableLimb> breakableLimbs = new List<DismemberableLimb>(6);
+        private readonly List<RagdollCandyFill2D> candyFills = new List<RagdollCandyFill2D>(6);
+        private readonly List<ElasticityController2D> elasticSpringVisuals = new List<ElasticityController2D>(8);
         private RagdollController owner;
         private RagdollDamageManager damageManager;
         private Rigidbody2D torso;
@@ -103,6 +106,8 @@ namespace KickTheBuddy.Physics
             bodies.Clear();
             colliders.Clear();
             breakableLimbs.Clear();
+            candyFills.Clear();
+            elasticSpringVisuals.Clear();
             torso = null;
             head = null;
 
@@ -127,6 +132,8 @@ namespace KickTheBuddy.Physics
                 }
 
                 parts.Add(part);
+                RagdollCandyFill2D candyFill = part.Body.GetComponent<RagdollCandyFill2D>();
+                if (candyFill != null) candyFills.Add(candyFill);
                 if (part.PartType == RagdollPartType.Torso) torso = part.Body;
                 else if (part.PartType == RagdollPartType.Head) head = part.Body;
 
@@ -152,6 +159,13 @@ namespace KickTheBuddy.Physics
                 InitializePart(part);
                 CacheJoints(part);
             }
+
+            ElasticityController2D[] authoredSpringVisuals =
+                owner != null ? owner.GetComponentsInChildren<ElasticityController2D>(true) : null;
+            if (authoredSpringVisuals != null)
+                for (int i = 0; i < authoredSpringVisuals.Length; i++)
+                    if (authoredSpringVisuals[i] != null)
+                        elasticSpringVisuals.Add(authoredSpringVisuals[i]);
 
             if (torso == null) Debug.LogError("Explicit ragdoll parts do not contain a Belly/Torso reference.", this);
             if (head == null) Debug.LogError("Explicit ragdoll parts do not contain a Head reference.", this);
@@ -321,6 +335,10 @@ namespace KickTheBuddy.Physics
 
         internal void EnterDeathState()
         {
+            for (int i = 0; i < candyFills.Count; i++)
+                if (candyFills[i] != null) candyFills[i].SetCandyVisible(false);
+            for (int i = 0; i < elasticSpringVisuals.Count; i++)
+                if (elasticSpringVisuals[i] != null) elasticSpringVisuals[i].SetPresentationActive(false);
             for (int i = 0; i < joints.Count; i++)
                 if (joints[i].Joint != null)
                 {
@@ -345,6 +363,10 @@ namespace KickTheBuddy.Physics
 
         internal void RestoreDeathVisuals()
         {
+            for (int i = 0; i < candyFills.Count; i++)
+                if (candyFills[i] != null) candyFills[i].SetCandyVisible(true);
+            for (int i = 0; i < elasticSpringVisuals.Count; i++)
+                if (elasticSpringVisuals[i] != null) elasticSpringVisuals[i].SetPresentationActive(true);
             for (int i = 0; i < parts.Count; i++)
                 if (parts[i].Visual != null) parts[i].Visual.enabled = true;
         }

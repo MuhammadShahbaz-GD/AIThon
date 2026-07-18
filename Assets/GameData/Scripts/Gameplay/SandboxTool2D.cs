@@ -48,8 +48,28 @@ namespace KickTheBuddy.Gameplay
         [SerializeField] private bool autoThrowOnTap;
         [SerializeField] private Transform throwTarget;
         [Min(0f)] [SerializeField] private float tapThrowImpulse = 9f;
+        [Tooltip("Guarantees a destructive release throw even when older scene values use a weaker tap impulse.")]
+        [Min(0f)] [SerializeField] private float minimumReleaseThrowImpulse = 22f;
         [Range(-1f, 1f)] [SerializeField] private float tapThrowUpwardBias = .12f;
         [Min(0f)] [SerializeField] private float tapThrowSpin = 360f;
+
+        [Header("Ballistic Ragdoll Impact")]
+        [Tooltip("Direct impulse applied at the first ragdoll limb hit after a release throw.")]
+        [Min(0f)] [SerializeField] private float ballisticImpactImpulse = 45f;
+        [Tooltip("Velocity change transferred to every connected ragdoll body so the complete character is launched.")]
+        [Min(0f)] [SerializeField] private float ballisticWholeBodyVelocityChange = 8f;
+        [Tooltip("Maximum time after release that the object retains its destructive ballistic hit.")]
+        [Min(.1f)] [SerializeField] private float ballisticAttackDuration = 3f;
+        [Tooltip("Guaranteed release speed for every tool, independent of Rigidbody mass.")]
+        [Min(1f)] [SerializeField] private float minimumBallisticSpeed = 38f;
+        [Tooltip("Safety cap for release speed.")]
+        [Min(1f)] [SerializeField] private float maximumBallisticSpeed = 55f;
+        [Tooltip("Guaranteed damage added to a valid ballistic hit.")]
+        [Min(0f)] [SerializeField] private float ballisticBaseDamage = 20f;
+        [Tooltip("Additional ballistic damage per unit of collision speed.")]
+        [Min(0f)] [SerializeField] private float ballisticDamagePerSpeed = 4f;
+        [Tooltip("Maximum raw damage allowed from one released-object hit.")]
+        [Min(0f)] [SerializeField] private float ballisticMaximumDamage = 100f;
 
         [Header("Jelly Stick And Slide")]
         [Min(0f)] [SerializeField] private float minimumStickSpeed = 2.5f;
@@ -72,6 +92,10 @@ namespace KickTheBuddy.Gameplay
         private float reattachCooldownRemaining;
         private float slideDragRemaining;
         private bool dragging;
+        private bool threwOnLastRelease;
+        private bool ballisticAttackActive;
+        private float ballisticAttackExpiresAt;
+        private Vector2 ballisticDirection;
 
         public SandboxToolKind Kind => kind;
         public Rigidbody2D Body => body;
@@ -80,6 +104,7 @@ namespace KickTheBuddy.Gameplay
         public bool IsStuck => stickyJoint != null && stickyJoint.enabled;
         public bool HasAuthoredGrip => dragGrip != null;
         public bool AutoThrowOnTap => autoThrowOnTap;
+        public bool ThrewOnLastRelease => threwOnLastRelease;
         public Transform ThrowTarget => throwTarget;
         public Vector2 CurrentDragTarget => pendingTarget;
         public Vector2 GripWorldPosition => dragGrip != null
@@ -166,6 +191,7 @@ namespace KickTheBuddy.Gameplay
             pendingTarget = smoothedTarget = worldPoint;
             targetVelocity = Vector2.zero;
             dragging = true;
+            threwOnLastRelease = false;
             Grabbed?.Invoke(this, worldPoint);
             return true;
         }
@@ -182,6 +208,7 @@ namespace KickTheBuddy.Gameplay
             if (!dragging) return;
             dragging = false;
             if (dragJoint != null) dragJoint.enabled = false;
+            threwOnLastRelease = TryAutoThrow();
             Released?.Invoke(this, pendingTarget);
         }
 
@@ -192,7 +219,7 @@ namespace KickTheBuddy.Gameplay
         public void NotifyTap(Vector2 worldPoint)
         {
             Tapped?.Invoke(this, worldPoint);
-            TryAutoThrow();
+            if (!threwOnLastRelease) TryAutoThrow();
         }
 
         public bool TryAutoThrow()
@@ -200,14 +227,71 @@ namespace KickTheBuddy.Gameplay
             if (!autoThrowOnTap || body == null || throwTarget == null || tapThrowImpulse <= 0f)
                 return false;
             ReleaseStick(false);
-            Vector2 direction = (Vector2)throwTarget.position - body.worldCenterOfMass;
+            Transform resolvedTarget = ResolveRagdollHead(throwTarget);
+            Vector2 direction = (Vector2)resolvedTarget.position - body.worldCenterOfMass;
             direction.y += tapThrowUpwardBias * Mathf.Max(1f, direction.magnitude);
             if (direction.sqrMagnitude < .0001f) return false;
-            body.velocity = Vector2.zero;
-            body.angularVelocity = Mathf.Sign(direction.x) * tapThrowSpin;
-            body.AddForce(direction.normalized * tapThrowImpulse, ForceMode2D.Impulse);
-            body.WakeUp();
+            float impulse = Mathf.Max(tapThrowImpulse, minimumReleaseThrowImpulse);
+            LaunchBallistically(direction.normalized, impulse, tapThrowSpin);
             return true;
+        }
+
+        public bool ThrowAt(
+            Transform target,
+            float impulse,
+            float upwardBias = .18f,
+            float spin = 720f)
+        {
+            if (target == null || body == null || impulse <= 0f) return false;
+            Transform resolvedTarget = ResolveRagdollHead(target);
+            Vector2 direction = (Vector2)resolvedTarget.position - body.worldCenterOfMass;
+            direction.y += Mathf.Clamp(upwardBias, -1f, 1f) * Mathf.Max(1f, direction.magnitude);
+            if (direction.sqrMagnitude < .0001f) return false;
+            ReleaseStick(false);
+            LaunchBallistically(direction.normalized, impulse, spin);
+            return true;
+        }
+
+        private static Transform ResolveRagdollHead(Transform requestedTarget)
+        {
+            if (requestedTarget == null) return null;
+            RagdollController ragdoll = requestedTarget.GetComponentInParent<RagdollController>();
+            if (ragdoll == null) return requestedTarget;
+
+            for (int i = 0; i < ragdoll.Parts.Count; i++)
+            {
+                RagdollController.RagdollPart part = ragdoll.Parts[i];
+                if (part != null && part.PartType == RagdollPartType.Head && part.Body != null)
+                    return part.Body.transform;
+            }
+            return requestedTarget;
+        }
+
+        private void LaunchBallistically(Vector2 direction, float impulse, float spin)
+        {
+            body.velocity = Vector2.zero;
+            // Tools translate ballistically without any authored spin animation. Contacts may
+            // still rotate them naturally through Physics2D after impact.
+            body.angularVelocity = 0f;
+            float massAdjustedSpeed = impulse / Mathf.Max(.01f, body.mass);
+            float launchSpeed = Mathf.Clamp(
+                Mathf.Max(minimumBallisticSpeed, massAdjustedSpeed),
+                minimumBallisticSpeed,
+                Mathf.Max(minimumBallisticSpeed, maximumBallisticSpeed));
+            body.velocity = direction * launchSpeed;
+            if (attack != null && attack.AttackType != RagdollAttackType.Jelly)
+            {
+                attack.Configure(
+                    attack.AttackType,
+                    ballisticBaseDamage,
+                    ballisticDamagePerSpeed,
+                    0f,
+                    ballisticMaximumDamage);
+            }
+            ballisticDirection = direction;
+            ballisticAttackExpiresAt = Time.time + ballisticAttackDuration;
+            ballisticAttackActive = true;
+            body.WakeUp();
         }
 
         public void ConfigureAutoThrow(
@@ -271,10 +355,42 @@ namespace KickTheBuddy.Gameplay
             Vector2 point = collision.contactCount > 0 ? collision.GetContact(0).point :
                 (body != null ? body.worldCenterOfMass : (Vector2)transform.position);
             Impacted?.Invoke(this, target, speed, point);
+            TryApplyBallisticRagdollImpact(target, point);
             if (kind == SandboxToolKind.Jelly)
             {
                 ApplySquash();
                 TryStickTo(target, point, speed);
+            }
+        }
+
+        private void TryApplyBallisticRagdollImpact(Rigidbody2D hitBody, Vector2 point)
+        {
+            if (!ballisticAttackActive || Time.time > ballisticAttackExpiresAt)
+            {
+                ballisticAttackActive = false;
+                return;
+            }
+            if (hitBody == null || hitBody.GetComponent<RagdollPartHealth>() == null) return;
+
+            RagdollController ragdoll = hitBody.GetComponentInParent<RagdollController>();
+            if (ragdoll == null) return;
+            ballisticAttackActive = false;
+
+            Vector2 direction = ballisticDirection.sqrMagnitude > .0001f
+                ? ballisticDirection.normalized
+                : body != null && body.velocity.sqrMagnitude > .0001f
+                    ? body.velocity.normalized
+                    : Vector2.up;
+            hitBody.AddForceAtPosition(direction * ballisticImpactImpulse, point, ForceMode2D.Impulse);
+
+            for (int i = 0; i < ragdoll.Parts.Count; i++)
+            {
+                RagdollController.RagdollPart part = ragdoll.Parts[i];
+                if (part?.Body == null) continue;
+                part.Body.AddForce(
+                    direction * part.Body.mass * ballisticWholeBodyVelocityChange,
+                    ForceMode2D.Impulse);
+                part.Body.WakeUp();
             }
         }
 
@@ -322,8 +438,17 @@ namespace KickTheBuddy.Gameplay
             targetSmoothTime = Mathf.Clamp(targetSmoothTime, .01f, .2f);
             maximumTargetSpeed = Mathf.Max(1f, maximumTargetSpeed);
             tapThrowImpulse = Mathf.Max(0f, tapThrowImpulse);
+            minimumReleaseThrowImpulse = Mathf.Max(0f, minimumReleaseThrowImpulse);
             tapThrowUpwardBias = Mathf.Clamp(tapThrowUpwardBias, -1f, 1f);
             tapThrowSpin = Mathf.Max(0f, tapThrowSpin);
+            ballisticImpactImpulse = Mathf.Max(0f, ballisticImpactImpulse);
+            ballisticWholeBodyVelocityChange = Mathf.Max(0f, ballisticWholeBodyVelocityChange);
+            ballisticAttackDuration = Mathf.Max(.1f, ballisticAttackDuration);
+            minimumBallisticSpeed = Mathf.Max(1f, minimumBallisticSpeed);
+            maximumBallisticSpeed = Mathf.Max(minimumBallisticSpeed, maximumBallisticSpeed);
+            ballisticBaseDamage = Mathf.Max(0f, ballisticBaseDamage);
+            ballisticDamagePerSpeed = Mathf.Max(0f, ballisticDamagePerSpeed);
+            ballisticMaximumDamage = Mathf.Max(ballisticBaseDamage, ballisticMaximumDamage);
             minimumStickSpeed = Mathf.Max(0f, minimumStickSpeed);
             stickDuration = Mathf.Max(0f, stickDuration);
             reattachCooldown = Mathf.Max(0f, reattachCooldown);

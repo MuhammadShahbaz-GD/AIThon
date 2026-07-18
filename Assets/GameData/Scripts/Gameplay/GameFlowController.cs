@@ -88,14 +88,15 @@ namespace KickTheBuddy.Gameplay
         public void PlayNextLevel()
         {
             if (!initialized || transitionInProgress) return;
-            int nextLevelIndex = levels.CurrentLevelIndex + 1;
-            if (nextLevelIndex < levels.Count && levels.IsUnlocked(nextLevelIndex))
+            if (levels.Count <= 0) return;
+            int nextLevelIndex = (levels.CurrentLevelIndex + 1) % levels.Count;
+            if (levels.IsUnlocked(nextLevelIndex))
             {
                 PlayLevel(nextLevelIndex);
                 return;
             }
 
-            ShowMainMenu();
+            ReloadCurrentLevel();
         }
 
         /// <summary>Reloads the one gameplay scene so retry starts from pristine authored physics state.</summary>

@@ -99,10 +99,12 @@ namespace KickTheBuddy.Gameplay
         [Min(.05f)] [SerializeField] private float holdDelay = .28f;
         [Tooltip("Automatic-fire request interval while a cannon remains held.")]
         [Min(.03f)] [SerializeField] private float holdFireInterval = .11f;
-        [Tooltip("Bounds buffered taps to the fixed projectile pool; no tap can create a runtime object.")]
-        [Range(1, 12)] [SerializeField] private int maximumQueuedShots = 12;
+        [Tooltip("Bounds input buffered between physics ticks. Projectiles are recycled, so this is not an ammo limit.")]
+        [Range(1, 64)] [SerializeField] private int maximumQueuedShots = 64;
 
         [Header("Projectile Feel")]
+        [Tooltip("When enabled, each cannon targets every valid ragdoll limb once in randomized order, then reshuffles.")]
+        [SerializeField] private bool randomLimbAimLoop = true;
         [Min(1f)] [SerializeField] private float projectileSpeed = 14.5f;
         [Min(.25f)] [SerializeField] private float projectileLifetime = 3f;
         [Range(0f, .6f)] [SerializeField] private float targetLeadTime = .18f;
@@ -122,7 +124,6 @@ namespace KickTheBuddy.Gameplay
         [Min(.1f)] [SerializeField] private float recoilRecoverySpeed = 13f;
         [Range(0f, .3f)] [SerializeField] private float tutorialPulseAmount = .13f;
         [Min(.1f)] [SerializeField] private float tutorialPulseSpeed = 4.5f;
-        [SerializeField] private bool useOpeningTutorial = true;
 
         private CandyCannonTutorialPhase tutorialPhase;
         private const int NoPointer = int.MinValue;
@@ -134,7 +135,9 @@ namespace KickTheBuddy.Gameplay
         private int pendingLeftShots;
         private int pendingRightShots;
         private bool preferLeftShot = true;
-        private bool tutorialProjectileInFlight;
+        private int[] randomizedAimIndices = Array.Empty<int>();
+        private int randomizedAimCursor;
+        private int lastAimIndex = -1;
 
         public bool InputEnabled => inputEnabled;
         public CandyCannonTutorialPhase TutorialPhase => tutorialPhase;
@@ -164,6 +167,7 @@ namespace KickTheBuddy.Gameplay
             leftCannon?.CachePresentation();
             rightCannon?.CachePresentation();
             ConfigureProjectileInputExclusion();
+            RebuildRandomAimLoop();
             ResetCannons();
         }
 
@@ -231,7 +235,6 @@ namespace KickTheBuddy.Gameplay
                 CandyCannonSide side = slot.Side;
                 RecycleProjectile(slot);
                 if (!missed) continue;
-                if (tutorialPhase != CandyCannonTutorialPhase.FreePlay) tutorialProjectileInFlight = false;
                 ProjectileMissed?.Invoke(side);
             }
         }
@@ -249,18 +252,17 @@ namespace KickTheBuddy.Gameplay
         public void ResetCannons()
         {
             pendingLeftShots = pendingRightShots = 0;
-            tutorialProjectileInFlight = false;
             preferLeftShot = true;
             ClearHeldPointers();
             nextGlobalFireTime = 0f;
             completedShotCount = 0;
+            RebuildRandomAimLoop();
             LastImpactImpulse = 0f;
             ResetCannon(leftCannon);
             ResetCannon(rightCannon);
             RecycleAllProjectiles();
-            SetTutorialPhase(useOpeningTutorial
-                ? CandyCannonTutorialPhase.AwaitingLeftHit
-                : CandyCannonTutorialPhase.FreePlay);
+            // Cannons are always available. Tutorial presentation must never gate firing.
+            SetTutorialPhase(CandyCannonTutorialPhase.FreePlay);
         }
 
         /// <summary>
@@ -269,19 +271,14 @@ namespace KickTheBuddy.Gameplay
         /// </summary>
         public bool RequestFire(CandyCannonSide side)
         {
-            if (!inputEnabled || tutorialProjectileInFlight) return false;
+            if (!inputEnabled) return false;
             CannonSlot cannon = side == CandyCannonSide.Left ? leftCannon : rightCannon;
             if (cannon == null || cannon.Muzzle == null) return false;
-            if (tutorialPhase == CandyCannonTutorialPhase.AwaitingLeftHit && side != CandyCannonSide.Left)
-                return false;
-            if (tutorialPhase == CandyCannonTutorialPhase.AwaitingRightHit && side != CandyCannonSide.Right)
-                return false;
             int queued = pendingLeftShots + pendingRightShots;
-            if (queued >= maximumQueuedShots || queued >= CountAvailableProjectiles()) return false;
+            if (queued >= maximumQueuedShots) return false;
 
             if (side == CandyCannonSide.Left) pendingLeftShots++;
             else pendingRightShots++;
-            tutorialProjectileInFlight = tutorialPhase != CandyCannonTutorialPhase.FreePlay;
             return true;
         }
 
@@ -369,7 +366,9 @@ namespace KickTheBuddy.Gameplay
 
         private void ProcessPendingShots()
         {
-            if (Time.time < nextGlobalFireTime || FindAvailableProjectile() == null) return;
+            if (Time.time < nextGlobalFireTime) return;
+            if (FindAvailableProjectile() == null) RecycleOldestProjectile();
+            if (FindAvailableProjectile() == null) return;
             bool leftReady = pendingLeftShots > 0 && leftCannon != null &&
                              Time.time >= leftCannon.NextFireTime;
             bool rightReady = pendingRightShots > 0 && rightCannon != null &&
@@ -386,23 +385,46 @@ namespace KickTheBuddy.Gameplay
             preferLeftShot = !fireLeft;
         }
 
+        private void RecycleOldestProjectile()
+        {
+            ProjectileSlot oldest = null;
+            float leastRemainingLifetime = float.PositiveInfinity;
+            for (int i = 0; i < projectilePool.Length; i++)
+            {
+                ProjectileSlot candidate = projectilePool[i];
+                if (candidate == null || !candidate.Active || candidate.Body == null) continue;
+                if (candidate.RemainingLifetime >= leastRemainingLifetime) continue;
+                oldest = candidate;
+                leastRemainingLifetime = candidate.RemainingLifetime;
+            }
+            if (oldest != null) RecycleProjectile(oldest);
+        }
+
         private void Launch(CannonSlot cannon)
         {
             ProjectileSlot projectile = FindAvailableProjectile();
             if (projectile == null || cannon?.Muzzle == null)
             {
-                tutorialProjectileInFlight = false;
                 return;
             }
 
             Vector2 origin = cannon.Muzzle.position;
             Vector3 localForward = cannon.Side == CandyCannonSide.Left ? Vector3.right : Vector3.left;
             Vector2 direction = cannon.Muzzle.TransformDirection(localForward).normalized;
+            Rigidbody2D targetBody = randomLimbAimLoop ? ResolveAimBody() : null;
+            if (targetBody != null)
+            {
+                Vector2 predictedTarget = targetBody.worldCenterOfMass +
+                                          targetBody.velocity * targetLeadTime;
+                Vector2 aimedDirection = predictedTarget - origin;
+                if (aimedDirection.sqrMagnitude > .0001f)
+                    direction = aimedDirection.normalized;
+            }
 
             bool charged = ragdoll != null && ragdoll.MaximumHealth > 0f &&
                            ragdoll.CurrentHealth / ragdoll.MaximumHealth <= chargedHealthRatio;
             float speed = projectileSpeed * (charged ? chargedSpeedMultiplier : 1f);
-            ActivateProjectile(projectile, cannon.Side, null, origin, direction, speed, charged);
+            ActivateProjectile(projectile, cannon.Side, targetBody, origin, direction, speed, charged);
             PlayCannonPresentation(cannon, direction, origin, charged);
             CannonFired?.Invoke(cannon.Side, origin, direction * speed, charged);
         }
@@ -461,15 +483,49 @@ namespace KickTheBuddy.Gameplay
         private Rigidbody2D ResolveAimBody()
         {
             if (aimBodies == null || aimBodies.Length == 0) return null;
-            if (tutorialPhase == CandyCannonTutorialPhase.AwaitingLeftHit ||
-                tutorialPhase == CandyCannonTutorialPhase.AwaitingRightHit) return aimBodies[0];
+            if (randomizedAimIndices.Length != aimBodies.Length) RebuildRandomAimLoop();
 
-            // Torso and head receive more shots; limbs still build local crack stages.
-            int pattern = completedShotCount % 10;
-            int index = pattern <= 2 ? 0 :
-                pattern <= 5 ? Mathf.Min(1, aimBodies.Length - 1) :
-                2 + (pattern - 6) % Mathf.Max(1, aimBodies.Length - 2);
-            return aimBodies[Mathf.Clamp(index, 0, aimBodies.Length - 1)];
+            for (int attempt = 0; attempt < aimBodies.Length; attempt++)
+            {
+                if (randomizedAimCursor >= randomizedAimIndices.Length)
+                    ShuffleRandomAimLoop();
+                int index = randomizedAimIndices[randomizedAimCursor++];
+                Rigidbody2D candidate = aimBodies[index];
+                if (candidate == null || !candidate.simulated) continue;
+                lastAimIndex = index;
+                return candidate;
+            }
+            return null;
+        }
+
+        private void RebuildRandomAimLoop()
+        {
+            int count = aimBodies != null ? aimBodies.Length : 0;
+            if (randomizedAimIndices.Length != count)
+                randomizedAimIndices = new int[count];
+            for (int i = 0; i < count; i++) randomizedAimIndices[i] = i;
+            randomizedAimCursor = count;
+            if (count > 0) ShuffleRandomAimLoop();
+        }
+
+        private void ShuffleRandomAimLoop()
+        {
+            for (int i = randomizedAimIndices.Length - 1; i > 0; i--)
+            {
+                int swapIndex = UnityEngine.Random.Range(0, i + 1);
+                int value = randomizedAimIndices[i];
+                randomizedAimIndices[i] = randomizedAimIndices[swapIndex];
+                randomizedAimIndices[swapIndex] = value;
+            }
+
+            // Avoid targeting the same limb across a shuffle boundary when alternatives exist.
+            if (randomizedAimIndices.Length > 1 && randomizedAimIndices[0] == lastAimIndex)
+            {
+                int value = randomizedAimIndices[0];
+                randomizedAimIndices[0] = randomizedAimIndices[1];
+                randomizedAimIndices[1] = value;
+            }
+            randomizedAimCursor = 0;
         }
 
         private void HandleDamageDealt(RagdollAttackManager2D attack, Rigidbody2D body,
@@ -480,7 +536,6 @@ namespace KickTheBuddy.Gameplay
             ApplyProjectileImpact(projectile, body, speed, point);
             projectile.RecycleRequested = true;
             completedShotCount++;
-            tutorialProjectileInFlight = false;
             ProjectileHit?.Invoke(projectile.Side, body, damage, point);
             if (tutorialPhase == CandyCannonTutorialPhase.AwaitingLeftHit &&
                 projectile.Side == CandyCannonSide.Left)
@@ -537,15 +592,6 @@ namespace KickTheBuddy.Gameplay
                 if (projectilePool[i] != null && !projectilePool[i].Active &&
                     projectilePool[i].Body != null) return projectilePool[i];
             return null;
-        }
-
-        private int CountAvailableProjectiles()
-        {
-            int count = 0;
-            for (int i = 0; i < projectilePool.Length; i++)
-                if (projectilePool[i] != null && !projectilePool[i].Active &&
-                    projectilePool[i].Body != null) count++;
-            return count;
         }
 
         private ProjectileSlot FindProjectile(RagdollAttackManager2D attack)

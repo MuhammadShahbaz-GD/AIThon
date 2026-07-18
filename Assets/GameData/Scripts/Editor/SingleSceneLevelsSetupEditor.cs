@@ -433,6 +433,7 @@ namespace KickTheBuddy.Editor
             lollipop.Body.angularVelocity = 0f;
             jelly.Body.velocity = Vector2.zero;
             jelly.Body.angularVelocity = 0f;
+            ConfigureActiveLevelTwoToolMechanics(lollipop, jelly, ragdoll);
 
             RagdollAnimationController animation = ragdoll.GetComponent<RagdollAnimationController>();
             JellyContactVFXController[] liquidControllers = toolsRoot.GetComponentsInChildren<JellyContactVFXController>(true);
@@ -448,6 +449,77 @@ namespace KickTheBuddy.Editor
                 liquid.ApplyModifiedPropertiesWithoutUndo();
                 EditorUtility.SetDirty(liquidControllers[i]);
             }
+        }
+
+        [MenuItem("Tools/Game/Apply Active Level 2 Tool Mechanics")]
+        public static void ApplyActiveLevelTwoToolMechanics()
+        {
+            Scene scene = EditorSceneManager.OpenScene(GameplayScenePath, OpenSceneMode.Single);
+            Transform levels = FindRoot(scene, LevelsRootName)?.transform;
+            Transform levelTwo = levels != null ? FindDirectChild(levels, LevelTwoRootName) : null;
+            SandboxToolInput2D input = levelTwo != null
+                ? levelTwo.GetComponentInChildren<SandboxToolInput2D>(true)
+                : null;
+            RagdollController ragdoll = FindAuthoredRagdoll(scene);
+            SandboxTool2D lollipop = FindTool(input, SandboxToolKind.Lollipop);
+            SandboxTool2D jelly = FindTool(input, SandboxToolKind.Jelly);
+            if (input == null || ragdoll == null || lollipop == null || jelly == null)
+                throw new InvalidOperationException("Active Level 02 tool or ragdoll references are incomplete.");
+
+            ConfigureActiveLevelTwoToolMechanics(lollipop, jelly, ragdoll);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log("ACTIVE_LEVEL_2_TOOL_MECHANICS_OK: release throws, lollipop melee targeting, and ballistic ragdoll impact are authored.");
+        }
+
+        private static void ConfigureActiveLevelTwoToolMechanics(
+            SandboxTool2D lollipop,
+            SandboxTool2D jelly,
+            RagdollController ragdoll)
+        {
+            Transform target = ragdoll.transform;
+            for (int i = 0; i < ragdoll.Parts.Count; i++)
+            {
+                RagdollController.RagdollPart part = ragdoll.Parts[i];
+                if (part != null && part.PartType == RagdollPartType.Torso && part.Body != null)
+                {
+                    target = part.Body.transform;
+                    break;
+                }
+            }
+
+            Transform grip = lollipop.transform.Find("Base Grip");
+            if (grip == null)
+            {
+                GameObject gripObject = new GameObject("Base Grip");
+                grip = gripObject.transform;
+                grip.SetParent(lollipop.transform, false);
+            }
+            grip.localPosition = new Vector3(0f, -1.2f, 0f);
+
+            SerializedObject lollipopData = new SerializedObject(lollipop);
+            lollipopData.FindProperty("dragGrip").objectReferenceValue = grip;
+            lollipopData.ApplyModifiedPropertiesWithoutUndo();
+            lollipop.ConfigureAutoThrow(null, 0f);
+
+            SandboxMeleeTool2D melee = lollipop.GetComponent<SandboxMeleeTool2D>();
+            if (melee == null) melee = lollipop.gameObject.AddComponent<SandboxMeleeTool2D>();
+            SerializedObject meleeData = new SerializedObject(melee);
+            meleeData.FindProperty("tool").objectReferenceValue = lollipop;
+            meleeData.FindProperty("body").objectReferenceValue = lollipop.Body;
+            meleeData.FindProperty("attackTarget").objectReferenceValue = target;
+            meleeData.FindProperty("localTipAxis").vector2Value = Vector2.up;
+            meleeData.FindProperty("enableBeatingAnimation").boolValue = false;
+            meleeData.FindProperty("strikesPerSecond").floatValue = 2.25f;
+            meleeData.FindProperty("releaseThrowImpulse").floatValue = 30f;
+            meleeData.FindProperty("releaseUpwardBias").floatValue = .18f;
+            meleeData.FindProperty("releaseSpin").floatValue = 0f;
+            meleeData.ApplyModifiedPropertiesWithoutUndo();
+
+            jelly.ConfigureAutoThrow(target, 24f, .16f, 0f);
+            EditorUtility.SetDirty(lollipop);
+            EditorUtility.SetDirty(jelly);
+            EditorUtility.SetDirty(melee);
         }
 
         private static RagdollAttackManager2D[] ConfigureSharedRoomPreview(GameObject sharedRoom,

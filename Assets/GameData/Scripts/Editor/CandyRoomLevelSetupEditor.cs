@@ -462,6 +462,7 @@ namespace KickTheBuddy.Editor
             data.FindProperty("body").objectReferenceValue = tool.Body;
             data.FindProperty("attackTarget").objectReferenceValue = target;
             data.FindProperty("localTipAxis").vector2Value = tipAxis;
+            data.FindProperty("enableBeatingAnimation").boolValue = false;
             data.FindProperty("strikesPerSecond").floatValue = strikesPerSecond;
             data.FindProperty("windUpAngle").floatValue = 30f;
             data.FindProperty("followThroughAngle").floatValue = 30f;

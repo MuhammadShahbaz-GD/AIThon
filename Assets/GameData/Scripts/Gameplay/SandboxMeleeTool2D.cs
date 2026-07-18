@@ -24,6 +24,8 @@ namespace KickTheBuddy.Gameplay
         [SerializeField, Range(-180f, 180f)] private float aimOffsetDegrees;
 
         [Header("Beating Animation")]
+        [Tooltip("Disabled keeps the tool fully physics-driven while held. Release throwing still works.")]
+        [SerializeField] private bool enableBeatingAnimation;
         [Min(.25f)] [SerializeField] private float strikesPerSecond = 2.25f;
         [Tooltip("Maximum readable rotation on either side of the aim direction.")]
         [Range(5f, 60f)] [SerializeField] private float windUpAngle = 30f;
@@ -33,6 +35,18 @@ namespace KickTheBuddy.Gameplay
         [Min(0f)] [SerializeField] private float rotationDamping = 2.2f;
         [Min(1f)] [SerializeField] private float maximumTorque = 220f;
         [Min(30f)] [SerializeField] private float maximumAngularSpeed = 720f;
+        [Tooltip("Minimum driven rotation while the tool is meaningfully away from its current swing target.")]
+        [Min(0f)] [SerializeField] private float minimumSwingSpeed = 180f;
+        [Tooltip("How quickly the swing motor recovers its requested speed after ragdoll contacts slow it down.")]
+        [Min(30f)] [SerializeField] private float angularAcceleration = 3600f;
+        [Tooltip("Angles inside this tolerance are allowed to settle without anti-stall drive.")]
+        [Range(.1f, 5f)] [SerializeField] private float settledAngle = 1.5f;
+
+        [Header("Release Throw")]
+        [Tooltip("Ballistic impulse applied toward the ragdoll when this melee tool is released.")]
+        [Min(1f)] [SerializeField] private float releaseThrowImpulse = 26f;
+        [Range(-1f, 1f)] [SerializeField] private float releaseUpwardBias = .18f;
+        [Min(0f)] [SerializeField] private float releaseSpin = 720f;
 
         private bool swinging;
         private float swingStartedAt;
@@ -71,7 +85,7 @@ namespace KickTheBuddy.Gameplay
 
         private void FixedUpdate()
         {
-            if (!swinging || tool == null || !tool.IsDragging || body == null) return;
+            if (!enableBeatingAnimation || !swinging || tool == null || !tool.IsDragging || body == null) return;
 
             float elapsed = Mathf.Max(0f, Time.fixedTime - swingStartedAt);
             float cyclePosition = elapsed * strikesPerSecond;
@@ -94,12 +108,25 @@ namespace KickTheBuddy.Gameplay
                              aimOffsetDegrees;
             float swingOffset = ResolveSwingOffset(phase);
             float error = Mathf.DeltaAngle(body.rotation, aimAngle + swingOffset);
+
+            // Torque alone can be completely cancelled when a long tool is touching several
+            // ragdoll colliders. Keep the physical torque response, then servo angular velocity
+            // toward the active swing target so every recovery and strike can escape contact.
             float torque = Mathf.Clamp(
                 error * rotationDrive - body.angularVelocity * rotationDamping,
                 -maximumTorque,
                 maximumTorque);
             body.AddTorque(torque, ForceMode2D.Force);
+
+            float requestedSpeed = Mathf.Clamp(error * rotationDrive, -maximumAngularSpeed, maximumAngularSpeed);
+            if (Mathf.Abs(error) > settledAngle && Mathf.Abs(requestedSpeed) < minimumSwingSpeed)
+                requestedSpeed = Mathf.Sign(error) * minimumSwingSpeed;
+            body.angularVelocity = Mathf.MoveTowards(
+                body.angularVelocity,
+                requestedSpeed,
+                angularAcceleration * Time.fixedDeltaTime);
             body.angularVelocity = Mathf.Clamp(body.angularVelocity, -maximumAngularSpeed, maximumAngularSpeed);
+            body.WakeUp();
         }
 
         private float ResolveSwingOffset(float phase)
@@ -118,7 +145,7 @@ namespace KickTheBuddy.Gameplay
 
         private void HandleGrabbed(SandboxTool2D selected, Vector2 point)
         {
-            if (selected != tool) return;
+            if (selected != tool || !enableBeatingAnimation) return;
             swinging = true;
             swingStartedAt = Time.fixedTime;
             lastStrikeCycle = -1;
@@ -128,7 +155,10 @@ namespace KickTheBuddy.Gameplay
 
         private void HandleReleased(SandboxTool2D selected, Vector2 point)
         {
-            if (selected == tool) StopSwing();
+            if (selected != tool) return;
+            StopSwing();
+            if (!tool.ThrewOnLastRelease)
+                tool.ThrowAt(attackTarget, releaseThrowImpulse, releaseUpwardBias, releaseSpin);
         }
 
         private void StopSwing()
@@ -150,6 +180,12 @@ namespace KickTheBuddy.Gameplay
             rotationDamping = Mathf.Max(0f, rotationDamping);
             maximumTorque = Mathf.Max(1f, maximumTorque);
             maximumAngularSpeed = Mathf.Max(30f, maximumAngularSpeed);
+            minimumSwingSpeed = Mathf.Clamp(minimumSwingSpeed, 0f, maximumAngularSpeed);
+            angularAcceleration = Mathf.Max(30f, angularAcceleration);
+            settledAngle = Mathf.Clamp(settledAngle, .1f, 5f);
+            releaseThrowImpulse = Mathf.Max(1f, releaseThrowImpulse);
+            releaseUpwardBias = Mathf.Clamp(releaseUpwardBias, -1f, 1f);
+            releaseSpin = Mathf.Max(0f, releaseSpin);
         }
     }
 }

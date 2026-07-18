@@ -60,6 +60,7 @@ namespace KickTheBuddy.Physics
         private float nativeLength = 1f;
         private float lastDistance = -1f;
         private bool initialized;
+        private bool presentationSuppressed;
 
         public event Action<ElasticityController2D, float, float> ConnectionChanged;
         public event Action<ElasticityController2D, bool> VisibilityChanged;
@@ -91,7 +92,23 @@ namespace KickTheBuddy.Physics
         private void LateUpdate()
         {
             if (!initialized) return;
+            if (presentationSuppressed)
+            {
+                SetRendererVisible(false);
+                return;
+            }
             UpdateConnection(Application.isPlaying && followSmoothness > 0f);
+        }
+
+        public void SetPresentationActive(bool active)
+        {
+            presentationSuppressed = !active;
+            if (!active)
+            {
+                SetRendererVisible(false);
+                return;
+            }
+            SnapToConnection();
         }
 
         /// <summary>Assigns both endpoints and immediately updates the connector.</summary>
