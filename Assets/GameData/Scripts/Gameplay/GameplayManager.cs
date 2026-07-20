@@ -21,6 +21,7 @@ namespace KickTheBuddy.Gameplay
         private SandboxToolInput2D sandboxToolInput;
         private CandyCannonController2D candyCannons;
         private LevelFourPipeController2D levelFourPipes;
+        private HydroicPress hydraulicPress;
         private float damage;
         private int score;
         private bool subscribed;
@@ -67,6 +68,7 @@ namespace KickTheBuddy.Gameplay
             candyCannons?.SetInputEnabled(true);
             levelFourPipes?.ResetController();
             levelFourPipes?.SetInputEnabled(true);
+            SetHydraulicPressInput(true);
             damage = 0f;
             score = 0;
             Time.timeScale = 1f;
@@ -83,6 +85,7 @@ namespace KickTheBuddy.Gameplay
             sandboxToolInput?.SetInputEnabled(false);
             candyCannons?.SetInputEnabled(false);
             levelFourPipes?.SetInputEnabled(false);
+            SetHydraulicPressInput(false);
             UnbindRagdoll();
             Time.timeScale = 1f;
             ChangeState(GameplayState.Loading);
@@ -95,6 +98,7 @@ namespace KickTheBuddy.Gameplay
             sandboxToolInput?.SetInputEnabled(false);
             candyCannons?.SetInputEnabled(false);
             levelFourPipes?.SetInputEnabled(false);
+            SetHydraulicPressInput(false);
             UnbindRagdoll();
             Time.timeScale = 1f;
             sounds?.PlayMusic(false);
@@ -119,6 +123,7 @@ namespace KickTheBuddy.Gameplay
             sandboxToolInput?.SetInputEnabled(false);
             candyCannons?.CompleteInteraction();
             levelFourPipes?.SetInputEnabled(false);
+            SetHydraulicPressInput(false);
             LevelDefinition level = levels.CurrentLevel;
             int stars = level.GetStars(score);
             saves.RecordLevel(level.LevelId, score, stars, level.CompletionCoins, levels.CurrentLevelIndex);
@@ -133,6 +138,7 @@ namespace KickTheBuddy.Gameplay
             sandboxToolInput?.SetInputEnabled(false);
             candyCannons?.CompleteInteraction();
             levelFourPipes?.SetInputEnabled(false);
+            SetHydraulicPressInput(false);
             ChangeState(GameplayState.LevelFailed);
             LevelFailed?.Invoke();
         }
@@ -159,6 +165,7 @@ namespace KickTheBuddy.Gameplay
             sandboxToolInput = sceneLevels.ActiveSandboxToolInput;
             candyCannons = sceneLevels.ActiveCandyCannons;
             levelFourPipes = sceneLevels.ActiveLevelFourPipes;
+            hydraulicPress = sceneLevels.ActiveHydraulicPress;
             GameplayAudioController gameplayAudio = ragdoll != null
                 ? ragdoll.GetComponent<GameplayAudioController>()
                 : null;
@@ -207,6 +214,7 @@ namespace KickTheBuddy.Gameplay
             sandboxToolInput?.SetInputEnabled(false);
             candyCannons?.CompleteInteraction();
             levelFourPipes?.SetInputEnabled(false);
+            SetHydraulicPressInput(false);
             deathCompletion = StartCoroutine(CompleteAfterDeath());
         }
 
@@ -243,11 +251,18 @@ namespace KickTheBuddy.Gameplay
             sandboxToolInput?.SetInputEnabled(false);
             candyCannons?.SetInputEnabled(false);
             levelFourPipes?.SetInputEnabled(false);
+            SetHydraulicPressInput(false);
             ragdoll = null;
             ragdollInput = null;
             sandboxToolInput = null;
             candyCannons = null;
             levelFourPipes = null;
+            hydraulicPress = null;
+        }
+
+        private void SetHydraulicPressInput(bool value)
+        {
+            if (hydraulicPress != null) hydraulicPress.SetInputEnabled(value);
         }
 
         private void StopDeathCompletion()

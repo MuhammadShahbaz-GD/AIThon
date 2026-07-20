@@ -23,6 +23,7 @@ namespace KickTheBuddy.Gameplay
             [SerializeField] private SandboxToolInput2D sandboxToolInput;
             [SerializeField] private CandyCannonController2D candyCannons;
             [SerializeField] private LevelFourPipeController2D levelFourPipes;
+            [SerializeField] private HydroicPress hydraulicPress;
 
             public string LevelId => levelId;
             public GameObject Root => root;
@@ -31,6 +32,7 @@ namespace KickTheBuddy.Gameplay
             public SandboxToolInput2D SandboxToolInput => sandboxToolInput;
             public CandyCannonController2D CandyCannons => candyCannons;
             public LevelFourPipeController2D LevelFourPipes => levelFourPipes;
+            public HydroicPress HydraulicPress => hydraulicPress;
         }
 
         [Tooltip("Entries must match the Level Catalog order. Their roots must be direct children of this Levels object.")]
@@ -60,6 +62,8 @@ namespace KickTheBuddy.Gameplay
             activeContent != null ? activeContent.CandyCannons : null;
         public LevelFourPipeController2D ActiveLevelFourPipes =>
             activeContent != null ? activeContent.LevelFourPipes : null;
+        public HydroicPress ActiveHydraulicPress =>
+            activeContent != null ? activeContent.HydraulicPress : null;
         public GameObject SharedRoom => sharedRoom;
         public IReadOnlyList<RagdollAttackManager2D> SharedRoomAttacks => sharedRoomAttacks;
         public int LevelCount => levels.Length;
@@ -117,6 +121,7 @@ namespace KickTheBuddy.Gameplay
             selectedContent.SandboxToolInput?.SetInputEnabled(false);
             selectedContent.CandyCannons?.SetInputEnabled(false);
             selectedContent.LevelFourPipes?.SetInputEnabled(false);
+            selectedContent.HydraulicPress?.SetInputEnabled(false);
             if (!ConfigureSharedRoom(definition))
             {
                 DisableAllLevels();
@@ -203,6 +208,7 @@ namespace KickTheBuddy.Gameplay
                 content.SandboxToolInput?.SetInputEnabled(false);
                 content.CandyCannons?.SetInputEnabled(false);
                 content.LevelFourPipes?.SetInputEnabled(false);
+                content.HydraulicPress?.SetInputEnabled(false);
                 if (content.Root != null) content.Root.SetActive(false);
             }
             if (sharedRoom != null) sharedRoom.SetActive(false);
